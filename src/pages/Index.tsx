@@ -16,14 +16,15 @@ const Index = () => {
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user, loading: userLoading } = useSession();
+  const [dataLoading, setDataLoading] = useState(true); // Renamed for clarity
+  const { user, loading: userSessionLoading } = useSession(); // Renamed for clarity
   const { role, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setDataLoading(true);
+      console.log('Index.tsx: Starting fetchData. userSessionLoading:', userSessionLoading, 'user:', user);
       try {
         // Fetch phases
         const { data: phasesData, error: phasesError } = await supabase
@@ -32,36 +33,46 @@ const Index = () => {
           .order('order_index', { ascending: true });
         if (phasesError) throw phasesError;
         setPhases(phasesData || []);
+        console.log('Index.tsx: Phases fetched:', phasesData?.length);
 
         // Fetch all lessons to calculate overall progress
         const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
-          .select('id, module_id, order_index'); // Only need ID and order for progress calculation
+          .select('id, module_id, order_index');
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
+        console.log('Index.tsx: Lessons fetched:', lessonsData?.length);
 
         // Fetch student progress if user is logged in
         if (user) {
+          console.log('Index.tsx: Fetching student progress for user:', user.id);
           const { data: progressData, error: progressError } = await supabase
             .from('student_progress')
             .select('*')
             .eq('user_id', user.id);
           if (progressError) throw progressError;
           setStudentProgress(progressData || []);
+          console.log('Index.tsx: Student progress fetched:', progressData?.length);
+        } else {
+          console.log('Index.tsx: User not logged in, skipping student progress fetch.');
         }
 
       } catch (error: any) {
         showError(`Failed to load curriculum: ${error.message}`);
-        console.error('Error fetching curriculum data:', error);
+        console.error('Index.tsx: Error fetching curriculum data:', error);
       } finally {
-        setLoading(false);
+        setDataLoading(false);
+        console.log('Index.tsx: fetchData completed, dataLoading set to false.');
       }
     };
 
-    if (!userLoading) {
+    if (!userSessionLoading) { // Only fetch data once user session loading is complete
+      console.log('Index.tsx: userSessionLoading is false, calling fetchData.');
       fetchData();
+    } else {
+      console.log('Index.tsx: userSessionLoading is true, waiting for session context.');
     }
-  }, [user, userLoading]);
+  }, [user, userSessionLoading]);
 
   const totalLessons = allLessons.length;
   const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
@@ -73,17 +84,15 @@ const Index = () => {
       return;
     }
 
-    // Find the first incomplete lesson
     const completedLessonIds = new Set(studentProgress.filter(p => p.status === 'completed').map(p => p.lesson_id));
     const firstIncompleteLesson = allLessons
-      .sort((a, b) => a.order_index - b.order_index) // Sort by order_index
+      .sort((a, b) => a.order_index - b.order_index)
       .find(lesson => !completedLessonIds.has(lesson.id));
 
     if (firstIncompleteLesson) {
       navigate(`/lessons/${firstIncompleteLesson.id}`);
     } else {
       showSuccess("You've completed all lessons! Congratulations!");
-      // Optionally navigate to a completion page or dashboard
     }
   };
 
@@ -97,7 +106,12 @@ const Index = () => {
           This platform provides a detailed guide for building the Axum Education Platform.
         </p>
 
-        {!userLoading && user ? (
+        {userSessionLoading ? (
+          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
+            <p className="text-lg text-muted-foreground mb-4">Loading user session...</p>
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : user ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
             <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
             <div className="flex items-center gap-4">
@@ -114,24 +128,22 @@ const Index = () => {
             )}
           </div>
         ) : (
-          !userLoading && (
-            <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
-              <p className="text-lg text-muted-foreground mb-4">
-                Please <Link to="/login" className="text-blue-500 hover:underline">sign in</Link> to track your progress and access full features.
-              </p>
-              <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
-                Go to Login
-              </Button>
-            </div>
-          )
+          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
+            <p className="text-lg text-muted-foreground mb-4">
+              Please <Link to="/login" className="text-blue-500 hover:underline">sign in</Link> to track your progress and access full features.
+            </p>
+            <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
+              Go to Login
+            </Button>
+          </div>
         )}
 
-        {loading ? (
-          <BentoGrid className="w-full max-w-6xl mx-auto">
+        {dataLoading ? (
+          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="h-64 md:col-span-2" />
             ))}
-          </BentoGrid>
+          </div>
         ) : (
           <BentoGrid className="w-full max-w-6xl mx-auto">
             {phases.map((phase) => (
