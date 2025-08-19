@@ -4,6 +4,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AxumLogo from '@/components/AxumLogo';
+import { Toaster } from '@/components/ui/sonner'; // Import Toaster for displaying errors
 
 const Login: React.FC = () => {
   return (
@@ -80,6 +81,7 @@ const Login: React.FC = () => {
           />
         </CardContent>
       </Card>
+      <Toaster /> {/* Add Toaster here */}
     </div>
   );
 };
