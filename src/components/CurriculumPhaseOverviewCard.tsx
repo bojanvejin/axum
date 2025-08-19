@@ -13,7 +13,7 @@ interface CurriculumPhaseOverviewCardProps {
   studentProgress: StudentProgress[];
 }
 
-const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardCardProps> = ({ phase, modules, allLessons, studentProgress }) => {
+const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress }) => {
   const { user } = useSession();
 
   const getModuleProgress = (moduleId: string) => {
