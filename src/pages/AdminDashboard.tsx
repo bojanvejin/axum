@@ -49,6 +49,15 @@ const AdminDashboard: React.FC = () => {
           </Card>
           <Card>
             <CardHeader>
+              <CardTitle>Manage Quizzes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">Create and manage quizzes and their questions.</p>
+              <Link to="/admin/curriculum/quizzes" className="text-blue-500 hover:underline mt-4 block">Go to Quiz Management</Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <CardTitle>Manage Users</CardTitle>
             </CardHeader>
             <CardContent>
@@ -69,6 +78,3 @@ const AdminDashboard: React.FC = () => {
       </div>
     </Layout>
   );
-};
-
-export default AdminDashboard;

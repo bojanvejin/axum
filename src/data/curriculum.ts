@@ -36,4 +36,18 @@ export interface StudentProgress {
   grade?: string;
 }
 
-// No static curriculumData array here, it will be fetched from Supabase
+export interface Quiz {
+  id: string;
+  lesson_id?: string | null;
+  title: string;
+  description: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  quiz_id: string;
+  question_text: string;
+  question_type: 'mcq';
+  options: string[];
+  correct_answer: string;
+}
