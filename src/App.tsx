@@ -5,7 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import PhaseDetail from "./pages/PhaseDetail";
+import ModuleDetail from "./pages/ModuleDetail";
+import LessonDetail from "./pages/LessonDetail";
 import { ThemeProvider } from "next-themes";
+import { SessionContextProvider } from "./components/SessionContextProvider";
 
 const queryClient = new QueryClient();
 
@@ -16,11 +21,17 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <SessionContextProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/phases/:phaseId" element={<PhaseDetail />} />
+              <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
+              <Route path="/lessons/:lessonId" element={<LessonDetail />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
