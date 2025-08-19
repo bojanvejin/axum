@@ -43,7 +43,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "options" as const,
+    name: "options",
   });
 
   useEffect(() => {
