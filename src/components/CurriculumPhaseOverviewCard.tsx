@@ -9,11 +9,11 @@ import { useSession } from '@/components/SessionContextProvider';
 interface CurriculumPhaseOverviewCardProps {
   phase: CurriculumPhase;
   modules: CurriculumModule[];
-  allLessons: CurriculumLesson[]; // Added prop
-  studentProgress: StudentProgress[]; // Added prop
+  allLessons: CurriculumLesson[];
+  studentProgress: StudentProgress[];
 }
 
-const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress }) => {
+const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardCardProps> = ({ phase, modules, allLessons, studentProgress }) => {
   const { user } = useSession();
 
   const getModuleProgress = (moduleId: string) => {
@@ -30,7 +30,10 @@ const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = 
   };
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="flex flex-col h-full group relative overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.02] dark:hover:border-primary">
+      {/* Background gradient for hover effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent group-hover:from-primary/10 group-hover:via-accent/10 group-hover:to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      
       <CardHeader>
         <CardTitle className="text-2xl">{phase.title}</CardTitle>
         <CardDescription>{phase.description}</CardDescription>
@@ -44,11 +47,16 @@ const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = 
               const { totalLessons, completedCount, progressPercentage } = getModuleProgress(module.id);
               return (
                 <li key={module.id}>
-                  <Link to={`/phases/${phase.id}/modules/${module.id}`} className="block p-3 rounded-md hover:bg-accent transition-colors">
-                    <p className="font-medium">{module.title}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{module.description}</p>
-                    {user && ( // Only show progress if user is logged in
-                      <div className="flex items-center gap-2">
+                  <Link 
+                    to={`/phases/${phase.id}/modules/${module.id}`} 
+                    className="block p-3 rounded-md transition-colors duration-200 hover:bg-accent/50 dark:hover:bg-accent/20 relative overflow-hidden"
+                  >
+                    {/* Sub-hover background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent hover:from-accent/20 hover:via-primary/5 hover:to-accent/20 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                    <p className="font-medium relative z-10">{module.title}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-1 mb-2 relative z-10">{module.description}</p>
+                    {user && (
+                      <div className="flex items-center gap-2 relative z-10">
                         <Progress value={progressPercentage} className="flex-grow h-2" />
                         <span className="text-xs text-muted-foreground">{completedCount}/{totalLessons}</span>
                       </div>
