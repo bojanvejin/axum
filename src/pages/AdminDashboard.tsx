@@ -78,3 +78,6 @@ const AdminDashboard: React.FC = () => {
       </div>
     </Layout>
   );
+};
+
+export default AdminDashboard;
