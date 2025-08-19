@@ -94,7 +94,7 @@ const Index = () => {
           AXUM Internal Training Curriculum
         </h1>
         <p className="text-lg md:text-xl text-center text-muted-foreground max-w-3xl mb-12">
-          This platform provides a detailed guide for building the Axum Education Platform, ensuring clarity, consistency, and easy integration into online training modules.
+          This platform provides a detailed guide for building the Axum Education Platform.
         </p>
 
         {!userLoading && user && (
