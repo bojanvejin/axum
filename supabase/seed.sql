@@ -43,8 +43,20 @@ INSERT INTO public.modules (id, phase_id, title, description, order_index) VALUE
 ('y4zccc33-3a4z-7ccc-zz0b-0zz3zb724y55', 'd3heede2-2f3e-6hh1-ee9g-9ee2eg613d44', 'Capstone Performance', 'This stage culminates with live model evaluations, advanced technical assessments, and feedback sessions from instructors. Students demonstrate complete readiness to enter the industry as highly skilled, independent professionals.', 4)
 ON CONFLICT (id) DO NOTHING;
 
+-- Seed data for quizzes
+INSERT INTO public.quizzes (id, lesson_id, title, description) VALUES
+('quiz-tools-equipment-1', NULL, 'Tools & Equipment Basics Quiz', 'Test your knowledge on fundamental hair cutting tools and equipment.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed data for quiz questions
+INSERT INTO public.quiz_questions (id, quiz_id, question_text, question_type, options, correct_answer) VALUES
+('qq-tools-1-q1', 'quiz-tools-equipment-1', 'Which type of shears is best for removing bulk and blending lines without significantly changing hair length?', 'mcq', '{"Straight Shears", "Thinning Shears", "Chunking Shears", "Long Shears"}', 'Thinning Shears'),
+('qq-tools-1-q2', 'quiz-tools-equipment-1', 'What is the primary purpose of clipper guards?', 'mcq', '{"To protect the blades", "To determine the length of the cut", "To hold hair in place", "To clean the clippers"}', 'To determine the length of the cut'),
+('qq-tools-1-q3', 'quiz-tools-equipment-1', 'Which comb is ideal for detangling wet hair?', 'mcq', '{"Cutting Comb", "Tail Comb", "Wide-Tooth Comb", "Fine-Tooth Comb"}', 'Wide-Tooth Comb')
+ON CONFLICT (id) DO NOTHING;
+
 -- Seed data for lessons (Phase 1, Module 2: Tools and Equipment Familiarization)
-INSERT INTO public.lessons (id, module_id, title, objectives, content_html, video_url, resources_url, order_index) VALUES
+INSERT INTO public.lessons (id, module_id, title, objectives, content_html, video_url, resources_url, order_index, quiz_id) VALUES
 ('lesson-tools-equipment-1', 'f5jggg44-4h5g-8jj3-gg1i-1gg4gi835f66', 'Introduction to Cutting Tools', 'Understand the types of scissors and their uses; Learn proper handling and maintenance of shears.', '<p>Welcome to the "Tools and Equipment Familiarization" module. This week, we dive deep into the essential instruments that will become extensions of your hands: cutting tools. Mastering these tools is not just about technique, but also about understanding their design, purpose, and how to maintain them for optimal performance and hygiene.</p>
 <h3>Scissors (Shears)</h3>
 <p>Scissors are the most fundamental tool for any hair professional. They come in various shapes, sizes, and materials, each designed for specific cutting tasks.</p>
@@ -70,7 +82,7 @@ INSERT INTO public.lessons (id, module_id, title, objectives, content_html, vide
 <ul>
     <li><strong>Magnetic Motor Clippers:</strong> Durable and powerful, good for heavy-duty cutting.</li>
     <li><strong>Rotary Motor Clippers:</strong> Versatile and quiet, suitable for all hair types and general cutting.</li>
-    <li><strong>Pivot Motor Clippers:</strong> Offer good power and speed, often used for wet hair.</li>
+    <li><strong>Pivot Motor Clippers:</b> Offers good power and speed, often used for wet hair.</li>
 </ul>
 <h4>Clipper Guards:</h4>
 <p>These attachments determine the length of the cut. They are numbered, with lower numbers indicating shorter cuts (e.g., #1 for 1/8 inch, #8 for 1 inch).</p>
@@ -90,7 +102,7 @@ INSERT INTO public.lessons (id, module_id, title, objectives, content_html, vide
     <li><strong>Paddle Brushes:</strong> Great for smoothing and detangling long hair.</li>
 </ul>
 <p><strong>Sanitation:</strong> All combs and brushes must be thoroughly cleaned and disinfected after every client to prevent the spread of bacteria and fungi.</p>
-<p>By understanding and respecting your tools, you lay the foundation for precision, creativity, and client safety in your hair design career.</p>', 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'https://example.com/tools_equipment_guide.pdf', 1),
+<p>By understanding and respecting your tools, you lay the foundation for precision, creativity, and client safety in your hair design career.</p>', 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'https://example.com/tools_equipment_guide.pdf', 1, 'quiz-tools-equipment-1'),
 ('lesson-tools-equipment-2', 'f5jggg44-4h5g-8jj3-gg1i-1gg4gi835f66', 'Razors and Thermal Tools', 'Learn to safely use razors for texturizing; Understand different thermal tools and their heat settings.', '<p>This lesson focuses on razors and thermal tools, which add versatility and finishing touches to your hair designs. Proper technique and safety are paramount when working with these instruments.</p>
 <h3>Razors</h3>
 <p>Haircutting razors are used to create soft, feathered edges, reduce bulk, and add texture. They are excellent for achieving a more natural, less blunt finish than scissors.</p>
@@ -105,16 +117,16 @@ INSERT INTO public.lessons (id, module_id, title, objectives, content_html, vide
 <h4>Types of Thermal Tools:</h4>
 <ul>
     <li><strong>Flat Irons (Straighteners):</strong> Used to straighten hair, create soft waves, or even tight curls depending on technique. Look for ceramic or tourmaline plates for even heat distribution and reduced damage.</li>
-    <li><strong>Curling Irons/Wands:</strong> Come in various barrel sizes to create different curl patterns, from tight ringlets to loose waves. Wands offer a more natural, less structured curl.</li>
+    <li><strong>Curling Irons/Wands:</b> Come in various barrel sizes to create different curl patterns, from tight ringlets to loose waves. Wands offer a more natural, less structured curl.</li>
     <li><strong>Hot Rollers:</strong> Provide volume and soft curls, often used for setting hair.</li>
 </ul>
 <p><strong>Heat Protection:</strong> Always apply a heat protectant spray to the hair before using thermal tools. Adjust heat settings based on hair type (lower heat for fine/damaged hair, higher for thick/coarse hair). Avoid holding heat on one section for too long.</p>
-<p>Mastering these tools will expand your styling capabilities, allowing you to offer a wider range of services and achieve diverse looks for your clients.</p>', 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'https://example.com/thermal_tools_safety.pdf', 2)
+<p>Mastering these tools will expand your styling capabilities, allowing you to offer a wider range of services and achieve diverse looks for your clients.</p>', 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'https://example.com/thermal_tools_safety.pdf', 2, NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- Add more lessons for other modules/phases as needed, following the structure above.
 -- Example for Phase 1, Module 1: Introduction to Hair Design and Sculpture Theory
-INSERT INTO public.lessons (id, module_id, title, objectives, content_html, video_url, resources_url, order_index) VALUES
+INSERT INTO public.lessons (id, module_id, title, objectives, content_html, video_url, resources_url, order_index, quiz_id) VALUES
 ('lesson-sculpture-theory-1', 'e4ifff33-3g4f-7ii2-ff0h-0ff3fh724e55', 'Understanding Form and Balance', 'Define form and balance in hair design; Analyze facial structures for optimal hair shapes.', '<p>In this foundational lesson, we explore how the principles of sculpture theory apply directly to hair design. Haircutting is not merely about removing length; it''s about sculpting a three-dimensional form that complements the client''s unique features.</p>
 <h3>Form and Shape</h3>
 <p>Every haircut creates a form. This form can be solid, graduated, layered, or a combination. Understanding these basic forms is the first step to visualizing the end result before you even pick up your shears.</p>
@@ -126,5 +138,5 @@ INSERT INTO public.lessons (id, module_id, title, objectives, content_html, vide
 <h3>Balance and Proportion</h3>
 <p>Balance in hair design refers to the visual equilibrium of the haircut in relation to the client''s head and body. Proportion is about the harmonious relationship between different parts of the haircut and the client''s features.</p>
 <p>Consider the client''s face shape (oval, round, square, heart, long) and bone structure. A well-balanced haircut enhances their best features and minimizes less desirable ones.</p>
-<p><strong>Exercise:</strong> Observe different head shapes and imagine how various forms would sit on them. Sketch out a few ideas, focusing on how the hair''s form interacts with the face.</p>', 'https://www.youtube.com/embed/dQw4w9WgXcQ', NULL, 1)
+<p><strong>Exercise:</strong> Observe different head shapes and imagine how various forms would sit on them. Sketch out a few ideas, focusing on how the hair''s form interacts with the face.</p>', 'https://www.youtube.com/embed/dQw4w9WgXcQ', NULL, 1, NULL)
 ON CONFLICT (id) DO NOTHING;
