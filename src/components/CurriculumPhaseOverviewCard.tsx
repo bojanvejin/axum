@@ -1,9 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
 import { useSession } from '@/components/SessionContextProvider';
 
 interface CurriculumPhaseOverviewCardProps {
@@ -11,66 +10,53 @@ interface CurriculumPhaseOverviewCardProps {
   modules: CurriculumModule[];
   allLessons: CurriculumLesson[];
   studentProgress: StudentProgress[];
+  backgroundImage: string;
 }
 
-const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress }) => {
+const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress, backgroundImage }) => {
   const { user } = useSession();
 
-  const getModuleProgress = (moduleId: string) => {
-    const lessonsInModule = allLessons.filter(lesson => lesson.module_id === moduleId);
-    const completedLessonsInModule = studentProgress.filter(
-      progress => lessonsInModule.some(lesson => lesson.id === progress.lesson_id) && progress.status === 'completed'
+  const getPhaseProgress = () => {
+    const lessonsInPhase = allLessons.filter(lesson => 
+      modules.some(module => module.id === lesson.module_id)
+    );
+    const completedLessonsInPhase = studentProgress.filter(
+      progress => lessonsInPhase.some(lesson => lesson.id === progress.lesson_id) && progress.status === 'completed'
     );
 
-    const totalLessons = lessonsInModule.length;
-    const completedCount = completedLessonsInModule.length;
+    const totalLessons = lessonsInPhase.length;
+    const completedCount = completedLessonsInPhase.length;
     const progressPercentage = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
     return { totalLessons, completedCount, progressPercentage };
   };
 
+  const { totalLessons, completedCount, progressPercentage } = getPhaseProgress();
+
   return (
-    <Card className="flex flex-col h-full group relative overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.02] dark:hover:border-primary">
-      {/* Background gradient for hover effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent group-hover:from-primary/10 group-hover:via-accent/10 group-hover:to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      
-      <CardHeader>
-        <CardTitle className="text-2xl">{phase.title}</CardTitle>
-        <CardDescription>{phase.description}</CardDescription>
-        <p className="text-sm text-muted-foreground mt-2">Duration: {phase.weeks} Weeks</p>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <h3 className="text-lg font-semibold mb-3">Modules:</h3>
-        {modules.length > 0 ? (
-          <ul className="space-y-4">
-            {modules.map((module) => {
-              const { totalLessons, completedCount, progressPercentage } = getModuleProgress(module.id);
-              return (
-                <li key={module.id}>
-                  <Link 
-                    to={`/phases/${phase.id}/modules/${module.id}`} 
-                    className="block p-3 rounded-md transition-colors duration-200 hover:bg-accent/50 dark:hover:bg-accent/20 relative overflow-hidden"
-                  >
-                    {/* Sub-hover background gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-transparent hover:from-accent/20 hover:via-primary/5 hover:to-accent/20 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                    <p className="font-medium relative z-10">{module.title}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-1 mb-2 relative z-10">{module.description}</p>
-                    {user && (
-                      <div className="flex items-center gap-2 relative z-10">
-                        <Progress value={progressPercentage} className="flex-grow h-2" />
-                        <span className="text-xs text-muted-foreground">{completedCount}/{totalLessons}</span>
-                      </div>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground text-sm">No modules available for this phase yet.</p>
+    <Link to={`/phases/${phase.id}`} className="block group relative rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 md:col-span-1 h-64">
+      <div 
+        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      />
+      <div className="absolute inset-0 bg-black/60 group-hover:bg-black/70 transition-colors duration-300" />
+      <div className="relative p-6 flex flex-col justify-between h-full text-white">
+        <div>
+          <CardTitle className="text-2xl font-bold">{phase.title}</CardTitle>
+          <CardDescription className="text-gray-300 mt-1 line-clamp-2">{phase.description}</CardDescription>
+          <p className="text-sm text-gray-400 mt-2">Duration: {phase.weeks} Weeks</p>
+        </div>
+        {user && (
+          <div className="mt-4">
+            <div className="flex justify-between items-center text-sm mb-1">
+              <span>Progress</span>
+              <span>{completedCount}/{totalLessons} Lessons</span>
+            </div>
+            <Progress value={progressPercentage} className="h-2 [&>div]:bg-white" />
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Link>
   );
 };
 

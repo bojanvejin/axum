@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
-import CurriculumPhaseOverviewCard from "@/components/CurriculumPhaseOverviewCard"; // Use the new component
+import CurriculumPhaseOverviewCard from "@/components/CurriculumPhaseOverviewCard";
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from "@/data/curriculum";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +11,11 @@ import { useSession } from '@/components/SessionContextProvider';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { useUserRole } from '@/hooks/useUserRole';
+
+const backgroundImages = [
+  '/images/axum-salon-front.jpg',
+  '/images/ancientbarber4.jpg',
+];
 
 const Index = () => {
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
@@ -26,7 +31,6 @@ const Index = () => {
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        // Fetch phases
         const { data: phasesData, error: phasesError } = await supabase
           .from('phases')
           .select('*')
@@ -34,7 +38,6 @@ const Index = () => {
         if (phasesError) throw phasesError;
         setPhases(phasesData || []);
 
-        // Fetch modules and organize by phase_id
         const { data: modulesData, error: modulesError } = await supabase
           .from('modules')
           .select('*')
@@ -50,14 +53,12 @@ const Index = () => {
         });
         setModulesByPhase(organizedModules);
 
-        // Fetch all lessons to calculate overall progress
         const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
           .select('*');
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
 
-        // Fetch student progress if user is logged in
         if (user) {
           const { data: progressData, error: progressError } = await supabase
             .from('student_progress')
@@ -67,7 +68,8 @@ const Index = () => {
           setStudentProgress(progressData || []);
         }
 
-      } catch (error: any) {
+      } catch (error: any)
+      {
         showError(`Failed to load curriculum: ${error.message}`);
         console.error('Error fetching curriculum data:', error);
       } finally {
@@ -105,10 +107,12 @@ const Index = () => {
   return (
     <Layout>
       <div className="flex flex-col items-center justify-center py-8">
-        <h1 className="text-4xl md:text-5xl font-bold mb-8 text-center">
-          AXUM Internal Training Curriculum
+        <h1 className="text-4xl md:text-5xl font-bold mb-2 text-center">
+          Welcome to the Axum Training Curriculum
         </h1>
-        {/* Removed the subheading as requested */}
+        <p className="text-lg text-muted-foreground mb-8 text-center max-w-2xl">
+          Your journey to mastering the art of hair styling starts here. Track your progress, complete lessons, and unlock your potential.
+        </p>
 
         {userSessionLoading ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
@@ -123,13 +127,8 @@ const Index = () => {
               <span className="text-sm font-medium">{overallProgress.toFixed(0)}% Complete</span>
             </div>
             <Button onClick={handleContinueLearning} className="mt-4 w-full">
-              {completedLessonsCount === totalLessons ? "View Completed Curriculum" : "Continue Learning"}
+              {completedLessonsCount === totalLessons ? "Review Curriculum" : "Continue Learning"}
             </Button>
-            {!roleLoading && (
-              <p className="text-sm text-muted-foreground mt-4">
-                Your role: <span className="font-bold capitalize">{role}</span>
-              </p>
-            )}
           </div>
         ) : (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
@@ -142,24 +141,25 @@ const Index = () => {
           </div>
         )}
 
-        <h2 className="text-3xl font-bold mb-6 mt-8">Curriculum Phases</h2>
+        <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Curriculum Phases</h2>
         {dataLoading ? (
-          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 auto-rows-fr">
-            {[...Array(2)].map((_, i) => ( // Show 2 skeletons for phases
-              <Skeleton key={i} className="h-64 md:col-span-1" />
+          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(2)].map((_, i) => (
+              <Skeleton key={i} className="h-64 w-full" />
             ))}
           </div>
         ) : phases.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No curriculum phases found.</p>
         ) : (
-          <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2 lg:grid-cols-2"> {/* Adjusted grid for phases */}
-            {phases.map((phase) => (
+          <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2">
+            {phases.map((phase, index) => (
               <CurriculumPhaseOverviewCard
                 key={phase.id}
                 phase={phase}
                 modules={modulesByPhase[phase.id] || []}
                 allLessons={allLessons}
                 studentProgress={studentProgress}
+                backgroundImage={backgroundImages[index % backgroundImages.length]}
               />
             ))}
           </BentoGrid>
