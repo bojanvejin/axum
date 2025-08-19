@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import PhaseDetail from "./pages/PhaseDetail";
 import ModuleDetail from "./pages/ModuleDetail";
 import LessonDetail from "./pages/LessonDetail";
+import AdminDashboard from "./pages/AdminDashboard"; // Import AdminDashboard
 import { ThemeProvider } from "next-themes";
 import { SessionContextProvider } from "./components/SessionContextProvider";
 
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/phases/:phaseId" element={<PhaseDetail />} />
               <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
               <Route path="/lessons/:lessonId" element={<LessonDetail />} />
+              <Route path="/admin" element={<AdminDashboard />} /> {/* New Admin Dashboard Route */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
