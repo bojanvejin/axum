@@ -6,7 +6,7 @@ import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { CheckCircle, Circle, Settings } from 'lucide-react';
+import { CheckCircle, Circle, Settings, ArrowLeft } from 'lucide-react'; // Import ArrowLeft
 import { useSession } from '@/components/SessionContextProvider';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
@@ -95,10 +95,14 @@ const ModuleDetail: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold">{module.title}</h1>
-            <p className="text-lg text-muted-foreground mt-2">{module.description}</p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to={`/phases/${phaseId}`}>
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
+            <h1 className="text-3xl md:text-4xl font-bold ml-2">{module.title}</h1>
           </div>
           {role === 'admin' && (
             <Link to={`/admin/curriculum/phases/${phaseId}/modules/${moduleId}/lessons`}>
@@ -108,6 +112,7 @@ const ModuleDetail: React.FC = () => {
             </Link>
           )}
         </div>
+        <p className="text-lg text-muted-foreground mt-2 mb-8">{module.description}</p>
 
         <h2 className="text-2xl font-semibold my-6">Lessons</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
