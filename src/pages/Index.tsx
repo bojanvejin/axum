@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
-import CurriculumCard from "@/components/CurriculumCard";
-import { CurriculumPhase, CurriculumLesson, StudentProgress } from "@/data/curriculum";
+import CurriculumPhaseOverviewCard from "@/components/CurriculumPhaseOverviewCard"; // Use the new component
+import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from "@/data/curriculum";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
@@ -14,17 +14,17 @@ import { useUserRole } from '@/hooks/useUserRole';
 
 const Index = () => {
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
+  const [modulesByPhase, setModulesByPhase] = useState<Record<string, CurriculumModule[]>>({});
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
-  const [dataLoading, setDataLoading] = useState(true); // Renamed for clarity
-  const { user, loading: userSessionLoading } = useSession(); // Renamed for clarity
+  const [dataLoading, setDataLoading] = useState(true);
+  const { user, loading: userSessionLoading } = useSession();
   const { role, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       setDataLoading(true);
-      console.log('Index.tsx: Starting fetchData. userSessionLoading:', userSessionLoading, 'user:', user);
       try {
         // Fetch phases
         const { data: phasesData, error: phasesError } = await supabase
@@ -33,7 +33,22 @@ const Index = () => {
           .order('order_index', { ascending: true });
         if (phasesError) throw phasesError;
         setPhases(phasesData || []);
-        console.log('Index.tsx: Phases fetched:', phasesData?.length);
+
+        // Fetch modules and organize by phase_id
+        const { data: modulesData, error: modulesError } = await supabase
+          .from('modules')
+          .select('*')
+          .order('order_index', { ascending: true });
+        if (modulesError) throw modulesError;
+
+        const organizedModules: Record<string, CurriculumModule[]> = {};
+        modulesData?.forEach(module => {
+          if (!organizedModules[module.phase_id]) {
+            organizedModules[module.phase_id] = [];
+          }
+          organizedModules[module.phase_id].push(module);
+        });
+        setModulesByPhase(organizedModules);
 
         // Fetch all lessons to calculate overall progress
         const { data: lessonsData, error: lessonsError } = await supabase
@@ -41,36 +56,27 @@ const Index = () => {
           .select('*');
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
-        console.log('Index.tsx: Lessons fetched:', lessonsData?.length);
 
         // Fetch student progress if user is logged in
         if (user) {
-          console.log('Index.tsx: Fetching student progress for user:', user.id);
           const { data: progressData, error: progressError } = await supabase
             .from('student_progress')
             .select('*')
             .eq('user_id', user.id);
           if (progressError) throw progressError;
           setStudentProgress(progressData || []);
-          console.log('Index.tsx: Student progress fetched:', progressData?.length);
-        } else {
-          console.log('Index.tsx: User not logged in, skipping student progress fetch.');
         }
 
       } catch (error: any) {
         showError(`Failed to load curriculum: ${error.message}`);
-        console.error('Index.tsx: Error fetching curriculum data:', error);
+        console.error('Error fetching curriculum data:', error);
       } finally {
         setDataLoading(false);
-        console.log('Index.tsx: fetchData completed, dataLoading set to false.');
       }
     };
 
-    if (!userSessionLoading) { // Only fetch data once user session loading is complete
-      console.log('Index.tsx: userSessionLoading is false, calling fetchData.');
+    if (!userSessionLoading) {
       fetchData();
-    } else {
-      console.log('Index.tsx: userSessionLoading is true, waiting for session context.');
     }
   }, [user, userSessionLoading]);
 
@@ -138,18 +144,23 @@ const Index = () => {
           </div>
         )}
 
+        <h2 className="text-3xl font-bold mb-6 mt-8">Curriculum Phases</h2>
         {dataLoading ? (
-          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-64 md:col-span-2" />
+          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 auto-rows-fr">
+            {[...Array(2)].map((_, i) => ( // Show 2 skeletons for phases
+              <Skeleton key={i} className="h-64 md:col-span-1" />
             ))}
           </div>
+        ) : phases.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No curriculum phases found.</p>
         ) : (
-          <BentoGrid className="w-full max-w-6xl mx-auto">
+          <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2 lg:grid-cols-2"> {/* Adjusted grid for phases */}
             {phases.map((phase) => (
-              <Link to={`/phases/${phase.id}`} key={phase.id} className="block">
-                <CurriculumCard phase={phase} />
-              </Link>
+              <CurriculumPhaseOverviewCard
+                key={phase.id}
+                phase={phase}
+                modules={modulesByPhase[phase.id] || []}
+              />
             ))}
           </BentoGrid>
         )}
