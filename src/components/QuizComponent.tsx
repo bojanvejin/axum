@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,8 +12,14 @@ interface QuizQuestion {
   id: string;
   question_text: string;
   question_type: string;
-  options: string[]; // Assuming MCQ options are string arrays
-  correct_answer: string; // Assuming correct answer is a single string for MCQ
+  options: string[];
+  correct_answer: string;
+}
+
+interface QuizAttempt {
+  id: string;
+  score: number;
+  answers: Record<string, string>;
 }
 
 interface QuizComponentProps {
@@ -22,58 +28,70 @@ interface QuizComponentProps {
   onQuizAttempted?: (score: number, totalQuestions: number) => void;
 }
 
+const MAX_ATTEMPTS = 3;
+const PASSING_SCORE = 90; // Equivalent to an 'A'
+
 const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizAttempted }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [previousAttempt, setPreviousAttempt] = useState<any | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [viewingResultsOf, setViewingResultsOf] = useState<QuizAttempt | null>(null);
   const { user } = useSession();
+
+  const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { score: -1, id: '', answers: {} });
+  const hasPassed = bestAttempt.score >= PASSING_SCORE;
+  const attemptsMade = attempts.length;
+  const canAttempt = !hasPassed && attemptsMade < MAX_ATTEMPTS;
 
   useEffect(() => {
     const fetchQuizData = async () => {
+      if (!quizId || !user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        // Fetch questions for the quiz
         const { data: questionsData, error: questionsError } = await supabase
           .from('quiz_questions')
           .select('*')
           .eq('quiz_id', quizId)
           .order('created_at', { ascending: true });
-
         if (questionsError) throw questionsError;
         setQuestions(questionsData || []);
 
-        // Fetch previous attempt if user is logged in
-        if (user) {
-          const { data: attemptData, error: attemptError } = await supabase
-            .from('quiz_attempts')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('quiz_id', quizId)
-            .single();
+        const { data: attemptsData, error: attemptsError } = await supabase
+          .from('quiz_attempts')
+          .select('id, score, answers')
+          .eq('user_id', user.id)
+          .eq('quiz_id', quizId)
+          .order('created_at', { ascending: false });
+        if (attemptsError) throw attemptsError;
+        const loadedAttempts = attemptsData || [];
+        setAttempts(loadedAttempts);
 
-          if (attemptError && attemptError.code !== 'PGRST116') { // PGRST116 means no rows found
-            throw attemptError;
-          }
-          if (attemptData) {
-            setPreviousAttempt(attemptData);
-            setScore(attemptData.score);
-            setSubmitted(true); // If there's a previous attempt, consider it submitted
-            setUserAnswers(attemptData.answers || {}); // Load previous answers
-          }
+        const latestAttempt = loadedAttempts[0];
+        const best = loadedAttempts.reduce((max, current) => (current.score > (max?.score ?? -1) ? current : max), null);
+        const passed = best && best.score >= PASSING_SCORE;
+
+        if (passed) {
+          setViewingResultsOf(best);
+        } else if (latestAttempt) {
+          setViewingResultsOf(latestAttempt);
         }
+
       } catch (error: any) {
         showError(`Failed to load quiz: ${error.message}`);
-        console.error('Error fetching quiz data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (quizId) {
+    if (user) {
       fetchQuizData();
+    } else {
+      setLoading(false);
     }
   }, [quizId, user]);
 
@@ -86,6 +104,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       showError("You must be logged in to submit a quiz.");
       return;
     }
+    setIsSubmitting(true);
 
     let correctCount = 0;
     questions.forEach((q) => {
@@ -94,97 +113,117 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       }
     });
 
-    const calculatedScore = (correctCount / questions.length) * 100;
-    setScore(calculatedScore);
-    setSubmitted(true);
+    const calculatedScore = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
 
     try {
-      const { error } = await supabase.from('quiz_attempts').upsert(
-        {
+      const { data: newAttempt, error } = await supabase
+        .from('quiz_attempts')
+        .insert({
           user_id: user.id,
           quiz_id: quizId,
           score: calculatedScore,
-          submitted_at: new Date().toISOString(),
           answers: userAnswers,
-        },
-        { onConflict: 'user_id,quiz_id' }
-      );
+        })
+        .select('id, score, answers')
+        .single();
 
       if (error) throw error;
-      showSuccess(`Quiz submitted! Your score: ${calculatedScore.toFixed(0)}%`);
+      
+      showSuccess(`Attempt ${attemptsMade + 1} submitted! Your score: ${calculatedScore.toFixed(0)}%`);
+      
+      const updatedAttempts = [newAttempt, ...attempts];
+      setAttempts(updatedAttempts);
+      setViewingResultsOf(newAttempt);
+      
       onQuizAttempted?.(calculatedScore, questions.length);
     } catch (error: any) {
       showError(`Failed to submit quiz: ${error.message}`);
-      console.error('Error submitting quiz:', error);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleRetakeQuiz = () => {
+    setUserAnswers({});
+    setViewingResultsOf(null);
   };
 
   if (loading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-full" />
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
-        ))}
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
       </div>
     );
+  }
+
+  if (!user) {
+    return <p className="text-muted-foreground">Please log in to take the quiz.</p>;
   }
 
   if (questions.length === 0) {
     return <p className="text-muted-foreground">No questions available for this quiz yet.</p>;
   }
 
+  const answersToShow = viewingResultsOf?.answers || userAnswers;
+  const isViewingMode = !!viewingResultsOf;
+
   return (
     <Card className="mb-8">
       <CardHeader>
         <CardTitle>Quiz</CardTitle>
+        <CardDescription>
+          {hasPassed && `Congratulations! You passed with a score of ${bestAttempt.score.toFixed(0)}%.`}
+          {!hasPassed && attemptsMade >= MAX_ATTEMPTS && `You have used all ${MAX_ATTEMPTS} attempts. Your best score was ${bestAttempt.score.toFixed(0)}%.`}
+          {canAttempt && `Attempt ${attemptsMade + 1} of ${MAX_ATTEMPTS}. You need ${PASSING_SCORE}% to pass.`}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {questions.map((q, index) => (
           <div key={q.id} className="border-b pb-4 last:border-b-0 last:pb-0">
-            <p className="font-semibold mb-3">
-              {index + 1}. {q.question_text}
-            </p>
-            {q.question_type === 'mcq' && q.options && (
-              <RadioGroup
-                onValueChange={(value) => handleAnswerChange(q.id, value)}
-                value={userAnswers[q.id] || ''}
-                disabled={submitted}
-              >
-                {q.options.map((option, optIndex) => (
+            <p className="font-semibold mb-3">{index + 1}. {q.question_text}</p>
+            <RadioGroup
+              onValueChange={(value) => handleAnswerChange(q.id, value)}
+              value={answersToShow[q.id] || ''}
+              disabled={!canAttempt || isViewingMode}
+            >
+              {q.options.map((option, optIndex) => {
+                const isSelected = answersToShow[q.id] === option;
+                const isCorrect = q.correct_answer === option;
+                let resultIndicator = null;
+                if (isViewingMode) {
+                  if (isSelected && isCorrect) {
+                    resultIndicator = <span className="text-green-500 ml-2">Correct!</span>;
+                  } else if (isSelected && !isCorrect) {
+                    resultIndicator = <span className="text-red-500 ml-2">Incorrect.</span>;
+                  } else if (isCorrect) {
+                    resultIndicator = <span className="text-green-600 ml-2">Correct answer</span>;
+                  }
+                }
+                return (
                   <div key={optIndex} className="flex items-center space-x-2">
                     <RadioGroupItem value={option} id={`q${q.id}-opt${optIndex}`} />
                     <Label htmlFor={`q${q.id}-opt${optIndex}`}>{option}</Label>
-                    {submitted && userAnswers[q.id] === option && (
-                      userAnswers[q.id] === q.correct_answer ? (
-                        <span className="text-green-500 ml-2">Correct!</span>
-                      ) : (
-                        <span className="text-red-500 ml-2">Incorrect. Correct answer: {q.correct_answer}</span>
-                      )
-                    )}
+                    {resultIndicator}
                   </div>
-                ))}
-              </RadioGroup>
-            )}
-            {submitted && userAnswers[q.id] !== q.correct_answer && (
-              <p className="text-sm text-green-600 mt-2">Correct answer: {q.correct_answer}</p>
-            )}
+                );
+              })}
+            </RadioGroup>
           </div>
         ))}
       </CardContent>
       <CardFooter className="flex flex-col items-start gap-4">
-        {!submitted ? (
-          <Button onClick={handleSubmitQuiz} disabled={Object.keys(userAnswers).length !== questions.length}>
-            Submit Quiz
+        {canAttempt && !isViewingMode && (
+          <Button onClick={handleSubmitQuiz} disabled={Object.keys(userAnswers).length !== questions.length || isSubmitting}>
+            {isSubmitting ? 'Submitting...' : `Submit Attempt ${attemptsMade + 1}`}
           </Button>
-        ) : (
-          <p className="text-lg font-bold">Your Score: {score !== null ? score.toFixed(0) : 'N/A'}%</p>
         )}
-        {previousAttempt && (
-          <p className="text-sm text-muted-foreground">
-            You previously scored {previousAttempt.score.toFixed(0)}% on this quiz.
-          </p>
+        {canAttempt && isViewingMode && (
+          <Button onClick={handleRetakeQuiz}>
+            Take Attempt {attemptsMade + 1}
+          </Button>
         )}
+        {isViewingMode && <p className="text-lg font-bold">Score for this attempt: {viewingResultsOf?.score.toFixed(0)}%</p>}
       </CardFooter>
     </Card>
   );
