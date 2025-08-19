@@ -44,7 +44,7 @@ const AdminDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-sm">Add, edit, or remove phases, modules, and lessons.</p>
-              <Link to="#" className="text-blue-500 hover:underline mt-4 block">Go to Curriculum Management</Link>
+              <Link to="/admin/curriculum/phases" className="text-blue-500 hover:underline mt-4 block">Go to Curriculum Management</Link>
             </CardContent>
           </Card>
           <Card>
