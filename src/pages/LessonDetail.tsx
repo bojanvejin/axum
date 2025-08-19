@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '@/components/SessionContextProvider';
 import LessonNavigationSidebar from '@/components/LessonNavigationSidebar';
 import QuizComponent from '@/components/QuizComponent';
-import { ArrowLeft, ArrowRight } from 'lucide-react'; // Import ArrowRight
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import TextToSpeechButton from '@/components/TextToSpeechButton';
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -139,6 +140,13 @@ const LessonDetail: React.FC = () => {
     }
   };
 
+  const lessonText = useMemo(() => {
+    if (!lesson?.content_html || typeof window === 'undefined') return '';
+    const div = document.createElement('div');
+    div.innerHTML = lesson.content_html;
+    return div.textContent || div.innerText || '';
+  }, [lesson?.content_html]);
+
   if (loading) {
     return (
       <Layout>
@@ -184,7 +192,11 @@ const LessonDetail: React.FC = () => {
             )}
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{lesson.title}</h1>
           </div>
-          <p className="text-lg text-muted-foreground mb-8">Objectives: {lesson.objectives}</p>
+          <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
+
+          <div className="mb-6">
+            <TextToSpeechButton textToSpeak={lessonText} />
+          </div>
 
           <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || '<p>No content available for this lesson yet.</p>' }} />
 
