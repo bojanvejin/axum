@@ -97,7 +97,7 @@ const Index = () => {
           This platform provides a detailed guide for building the Axum Education Platform.
         </p>
 
-        {!userLoading && user && (
+        {!userLoading && user ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
             <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
             <div className="flex items-center gap-4">
@@ -113,6 +113,17 @@ const Index = () => {
               </p>
             )}
           </div>
+        ) : (
+          !userLoading && (
+            <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
+              <p className="text-lg text-muted-foreground mb-4">
+                Please <Link to="/login" className="text-blue-500 hover:underline">sign in</Link> to track your progress and access full features.
+              </p>
+              <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
+                Go to Login
+              </Button>
+            </div>
+          )
         )}
 
         {loading ? (
