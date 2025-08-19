@@ -2,37 +2,88 @@ import React, { useEffect, useState } from 'react';
 import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
 import CurriculumCard from "@/components/CurriculumCard";
-import { CurriculumPhase } from "@/data/curriculum";
+import { CurriculumPhase, CurriculumLesson, StudentProgress } from "@/data/curriculum";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSession } from '@/components/SessionContextProvider';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
+  const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
+  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: userLoading } = useSession();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchPhases = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        // Fetch phases
+        const { data: phasesData, error: phasesError } = await supabase
           .from('phases')
           .select('*')
           .order('order_index', { ascending: true });
+        if (phasesError) throw phasesError;
+        setPhases(phasesData || []);
 
-        if (error) throw error;
-        setPhases(data || []);
+        // Fetch all lessons to calculate overall progress
+        const { data: lessonsData, error: lessonsError } = await supabase
+          .from('lessons')
+          .select('id, module_id, order_index'); // Only need ID and order for progress calculation
+        if (lessonsError) throw lessonsError;
+        setAllLessons(lessonsData || []);
+
+        // Fetch student progress if user is logged in
+        if (user) {
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .select('*')
+            .eq('user_id', user.id);
+          if (progressError) throw progressError;
+          setStudentProgress(progressData || []);
+        }
+
       } catch (error: any) {
-        showError(`Failed to load curriculum phases: ${error.message}`);
-        console.error('Error fetching phases:', error);
+        showError(`Failed to load curriculum: ${error.message}`);
+        console.error('Error fetching curriculum data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPhases();
-  }, []);
+    if (!userLoading) {
+      fetchData();
+    }
+  }, [user, userLoading]);
+
+  const totalLessons = allLessons.length;
+  const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
+  const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
+
+  const handleContinueLearning = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Find the first incomplete lesson
+    const completedLessonIds = new Set(studentProgress.filter(p => p.status === 'completed').map(p => p.lesson_id));
+    const firstIncompleteLesson = allLessons
+      .sort((a, b) => a.order_index - b.order_index) // Sort by order_index
+      .find(lesson => !completedLessonIds.has(lesson.id));
+
+    if (firstIncompleteLesson) {
+      navigate(`/lessons/${firstIncompleteLesson.id}`);
+    } else {
+      showSuccess("You've completed all lessons! Congratulations!");
+      // Optionally navigate to a completion page or dashboard
+    }
+  };
 
   return (
     <Layout>
@@ -43,6 +94,20 @@ const Index = () => {
         <p className="text-lg md:text-xl text-center text-muted-foreground max-w-3xl mb-12">
           This platform provides a detailed guide for building the Axum Education Platform, ensuring clarity, consistency, and easy integration into online training modules.
         </p>
+
+        {!userLoading && user && (
+          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
+            <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
+            <div className="flex items-center gap-4">
+              <Progress value={overallProgress} className="flex-grow" />
+              <span className="text-sm font-medium">{overallProgress.toFixed(0)}% Complete</span>
+            </div>
+            <Button onClick={handleContinueLearning} className="mt-4 w-full">
+              {completedLessonsCount === totalLessons ? "View Completed Curriculum" : "Continue Learning"}
+            </Button>
+          </div>
+        )}
+
         {loading ? (
           <BentoGrid className="w-full max-w-6xl mx-auto">
             {[...Array(4)].map((_, i) => (

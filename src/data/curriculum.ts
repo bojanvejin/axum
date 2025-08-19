@@ -25,4 +25,14 @@ export interface CurriculumLesson {
   order_index: number;
 }
 
+export interface StudentProgress {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  completed_at: string | null;
+  status: 'started' | 'completed' | 'submitted_for_review';
+  practical_submission_url?: string;
+  grade?: string;
+}
+
 // No static curriculumData array here, it will be fetched from Supabase

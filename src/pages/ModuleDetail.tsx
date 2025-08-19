@@ -2,16 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { CurriculumModule, CurriculumLesson } from '@/data/curriculum';
+import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
+import { CheckCircle, Circle } from 'lucide-react';
+import { useSession } from '@/components/SessionContextProvider';
 
 const ModuleDetail: React.FC = () => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
   const [module, setModule] = useState<CurriculumModule | null>(null);
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
+  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: userLoading } = useSession();
 
   useEffect(() => {
     const fetchModuleAndLessons = async () => {
@@ -34,6 +38,16 @@ const ModuleDetail: React.FC = () => {
 
         if (lessonsError) throw lessonsError;
         setLessons(lessonsData);
+
+        if (user) {
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .select('*')
+            .eq('user_id', user.id);
+          if (progressError) throw progressError;
+          setStudentProgress(progressData || []);
+        }
+
       } catch (error: any) {
         showError(`Failed to load module details: ${error.message}`);
         console.error('Error fetching module or lessons:', error);
@@ -42,10 +56,14 @@ const ModuleDetail: React.FC = () => {
       }
     };
 
-    if (moduleId) {
+    if (moduleId && !userLoading) {
       fetchModuleAndLessons();
     }
-  }, [moduleId]);
+  }, [moduleId, user, userLoading]);
+
+  const isLessonCompleted = (lessonId: string) => {
+    return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
+  };
 
   if (loading) {
     return (
@@ -85,8 +103,15 @@ const ModuleDetail: React.FC = () => {
           {lessons.map((lesson) => (
             <Link to={`/lessons/${lesson.id}`} key={lesson.id}>
               <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-xl">{lesson.title}</CardTitle>
+                  {user && (
+                    isLessonCompleted(lesson.id) ? (
+                      <CheckCircle className="text-green-500" size={20} />
+                    ) : (
+                      <Circle className="text-muted-foreground" size={20} />
+                    )
+                  )}
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground text-sm">{lesson.objectives}</p>
