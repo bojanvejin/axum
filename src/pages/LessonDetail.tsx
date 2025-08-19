@@ -8,6 +8,7 @@ import { showError, showSuccess } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 import LessonNavigationSidebar from '@/components/LessonNavigationSidebar'; // Import the new sidebar
+import QuizComponent from '@/components/QuizComponent'; // Import QuizComponent
 
 const LessonDetail: React.FC = () => {
   const { lessonId, moduleId } = useParams<{ lessonId: string; moduleId?: string }>(); // moduleId is now optional
@@ -113,10 +114,13 @@ const LessonDetail: React.FC = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="container mx-auto p-4">
-          <Skeleton className="h-10 w-3/4 mb-4" />
-          <Skeleton className="h-6 w-1/2 mb-8" />
-          <Skeleton className="h-96 w-full" />
+        <div className="flex h-full">
+          <Skeleton className="h-screen w-64 hidden md:block" />
+          <div className="flex-grow container mx-auto p-4">
+            <Skeleton className="h-10 w-3/4 mb-4" />
+            <Skeleton className="h-6 w-1/2 mb-8" />
+            <Skeleton className="h-96 w-full" />
+          </div>
         </div>
       </Layout>
     );
@@ -168,6 +172,13 @@ const LessonDetail: React.FC = () => {
               <a href={lesson.resources_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                 Download Resources
               </a>
+            </div>
+          )}
+
+          {lesson.quiz_id && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Knowledge Check Quiz</h2>
+              <QuizComponent quizId={lesson.quiz_id} lessonId={lesson.id} />
             </div>
           )}
 
