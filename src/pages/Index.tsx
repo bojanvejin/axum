@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useUserRole } from '@/hooks/useUserRole';
 
 const backgroundImages = [
-  '/images/axum-salon-front.jpg',
+  '/images/axum-salon-interior.jpeg',
   '/images/ancientbarber4.jpg',
 ];
 
