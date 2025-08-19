@@ -1,0 +1,14 @@
+<svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="300" height="300" fill="#FFFFFF"/>
+<path d="M150 30 C220 30, 270 100, 270 180 C270 260, 220 270, 150 270 C80 270, 30 260, 30 180 C30 100, 80 30, 150 30 Z" stroke="#333" stroke-width="2"/>
+<path d="M150 30 V270" stroke="#333" stroke-width="1" stroke-dasharray="5 5"/>
+<path d="M30 180 H270" stroke="#333" stroke-width="1" stroke-dasharray="5 5"/>
+<path d="M150 30 C150 30, 180 60, 180 100 C180 140, 150 150, 150 150" stroke="#333" stroke-width="1"/>
+<path d="M150 30 C150 30, 120 60, 120 100 C120 140, 150 150, 150 150" stroke="#333" stroke-width="1"/>
+<path d="M150 150 C150 150, 180 180, 180 220 C180 260, 150 270, 150 270" stroke="#333" stroke-width="1"/>
+<path d="M150 150 C150 150, 120 180, 120 220 C120 260, 150 270, 150 270" stroke="#333" stroke-width="1"/>
+<text x="145" y="20" font-family="Arial" font-size="12" fill="#333">Top</text>
+<text x="275" y="185" font-family="Arial" font-size="12" fill="#333">Side</text>
+<text x="145" y="290" font-family="Arial" font-size="12" fill="#333">Nape</text>
+<circle cx="150" cy="150" r="3" fill="#333"/>
+</svg>
