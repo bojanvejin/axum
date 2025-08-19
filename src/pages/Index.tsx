@@ -160,6 +160,8 @@ const Index = () => {
                 key={phase.id}
                 phase={phase}
                 modules={modulesByPhase[phase.id] || []}
+                allLessons={allLessons}
+                studentProgress={studentProgress}
               />
             ))}
           </BentoGrid>
