@@ -6,12 +6,16 @@ import { CurriculumPhase, CurriculumModule } from '@/data/curriculum';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
+import { useUserRole } from '@/hooks/useUserRole'; // Import useUserRole
+import { Button } from '@/components/ui/button';
+import { Settings } from 'lucide-react';
 
 const PhaseDetail: React.FC = () => {
   const { phaseId } = useParams<{ phaseId: string }>();
   const [phase, setPhase] = useState<CurriculumPhase | null>(null);
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [loading, setLoading] = useState(true);
+  const { role, loading: roleLoading } = useUserRole(); // Get user role
 
   useEffect(() => {
     const fetchPhaseAndModules = async () => {
@@ -47,7 +51,7 @@ const PhaseDetail: React.FC = () => {
     }
   }, [phaseId]);
 
-  if (loading) {
+  if (loading || roleLoading) { // Wait for both data and role to load
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -77,7 +81,16 @@ const PhaseDetail: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">{phase.title}</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold">{phase.title}</h1>
+          {role === 'admin' && (
+            <Link to={`/admin/curriculum/phases/${phase.id}/modules`}>
+              <Button variant="outline" size="sm">
+                <Settings className="mr-2 h-4 w-4" /> Manage Modules
+              </Button>
+            </Link>
+          )}
+        </div>
         <p className="text-lg text-muted-foreground mb-8">{phase.description}</p>
 
         <h2 className="text-2xl font-semibold mb-6">Modules ({phase.weeks} Weeks)</h2>
