@@ -4,16 +4,19 @@ import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { CurriculumLesson } from '@/data/curriculum';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
+import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const { user } = useSession(); // Get the current user from session context
 
   useEffect(() => {
-    const fetchLesson = async () => {
+    const fetchLessonAndProgress = async () => {
       setLoading(true);
       try {
         const { data: lessonData, error: lessonError } = await supabase
@@ -24,18 +27,64 @@ const LessonDetail: React.FC = () => {
 
         if (lessonError) throw lessonError;
         setLesson(lessonData);
+
+        if (user) {
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .select('completed_at')
+            .eq('user_id', user.id)
+            .eq('lesson_id', lessonId)
+            .single();
+
+          if (progressError && progressError.code !== 'PGRST116') { // PGRST116 means no rows found
+            throw progressError;
+          }
+          setIsCompleted(!!progressData?.completed_at);
+        }
+
       } catch (error: any) {
         showError(`Failed to load lesson details: ${error.message}`);
-        console.error('Error fetching lesson:', error);
+        console.error('Error fetching lesson or progress:', error);
       } finally {
         setLoading(false);
       }
     };
 
     if (lessonId) {
-      fetchLesson();
+      fetchLessonAndProgress();
     }
-  }, [lessonId]);
+  }, [lessonId, user]); // Re-fetch if user changes
+
+  const handleMarkComplete = async () => {
+    if (!user) {
+      showError("You must be logged in to mark lessons complete.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('student_progress')
+        .upsert(
+          {
+            user_id: user.id,
+            lesson_id: lessonId!,
+            completed_at: new Date().toISOString(),
+            status: 'completed',
+          },
+          { onConflict: 'user_id,lesson_id' } // Update if already exists
+        );
+
+      if (error) throw error;
+      setIsCompleted(true);
+      showSuccess("Lesson marked as complete!");
+    } catch (error: any) {
+      showError(`Failed to mark lesson complete: ${error.message}`);
+      console.error('Error marking lesson complete:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -92,7 +141,13 @@ const LessonDetail: React.FC = () => {
           </div>
         )}
 
-        <Button className="w-full md:w-auto">Mark Complete</Button>
+        <Button
+          onClick={handleMarkComplete}
+          disabled={isCompleted || loading}
+          className="w-full md:w-auto"
+        >
+          {isCompleted ? "Completed!" : "Mark Complete"}
+        </Button>
       </div>
     </Layout>
   );
