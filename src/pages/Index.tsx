@@ -38,7 +38,7 @@ const Index = () => {
         // Fetch all lessons to calculate overall progress
         const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
-          .select('id, module_id, order_index');
+          .select('*');
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
         console.log('Index.tsx: Lessons fetched:', lessonsData?.length);

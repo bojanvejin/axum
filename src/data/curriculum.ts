@@ -23,6 +23,7 @@ export interface CurriculumLesson {
   video_url?: string;
   resources_url?: string;
   order_index: number;
+  quiz_id?: string | null;
 }
 
 export interface StudentProgress {

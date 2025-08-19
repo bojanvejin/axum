@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface BentoGridItemProps extends React.HTMLAttributes<HTMLDivElement> {
+interface BentoGridItemProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   className?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
