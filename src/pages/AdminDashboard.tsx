@@ -62,7 +62,7 @@ const AdminDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-sm">View and manage user accounts and roles.</p>
-              <Link to="#" className="text-blue-500 hover:underline mt-4 block">Go to User Management</Link>
+              <Link to="/admin/users" className="text-blue-500 hover:underline mt-4 block">Go to User Management</Link>
             </CardContent>
           </Card>
           <Card>
