@@ -122,7 +122,7 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
             <FormItem>
               <FormLabel>Order Index</FormLabel>
               <FormControl>
-                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

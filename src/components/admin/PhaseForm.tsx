@@ -121,7 +121,7 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
             <FormItem>
               <FormLabel>Duration (Weeks)</FormLabel>
               <FormControl>
-                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -134,7 +134,7 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
             <FormItem>
               <FormLabel>Order Index</FormLabel>
               <FormControl>
-                <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

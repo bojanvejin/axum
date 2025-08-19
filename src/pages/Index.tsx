@@ -91,7 +91,7 @@ const Index = () => {
     }
 
     const completedLessonIds = new Set(studentProgress.filter(p => p.status === 'completed').map(p => p.lesson_id));
-    const firstIncompleteLesson = allLessons
+    const firstIncompleteLesson = [...allLessons]
       .sort((a, b) => a.order_index - b.order_index)
       .find(lesson => !completedLessonIds.has(lesson.id));
 

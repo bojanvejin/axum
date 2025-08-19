@@ -118,7 +118,7 @@ const LessonDetail: React.FC = () => {
         if (existing) {
           return prev.map(p => p.lesson_id === lessonId ? { ...p, status: 'completed', completed_at: new Date().toISOString() } : p);
         } else {
-          return [...prev, { id: 'new-id', user_id: user.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed', status: 'completed' }]; // Added status field
+          return [...prev, { id: 'new-id', user_id: user.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }];
         }
       });
       showSuccess("Lesson marked as complete!");
