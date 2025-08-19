@@ -11,7 +11,8 @@ import ModuleDetail from "./pages/ModuleDetail";
 import LessonDetail from "./pages/LessonDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import PhaseManagement from "./pages/admin/PhaseManagement";
-import ModuleManagement from "./pages/admin/ModuleManagement"; // Import ModuleManagement
+import ModuleManagement from "./pages/admin/ModuleManagement";
+import LessonManagement from "./pages/admin/LessonManagement"; // Import LessonManagement
 import { ThemeProvider } from "next-themes";
 import { SessionContextProvider } from "./components/SessionContextProvider";
 
@@ -33,7 +34,8 @@ const App = () => (
               <Route path="/lessons/:lessonId" element={<LessonDetail />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/curriculum/phases" element={<PhaseManagement />} />
-              <Route path="/admin/curriculum/phases/:phaseId/modules" element={<ModuleManagement />} /> {/* New Module Management Route */}
+              <Route path="/admin/curriculum/phases/:phaseId/modules" element={<ModuleManagement />} />
+              <Route path="/admin/curriculum/phases/:phaseId/modules/:moduleId/lessons" element={<LessonManagement />} /> {/* New Lesson Management Route */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

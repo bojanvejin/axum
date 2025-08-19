@@ -6,8 +6,10 @@ import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { CheckCircle, Circle } from 'lucide-react';
+import { CheckCircle, Circle, Settings } from 'lucide-react';
 import { useSession } from '@/components/SessionContextProvider';
+import { useUserRole } from '@/hooks/useUserRole';
+import { Button } from '@/components/ui/button';
 
 const ModuleDetail: React.FC = () => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
@@ -16,6 +18,7 @@ const ModuleDetail: React.FC = () => {
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, loading: userLoading } = useSession();
+  const { role, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     const fetchModuleAndLessons = async () => {
@@ -50,7 +53,6 @@ const ModuleDetail: React.FC = () => {
 
       } catch (error: any) {
         showError(`Failed to load module details: ${error.message}`);
-        console.error('Error fetching module or lessons:', error);
       } finally {
         setLoading(false);
       }
@@ -65,16 +67,14 @@ const ModuleDetail: React.FC = () => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
   };
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
           <Skeleton className="h-10 w-3/4 mb-4" />
           <Skeleton className="h-6 w-1/2 mb-8" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-48 w-full" />
-            ))}
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
           </div>
         </div>
       </Layout>
@@ -95,23 +95,28 @@ const ModuleDetail: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">{module.title}</h1>
-        <p className="text-lg text-muted-foreground mb-8">{module.description}</p>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold">{module.title}</h1>
+            <p className="text-lg text-muted-foreground mt-2">{module.description}</p>
+          </div>
+          {role === 'admin' && (
+            <Link to={`/admin/curriculum/phases/${phaseId}/modules/${moduleId}/lessons`}>
+              <Button variant="outline" size="sm">
+                <Settings className="mr-2 h-4 w-4" /> Manage Lessons
+              </Button>
+            </Link>
+          )}
+        </div>
 
-        <h2 className="text-2xl font-semibold mb-6">Lessons</h2>
+        <h2 className="text-2xl font-semibold my-6">Lessons</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {lessons.map((lesson) => (
             <Link to={`/lessons/${lesson.id}`} key={lesson.id}>
               <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-xl">{lesson.title}</CardTitle>
-                  {user && (
-                    isLessonCompleted(lesson.id) ? (
-                      <CheckCircle className="text-green-500" size={20} />
-                    ) : (
-                      <Circle className="text-muted-foreground" size={20} />
-                    )
-                  )}
+                  {user && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground text-sm">{lesson.objectives}</p>
