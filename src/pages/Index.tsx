@@ -5,11 +5,12 @@ import CurriculumCard from "@/components/CurriculumCard";
 import { CurriculumPhase, CurriculumLesson, StudentProgress } from "@/data/curriculum";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '@/components/SessionContextProvider';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const Index = () => {
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
@@ -17,6 +18,7 @@ const Index = () => {
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, loading: userLoading } = useSession();
+  const { role, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -105,6 +107,11 @@ const Index = () => {
             <Button onClick={handleContinueLearning} className="mt-4 w-full">
               {completedLessonsCount === totalLessons ? "View Completed Curriculum" : "Continue Learning"}
             </Button>
+            {!roleLoading && (
+              <p className="text-sm text-muted-foreground mt-4">
+                Your role: <span className="font-bold capitalize">{role}</span>
+              </p>
+            )}
           </div>
         )}
 
