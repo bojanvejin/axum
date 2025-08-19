@@ -108,9 +108,7 @@ const Index = () => {
         <h1 className="text-4xl md:text-5xl font-bold mb-8 text-center">
           AXUM Internal Training Curriculum
         </h1>
-        <p className="text-lg md:text-xl text-center text-muted-foreground max-w-3xl mb-12">
-          This platform provides a detailed guide for building the Axum Education Platform.
-        </p>
+        {/* Removed the subheading as requested */}
 
         {userSessionLoading ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">

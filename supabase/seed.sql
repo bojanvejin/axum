@@ -8,23 +8,23 @@ DELETE FROM public.lessons;
 DELETE FROM public.modules;
 DELETE FROM public.phases;
 
--- Phase 1: Principles – Week 1: Glassbox (Axum) History & Philosophy
+-- Phase 1: Principles – Week 1: Axum History & Philosophy
 INSERT INTO public.phases (id, title, weeks, description, order_index)
 VALUES (
   'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-  'AXUM Internal Training Curriculum: Phase 1 – Principles (Week 1)',
+  'AXUM Internal Training Curriculum: Phase 1 – Principles',
   1,
   'This foundational phase introduces learners to the AXUM Internal Training Curriculum, focusing on the rich history and unique philosophy of barbering, particularly Axum''s distinctive approach. It lays the essential groundwork for all future modules, emphasizing why understanding these core principles is vital for every aspiring stylist''s successful career.',
   0
 );
 
--- Module 1A: Glassbox (Axum) History & Philosophy
+-- Module 1A: Axum History & Philosophy
 INSERT INTO public.modules (id, phase_id, title, description, order_index)
 VALUES (
   'b1c2d3e4-f5a6-7890-1234-567890abcdef',
   'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-  'Glassbox (Axum) History & Philosophy',
-  'This module delves into the historical evolution of barbering, the distinctive philosophy of Glassbox/Axum, and the paramount importance of continuous professional development, forming the substantive core of Phase 1.',
+  'Axum History & Philosophy',
+  'This module delves into the historical evolution of barbering, the distinctive philosophy of Axum, and the paramount importance of continuous professional development, forming the substantive core of Phase 1.',
   0
 );
 
@@ -59,29 +59,29 @@ VALUES (
   NOW()
 );
 
--- Quiz for Lesson 1A.2: The Glassbox/Axum Philosophy
+-- Quiz for Lesson 1A.2: The Axum Philosophy
 INSERT INTO public.quizzes (id, lesson_id, title, description)
 VALUES (
   'a2b3c4d5-e6f7-8901-2345-67890abcdef0',
   NULL,
-  'Quiz: The Glassbox/Axum Philosophy',
+  'Quiz: The Axum Philosophy',
   'Assess your understanding of Axum''s core mission, values, and unique approach to hairstyling.'
 );
 
--- Quiz Questions for Quiz: The Glassbox/Axum Philosophy
+-- Quiz Questions for Quiz: The Axum Philosophy
 INSERT INTO public.quiz_questions (id, quiz_id, question_text, question_type, options, correct_answer)
 VALUES
   (gen_random_uuid(), 'a2b3c4d5-e6f7-8901-2345-67890abcdef0', 'What is a cornerstone of the Axum philosophy regarding skills?', 'mcq', '["Emphasis on advanced techniques only", "Focus on traditional clipper work only", "Unwavering emphasis on solid fundamentals", "Prioritizing creative techniques first"]', 'Unwavering emphasis on solid fundamentals'),
   (gen_random_uuid(), 'a2b3c4d5-e6f7-8901-2345-67890abcdef0', 'What does the phrase "comfortable, yet challenged" imply in Axum''s philosophy?', 'mcq', '["A relaxed learning environment with no challenges", "A learning environment where only easy tasks are given", "A carefully scaffolded learning environment", "A competitive environment where only the best succeed"]', 'A carefully scaffolded learning environment');
 
--- Lesson 1A.2: The Glassbox/Axum Philosophy
+-- Lesson 1A.2: The Axum Philosophy
 INSERT INTO public.lessons (id, module_id, title, objectives, content_html, video_url, resources_url, order_index, quiz_id, created_at)
 VALUES (
   'd1e2f3a4-b5c6-7890-1234-567890abcdef',
   'b1c2d3e4-f5a6-7890-1234-567890abcdef',
-  'The Glassbox/Axum Philosophy',
-  'Articulate Glassbox/Axum’s core mission and values, explaining precisely how these principles influence and shape daily practice within the profession. Explain the critical importance of ongoing education and the mastery of fundamental skills in fostering successful hairstyling careers.',
-  '<h2>B. The Glassbox/Axum Philosophy</h2><p>At Axum, our philosophy is built on a foundation of unwavering emphasis on solid fundamentals. We believe that true mastery in hairstyling stems not from chasing fleeting trends, but from a deep understanding and consistent application of core techniques. Our mission is to cultivate stylists who are not only technically proficient but also embody the artistry and professionalism that define excellence in our craft.</p><p>We foster a learning environment that is both comfortable and challenging. This means providing comprehensive, step-by-step instruction that builds confidence, while simultaneously pushing our students to expand their boundaries and refine their skills. We believe in a carefully scaffolded approach, ensuring that each new concept builds logically upon the last, allowing for deep comprehension and retention.</p><p>Our values extend beyond the technical. We emphasize the importance of client connection, ethical practice, and a commitment to continuous personal and professional growth. We see hairstyling as more than just a service; it’s an opportunity to build relationships, inspire confidence, and contribute positively to our community. This holistic approach ensures that our graduates are not just skilled barbers, but well-rounded professionals ready to thrive in any setting.</p>',
+  'The Axum Philosophy',
+  'Articulate Axum’s core mission and values, explaining precisely how these principles influence and shape daily practice within the profession. Explain the critical importance of ongoing education and the mastery of fundamental skills in fostering successful hairstyling careers.',
+  '<h2>B. The Axum Philosophy</h2><p>At Axum, our philosophy is built on a foundation of unwavering emphasis on solid fundamentals. We believe that true mastery in hairstyling stems not from chasing fleeting trends, but from a deep understanding and consistent application of core techniques. Our mission is to cultivate stylists who are not only technically proficient but also embody the artistry and professionalism that define excellence in our craft.</p><p>We foster a learning environment that is both comfortable and challenging. This means providing comprehensive, step-by-step instruction that builds confidence, while simultaneously pushing our students to expand their boundaries and refine their skills. We believe in a carefully scaffolded approach, ensuring that each new concept builds logically upon the last, allowing for deep comprehension and retention.</p><p>Our values extend beyond the technical. We emphasize the importance of client connection, ethical practice, and a commitment to continuous personal and professional growth. We see hairstyling as more than just a service; it’s an opportunity to build relationships, inspire confidence, and contribute positively to our community. This holistic approach ensures that our graduates are not just skilled barbers, but well-rounded professionals ready to thrive in any setting.</p>',
   NULL, -- video_url
   NULL, -- resources_url
   1,
