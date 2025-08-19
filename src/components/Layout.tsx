@@ -1,7 +1,6 @@
 import React from 'react';
 import AxumLogo from './AxumLogo';
 import ThemeToggle from './ThemeToggle';
-import { MadeWithDyad } from './made-with-dyad';
 import { Link } from 'react-router-dom';
 import { useUserRole } from '@/hooks/useUserRole'; // Import the hook
 
@@ -28,7 +27,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="flex-grow container mx-auto p-4">
         {children}
       </main>
-      <MadeWithDyad />
     </div>
   );
 };
