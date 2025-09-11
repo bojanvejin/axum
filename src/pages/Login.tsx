@@ -2,9 +2,9 @@ import React from 'react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AxumLogo from '@/components/AxumLogo';
-import { Toaster } from '@/components/ui/sonner'; // Import Toaster for displaying errors
+import { Toaster } from '@/components/ui/sonner';
 
 const Login: React.FC = () => {
   return (
@@ -15,14 +15,16 @@ const Login: React.FC = () => {
           <CardTitle className="text-2xl font-bold text-center">
             Welcome to Axum Training
           </CardTitle>
-          <p className="text-sm text-muted-foreground text-center">
-            Sign in to access your curriculum.
-          </p>
+          <CardDescription className="text-sm text-muted-foreground text-center">
+            Enter your email below to receive a magic link to sign in.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Auth
             supabaseClient={supabase}
-            providers={[]} // No third-party providers unless specified
+            view="magic_link"
+            showLinks={false}
+            providers={[]}
             appearance={{
               theme: ThemeSupa,
               variables: {
@@ -43,45 +45,21 @@ const Login: React.FC = () => {
                 },
               },
             }}
-            theme="light" // Default to light theme, will be overridden by global theme
+            theme="light"
             localization={{
               variables: {
-                sign_in: {
+                magic_link: {
                   email_label: 'Email address',
-                  password_label: 'Password',
                   email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Your password',
-                  button_label: 'Sign In',
-                  loading_button_label: 'Signing In...',
-                  link_text: 'Already have an account? Sign In',
-                },
-                sign_up: {
-                  email_label: 'Email address',
-                  password_label: 'Create a Password',
-                  email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Your password',
-                  button_label: 'Sign Up',
-                  loading_button_label: 'Signing Up...',
-                  link_text: 'Don\'t have an account? Sign Up',
-                },
-                forgotten_password: {
-                  link_text: 'Forgot your password?',
-                  button_label: 'Send reset instructions',
-                  loading_button_label: 'Sending instructions...',
-                  email_input_placeholder: 'Your email address',
-                },
-                update_password: {
-                  password_label: 'New Password',
-                  password_input_placeholder: 'Your new password',
-                  button_label: 'Update Password',
-                  loading_button_label: 'Updating password...',
+                  button_label: 'Send Magic Link',
+                  loading_button_label: 'Sending...',
                 },
               },
             }}
           />
         </CardContent>
       </Card>
-      <Toaster /> {/* Add Toaster here */}
+      <Toaster />
     </div>
   );
 };
