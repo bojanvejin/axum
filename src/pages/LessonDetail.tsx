@@ -38,7 +38,7 @@ const LessonDetail: React.FC = () => {
         // Fetch current lesson details and its module/phase
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')
-          .select('*, modules(id, title, phase_id, phases(id, title))') // Select module and phase details
+          .select('*, modules(id, title, phase_id, week_number, day_number, phases(id, title))') // Select module and phase details, including week_number and day_number
           .eq('id', lessonId)
           .single();
 
@@ -180,69 +180,75 @@ const LessonDetail: React.FC = () => {
             {currentModule && currentPhase && (
               <Button variant="ghost" size="icon" asChild>
                 <Link to={`/phases/${currentPhase.id}/modules/${currentModule.id}`}>
-                  <ArrowLeft className="h-5 w-5" />
-                </Link>
-              </Button>
-            )}
-            <h1 className="text-3xl md:text-4xl font-bold ml-2">{lesson.title}</h1>
-          </div>
-          <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
+                      <ArrowLeft className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                )}
+                <h1 className="text-3xl md:text-4xl font-bold ml-2">{lesson.title}</h1>
+              </div>
+              <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
 
-          <div className="mb-6">
-            <TextToSpeechButton textToSpeak={lessonText} />
-          </div>
+              {currentModule?.week_number !== undefined && currentModule?.day_number !== undefined && (
+                <p className="text-md text-muted-foreground mb-6">
+                  Scheduled: Week {currentModule.week_number}, Day {currentModule.day_number}
+                </p>
+              )}
 
-          <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || '<p>No content available for this lesson yet.</p>' }} />
+              <div className="mb-6">
+                <TextToSpeechButton textToSpeak={lessonText} />
+              </div>
 
-          {lesson.video_url && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Video Demonstration</h2>
-              <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
-                <iframe
-                  src={lesson.video_url}
-                  title={lesson.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                ></iframe>
+              <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || '<p>No content available for this lesson yet.</p>' }} />
+
+              {lesson.video_url && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold mb-4">Video Demonstration</h2>
+                  <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
+                    <iframe
+                      src={lesson.video_url}
+                      title={lesson.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    ></iframe>
+                  </div>
+                </div>
+              )}
+
+              {lesson.resources_url && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold mb-4">Resources</h2>
+                  <a href={lesson.resources_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                    Download Resources
+                  </a>
+                </div>
+              )}
+
+              {lesson.quiz_id && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold mb-4">Knowledge Check Quiz</h2>
+                  <QuizComponent quizId={lesson.quiz_id} lessonId={lesson.id} onQuizAttempted={handleQuizAttempted} />
+                </div>
+              )}
+
+              <div className="flex justify-between items-center mt-8">
+                <Button
+                  onClick={handleMarkComplete}
+                  disabled={isCompleted || loading}
+                  className="w-full md:w-auto"
+                >
+                  {isCompleted ? "Completed!" : "Mark Complete"}
+                </Button>
+                {nextLesson && (
+                  <Button onClick={() => navigate(`/lessons/${nextLesson.id}`)} className="ml-auto">
+                    Next Lesson <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
-          )}
-
-          {lesson.resources_url && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Resources</h2>
-              <a href={lesson.resources_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                Download Resources
-              </a>
-            </div>
-          )}
-
-          {lesson.quiz_id && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Knowledge Check Quiz</h2>
-              <QuizComponent quizId={lesson.quiz_id} lessonId={lesson.id} onQuizAttempted={handleQuizAttempted} />
-            </div>
-          )}
-
-          <div className="flex justify-between items-center mt-8">
-            <Button
-              onClick={handleMarkComplete}
-              disabled={isCompleted || loading}
-              className="w-full md:w-auto"
-            >
-              {isCompleted ? "Completed!" : "Mark Complete"}
-            </Button>
-            {nextLesson && (
-              <Button onClick={() => navigate(`/lessons/${nextLesson.id}`)} className="ml-auto">
-                Next Lesson <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
           </div>
-        </div>
-      </div>
-    </Layout>
-  );
-};
+        </Layout>
+      );
+    };
 
-export default LessonDetail;
+    export default LessonDetail;

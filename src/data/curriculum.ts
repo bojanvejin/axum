@@ -4,6 +4,8 @@ export interface CurriculumModule {
   title: string;
   description: string;
   order_index: number;
+  week_number?: number; // New field
+  day_number?: number;  // New field
 }
 
 export interface CurriculumPhase {
