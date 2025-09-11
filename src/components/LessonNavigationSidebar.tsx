@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface LessonNavigationSidebarProps {
   lessons: CurriculumLesson[];
   currentLessonId: string;
-  studentProgress: StudentProgress[];
+  studentProgress: StudentProgress[]; // Now passed directly
 }
 
 const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({

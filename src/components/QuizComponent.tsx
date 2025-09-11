@@ -6,7 +6,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { useSession } from '@/components/SessionContextProvider';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
+import { getLocalQuizAttempts, addLocalQuizAttempt } from '@/utils/localProgress'; // Import local quiz attempts utility
 
 interface QuizQuestion {
   id: string;
@@ -20,6 +21,7 @@ interface QuizAttempt {
   id: string;
   score: number;
   answers: Record<string, string>;
+  submitted_at: string; // Add submitted_at for consistency
 }
 
 interface QuizComponentProps {
@@ -38,16 +40,16 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingResultsOf, setViewingResultsOf] = useState<QuizAttempt | null>(null);
-  const { user } = useSession();
+  const localUser = getLocalUser(); // Get local user
 
-  const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { score: -1, id: '', answers: {} });
+  const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { id: '', score: -1, answers: {}, submitted_at: '' });
   const hasPassed = bestAttempt.score >= PASSING_SCORE;
   const attemptsMade = attempts.length;
   const canAttempt = !hasPassed && attemptsMade < MAX_ATTEMPTS;
 
   useEffect(() => {
     const fetchQuizData = async () => {
-      if (!quizId || !user) {
+      if (!quizId || !localUser) {
         setLoading(false);
         return;
       }
@@ -61,17 +63,11 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
         if (questionsError) throw questionsError;
         setQuestions(questionsData || []);
 
-        const { data: attemptsData, error: attemptsError } = await supabase
-          .from('quiz_attempts')
-          .select('id, score, answers')
-          .eq('user_id', user.id)
-          .eq('quiz_id', quizId)
-          .order('created_at', { ascending: false });
-        if (attemptsError) throw attemptsError;
-        const loadedAttempts = attemptsData || [];
+        // Load quiz attempts from local storage
+        const loadedAttempts = getLocalQuizAttempts(localUser.id, quizId);
         setAttempts(loadedAttempts);
 
-        const latestAttempt = loadedAttempts[0];
+        const latestAttempt = loadedAttempts[loadedAttempts.length - 1]; // Get the latest attempt
         const best = loadedAttempts.reduce((max, current) => (current.score > (max?.score ?? -1) ? current : max), null);
         const passed = best && best.score >= PASSING_SCORE;
 
@@ -88,20 +84,20 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       }
     };
 
-    if (user) {
+    if (localUser) { // Only fetch data if a local user is present
       fetchQuizData();
     } else {
       setLoading(false);
     }
-  }, [quizId, user]);
+  }, [quizId, localUser]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmitQuiz = async () => {
-    if (!user) {
-      showError("You must be logged in to submit a quiz.");
+    if (!localUser) {
+      showError("User not identified. Please refresh and enter your name.");
       return;
     }
     setIsSubmitting(true);
@@ -116,22 +112,18 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     const calculatedScore = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
 
     try {
-      const { data: newAttempt, error } = await supabase
-        .from('quiz_attempts')
-        .insert({
-          user_id: user.id,
-          quiz_id: quizId,
-          score: calculatedScore,
-          answers: userAnswers,
-        })
-        .select('id, score, answers')
-        .single();
-
-      if (error) throw error;
+      const newAttempt: QuizAttempt = {
+        id: crypto.randomUUID(), // Generate a unique ID for the attempt
+        score: calculatedScore,
+        answers: userAnswers,
+        submitted_at: new Date().toISOString(),
+      };
+      
+      addLocalQuizAttempt(localUser.id, quizId, newAttempt); // Save to local storage
       
       showSuccess(`Attempt ${attemptsMade + 1} submitted! Your score: ${calculatedScore.toFixed(0)}%`);
       
-      const updatedAttempts = [newAttempt, ...attempts];
+      const updatedAttempts = [...attempts, newAttempt];
       setAttempts(updatedAttempts);
       setViewingResultsOf(newAttempt);
       
@@ -157,8 +149,8 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     );
   }
 
-  if (!user) {
-    return <p className="text-muted-foreground">Please log in to take the quiz.</p>;
+  if (!localUser) {
+    return <p className="text-muted-foreground">Please enter your name to take the quiz.</p>;
   }
 
   if (questions.length === 0) {

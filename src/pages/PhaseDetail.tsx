@@ -6,16 +6,17 @@ import { CurriculumPhase, CurriculumModule } from '@/data/curriculum';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { useUserRole } from '@/hooks/useUserRole';
+// useUserRole is no longer needed
 import { Button } from '@/components/ui/button';
-import { Settings, ArrowLeft } from 'lucide-react'; // Import ArrowLeft
+import { Settings, ArrowLeft } from 'lucide-react';
 
 const PhaseDetail: React.FC = () => {
   const { phaseId } = useParams<{ phaseId: string }>();
   const [phase, setPhase] = useState<CurriculumPhase | null>(null);
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [loading, setLoading] = useState(true);
-  const { role, loading: roleLoading } = useUserRole();
+  // role and roleLoading are no longer needed
+  // const { role, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     const fetchPhaseAndModules = async () => {
@@ -51,7 +52,7 @@ const PhaseDetail: React.FC = () => {
     }
   }, [phaseId]);
 
-  if (loading || roleLoading) {
+  if (loading) { // Removed roleLoading from condition
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -90,13 +91,14 @@ const PhaseDetail: React.FC = () => {
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{phase.title}</h1>
           </div>
-          {role === 'admin' && (
+          {/* Admin link removed as roles are no longer managed via Supabase auth */}
+          {/* {role === 'admin' && (
             <Link to={`/admin/curriculum/phases/${phase.id}/modules`}>
               <Button variant="outline" size="sm">
                 <Settings className="mr-2 h-4 w-4" /> Manage Modules
               </Button>
             </Link>
-          )}
+          )} */}
         </div>
         <p className="text-lg text-muted-foreground mb-8">{phase.description}</p>
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useSession } from '@/components/SessionContextProvider';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 interface CurriculumPhaseOverviewCardProps {
   phase: CurriculumPhase;
@@ -14,7 +14,7 @@ interface CurriculumPhaseOverviewCardProps {
 }
 
 const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress, backgroundImage }) => {
-  const { user } = useSession();
+  const localUser = getLocalUser(); // Get local user
 
   const getPhaseProgress = () => {
     const lessonsInPhase = allLessons.filter(lesson => 
@@ -46,7 +46,7 @@ const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = 
           <CardDescription className="text-gray-300 mt-1 line-clamp-2">{phase.description}</CardDescription>
           <p className="text-sm text-gray-400 mt-2">Duration: {phase.weeks} Weeks</p>
         </div>
-        {user && (
+        {localUser && ( // Conditionally render progress if local user exists
           <div className="mt-4">
             <div className="flex justify-between items-center text-sm mb-1">
               <span>Progress</span>

@@ -6,11 +6,12 @@ import { CurriculumLesson, StudentProgress, CurriculumModule, CurriculumPhase } 
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
-import { useSession } from '@/components/SessionContextProvider';
 import LessonNavigationSidebar from '@/components/LessonNavigationSidebar';
 import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
+import { getLocalStudentProgress, setLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -22,10 +23,15 @@ const LessonDetail: React.FC = () => {
   const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
   const [currentPhase, setCurrentPhase] = useState<CurriculumPhase | null>(null);
   const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
-  const { user, loading: userLoading } = useSession();
+  const localUser = getLocalUser(); // Get local user
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!localUser) {
+      navigate('/enter-name'); // Redirect if no local user
+      return;
+    }
+
     const fetchLessonAndProgress = async () => {
       setLoading(true);
       try {
@@ -65,18 +71,11 @@ const LessonDetail: React.FC = () => {
           setNextLesson(null);
         }
 
-        // Fetch student progress if user is logged in
-        if (user) {
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', user.id);
-
-          if (progressError && progressError.code !== 'PGRST116') {
-            throw progressError;
-          }
-          setStudentProgress(progressData || []);
-          setIsCompleted(progressData?.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
+        // Load student progress from local storage
+        if (localUser) {
+          const progressData = getLocalStudentProgress(localUser.id);
+          setStudentProgress(progressData);
+          setIsCompleted(progressData.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
         }
 
       } catch (error: any) {
@@ -87,41 +86,37 @@ const LessonDetail: React.FC = () => {
       }
     };
 
-    if (lessonId && !userLoading) {
+    if (lessonId && localUser) { // Only fetch data if a local user is present
       fetchLessonAndProgress();
     }
-  }, [lessonId, user, userLoading]);
+  }, [lessonId, localUser, navigate]);
 
   const handleMarkComplete = async () => {
-    if (!user) {
-      showError("You must be logged in to mark lessons complete.");
+    if (!localUser) {
+      showError("User not identified. Please refresh and enter your name.");
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('student_progress')
-        .upsert(
-          {
-            user_id: user.id,
-            lesson_id: lessonId!,
-            completed_at: new Date().toISOString(),
-            status: 'completed',
-          },
-          { onConflict: 'user_id,lesson_id' }
-        );
+      const currentProgress = getLocalStudentProgress(localUser.id);
+      const existingProgressIndex = currentProgress.findIndex(p => p.lesson_id === lessonId);
 
-      if (error) throw error;
+      let updatedProgress: StudentProgress[];
+      if (existingProgressIndex > -1) {
+        updatedProgress = currentProgress.map((p, index) =>
+          index === existingProgressIndex ? { ...p, status: 'completed', completed_at: new Date().toISOString() } : p
+        );
+      } else {
+        updatedProgress = [
+          ...currentProgress,
+          { id: crypto.randomUUID(), user_id: localUser.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }
+        ];
+      }
+      setLocalStudentProgress(localUser.id, updatedProgress); // Save to local storage
+
       setIsCompleted(true);
-      setStudentProgress(prev => {
-        const existing = prev.find(p => p.lesson_id === lessonId);
-        if (existing) {
-          return prev.map(p => p.lesson_id === lessonId ? { ...p, status: 'completed', completed_at: new Date().toISOString() } : p);
-        } else {
-          return [...prev, { id: 'new-id', user_id: user.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }];
-        }
-      });
+      setStudentProgress(updatedProgress);
       showSuccess("Lesson marked as complete!");
     } catch (error: any) {
       showError(`Failed to mark lesson complete: ${error.message}`);
@@ -132,8 +127,7 @@ const LessonDetail: React.FC = () => {
   };
 
   const handleQuizAttempted = (score: number, totalQuestions: number) => {
-    // Optionally update progress or show a message based on quiz completion
-    if (score >= 70) { // Example: Mark complete if score is 70% or higher
+    if (score >= 90) { // Mark complete if score is 90% or higher
       handleMarkComplete();
     } else {
       showError("Quiz score too low to mark lesson complete. Please review and try again.");

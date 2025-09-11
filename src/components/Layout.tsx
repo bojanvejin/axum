@@ -2,25 +2,22 @@ import React from 'react';
 import AxumLogo from './AxumLogo';
 import ThemeToggle from './ThemeToggle';
 import { Link } from 'react-router-dom';
-import { useUserRole } from '@/hooks/useUserRole'; // Import the hook
+// useUserRole is no longer needed as we are removing Supabase auth
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { role, loading } = useUserRole(); // Use the hook
+  // role and loading are no longer needed
+  // const { role, loading } = useUserRole(); 
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="flex items-center justify-between p-4 border-b border-border">
         <AxumLogo />
         <div className="flex items-center gap-4">
-          {!loading && role === 'admin' && ( // Conditionally render based on role
-            <Link to="/admin" className="text-sm font-medium text-primary hover:underline">
-              Admin Dashboard
-            </Link>
-          )}
+          {/* Admin Dashboard link removed as roles are no longer managed via Supabase auth */}
           <ThemeToggle />
         </div>
       </header>

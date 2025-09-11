@@ -1,33 +1,16 @@
 import React from 'react';
 import Layout from '@/components/Layout';
-import { useUserRole } from '@/hooks/useUserRole';
+// useUserRole is no longer needed
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AdminDashboard: React.FC = () => {
-  const { role, loading } = useUserRole();
+  // role and loading are no longer needed
+  // const { role, loading } = useUserRole();
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Loading user role...</h2>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (role !== 'admin') {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Since we removed Supabase auth, there's no concept of 'admin' role.
+  // For now, we'll assume anyone who navigates here can see it,
+  // but in a real application, you'd implement a different authorization mechanism.
 
   return (
     <Layout>
@@ -56,15 +39,7 @@ const AdminDashboard: React.FC = () => {
               <Link to="/admin/curriculum/quizzes" className="text-blue-500 hover:underline mt-4 block">Go to Quiz Management</Link>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Manage Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">View and manage user accounts and roles.</p>
-              <Link to="/admin/users" className="text-blue-500 hover:underline mt-4 block">Go to User Management</Link>
-            </CardContent>
-          </Card>
+          {/* User Management card removed */}
           <Card>
             <CardHeader>
               <CardTitle>View Reports</CardTitle>
