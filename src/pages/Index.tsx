@@ -85,9 +85,10 @@ const Index = () => {
     }
   }, [navigate]); // Depend on navigate to ensure redirect works
 
-  const totalLessons = allLessons.length;
-  const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
-  const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
+  // The following variables are no longer used for display but are kept if handleContinueLearning is re-introduced
+  // const totalLessons = allLessons.length;
+  // const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
+  // const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
 
   const handleContinueLearning = () => {
     if (!localUser) {
@@ -120,33 +121,6 @@ const Index = () => {
         <p className="text-lg text-muted-foreground mb-8 text-center max-w-2xl">
           Your journey to mastering the art of hair styling starts here. Track your progress, complete lessons, and unlock your potential.
         </p>
-
-        {dataLoading ? ( // Use dataLoading for overall content loading
-          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
-            <p className="text-lg text-muted-foreground mb-4">Loading curriculum data...</p>
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : localUser ? ( // Show progress if local user exists and data is loaded
-          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
-            <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
-            <div className="flex items-center gap-4">
-              <Progress value={overallProgress} className="flex-grow" />
-              <span className="text-sm font-medium">{overallProgress.toFixed(0)}% Complete</span>
-            </div>
-            <Button onClick={handleContinueLearning} className="mt-4 w-full">
-              {completedLessonsCount === totalLessons ? "Review Curriculum" : "Continue Learning"}
-            </Button>
-          </div>
-        ) : ( // Fallback if no local user (should be redirected by now)
-          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
-            <p className="text-lg text-muted-foreground mb-4">
-              Please enter your name to track your progress and access full features.
-            </p>
-            <Button onClick={() => navigate('/enter-name')} className="w-full md:w-auto">
-              Enter Your Name
-            </Button>
-          </div>
-        )}
 
         <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Course Schedule</h2>
         <CourseCalendar startDate={courseStartDate} />
