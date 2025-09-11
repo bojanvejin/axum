@@ -1,11 +1,9 @@
 import React from 'react';
 import AxumLogo from './AxumLogo';
 import ThemeToggle from './ThemeToggle';
-import LanguageToggle from './LanguageToggle'; // Import LanguageToggle
+import LanguageToggle from './LanguageToggle';
 import { Link, useNavigate } from 'react-router-dom';
-import { useUserRole } from '@/hooks/useUserRole';
-import { useSession } from './SessionContextProvider';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext'; // Use useAuth
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -15,37 +13,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Removed AvatarImage
 import { LogOut } from 'lucide-react';
-import { showError, showSuccess } from '@/utils/toast';
-import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { role, loading: roleLoading } = useUserRole();
-  const { user, profile, session } = useSession();
+  const { userName, logout, isAuthenticated, loading: authLoading } = useAuth(); // Use useAuth
   const navigate = useNavigate();
-  const { t } = useLanguage(); // Use translation hook
+  const { t } = useLanguage();
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      showError(t('logout_failed', { message: error.message }));
-    } else {
-      showSuccess(t('logged_out'));
-      navigate('/login');
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   const getInitials = () => {
-    if (profile?.first_name && profile?.last_name) {
-      return `${profile.first_name[0]}${profile.last_name[0]}`;
-    }
-    if (user?.email) {
-      return user.email[0].toUpperCase();
+    if (userName) {
+      return userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
     }
     return 'U';
   };
@@ -57,19 +44,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <AxumLogo />
         </Link>
         <div className="flex items-center gap-4">
-          {!roleLoading && role === 'admin' && (
-            <Link to="/admin" className="text-sm font-medium text-primary hover:underline">
-              {t('admin_dashboard')}
-            </Link>
-          )}
-          <LanguageToggle /> {/* Add LanguageToggle here */}
+          <LanguageToggle />
           <ThemeToggle />
-          {session && (
+          {isAuthenticated && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={profile?.avatar_url || ''} alt="User avatar" />
+                    {/* No avatar image with simple auth */}
                     <AvatarFallback>{getInitials()}</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -78,10 +60,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {profile?.first_name} {profile?.last_name}
+                      {userName}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email}
+                      {t('logged_in_as', { name: userName })}
                     </p>
                   </div>
                 </DropdownMenuLabel>
