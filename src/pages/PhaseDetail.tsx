@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
+import { ArrowLeft } from 'lucide-react'; // Removed Settings
 import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const PhaseDetail: React.FC = () => {
@@ -16,7 +15,7 @@ const PhaseDetail: React.FC = () => {
   const [phase, setPhase] = useState<CurriculumPhase | null>(null);
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [loading, setLoading] = useState(true);
-  const { loading: authLoading } = useAuth(); // Use authLoading from useAuth
+  // Removed useUserRole and role/roleLoading
   const { t } = useLanguage(); // Use translation hook
 
   useEffect(() => {
@@ -48,12 +47,12 @@ const PhaseDetail: React.FC = () => {
       }
     };
 
-    if (phaseId && !authLoading) { // Check authLoading here
+    if (phaseId) {
       fetchPhaseAndModules();
     }
-  }, [phaseId, authLoading, t]); // Add authLoading to dependencies
+  }, [phaseId, t]);
 
-  if (loading || authLoading) { // Use authLoading here
+  if (loading) { // Removed roleLoading
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -92,7 +91,7 @@ const PhaseDetail: React.FC = () => {
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{phase.title}</h1>
           </div>
-          {/* Admin management button removed */}
+          {/* Removed admin-specific button */}
         </div>
         <p className="text-lg text-muted-foreground mb-8">{phase.description}</p>
 

@@ -23,7 +23,7 @@ const Index = () => {
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const { userName, isAuthenticated, loading: authLoading } = useAuth(); // Changed from useSession
+  const { userName, isAuthenticated, loading: authLoading } = useAuth(); // Use useAuth
   const navigate = useNavigate();
   const { t } = useLanguage(); // Use translation hook
 
@@ -59,7 +59,7 @@ const Index = () => {
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
 
-        if (isAuthenticated && userName) {
+        if (isAuthenticated && userName) { // Check isAuthenticated and userName
           const storedProgress = localStorage.getItem(`progress_${userName}`);
           if (storedProgress) {
             setStudentProgress(JSON.parse(storedProgress));
@@ -75,18 +75,18 @@ const Index = () => {
       }
     };
 
-    if (!authLoading) {
+    if (!authLoading) { // Use authLoading
       fetchData();
     }
-  }, [isAuthenticated, userName, authLoading, t]);
+  }, [isAuthenticated, userName, authLoading, t]); // Update dependencies
 
   const totalLessons = allLessons.length;
   const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
   const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
 
   const handleContinueLearning = () => {
-    if (!isAuthenticated) {
-      navigate('/simple-login');
+    if (!isAuthenticated) { // Use isAuthenticated
+      navigate('/simple-login'); // Redirect to simple-login
       return;
     }
 
@@ -112,12 +112,12 @@ const Index = () => {
           {t('welcome_description')}
         </p>
 
-        {authLoading ? (
+        {authLoading ? ( // Use authLoading
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
             <p className="text-lg text-muted-foreground mb-4">{t('loading_session')}</p>
             <Skeleton className="h-10 w-full" />
           </div>
-        ) : isAuthenticated ? (
+        ) : isAuthenticated ? ( // Use isAuthenticated
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
             <h2 className="text-xl font-semibold mb-2">{t('your_progress')}</h2>
             <div className="flex items-center gap-4">
