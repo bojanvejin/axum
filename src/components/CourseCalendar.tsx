@@ -22,6 +22,8 @@ interface CourseCalendarProps {
 
 const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  // New state to control the displayed month of the calendar
+  const [month, setMonth] = useState<Date>(startDate); // Initialize with the course start date
   const [modulesForSelectedDate, setModulesForSelectedDate] = useState<ModuleWithPhaseTitle[]>([]);
   // Map to store unique module IDs for each class day (for highlighting)
   const [classDaysModuleIdsMap, setClassDaysModuleIdsMap] = useState<Map<string, Set<string>>>(new Map());
@@ -78,10 +80,15 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
         setClassDaysModuleIdsMap(newClassDaysModuleIdsMap);
         setClassDaysModulesDataMap(newClassDaysModulesDataMap);
 
-        // If a date was already selected, update its modules based on the new data
-        if (selectedDate) {
-          const dateString = format(selectedDate, 'yyyy-MM-dd');
-          setModulesForSelectedDate(newClassDaysModulesDataMap.get(dateString) || []);
+        // If no date is selected, default to showing modules for the first scheduled day if available
+        if (!selectedDate) {
+          const firstScheduledDateString = Array.from(newClassDaysModuleIdsMap.keys()).sort()[0];
+          if (firstScheduledDateString) {
+            const firstScheduledDate = new Date(firstScheduledDateString);
+            setSelectedDate(firstScheduledDate);
+            setMonth(firstScheduledDate); // Also set the month to the first scheduled date
+            setModulesForSelectedDate(newClassDaysModulesDataMap.get(firstScheduledDateString) || []);
+          }
         }
 
       } catch (err: any) {
@@ -93,16 +100,24 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
     };
 
     fetchAndGenerateCourseDates();
-  }, [startDate, selectedDate]); // Re-run if startDate or selectedDate changes
+  }, [startDate]); // Only re-run on startDate change, not selectedDate
 
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    if (date) {
-      const dateString = format(date, 'yyyy-MM-dd');
+  // Update modulesForSelectedDate and month when selectedDate changes
+  useEffect(() => {
+    if (selectedDate) {
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
       setModulesForSelectedDate(classDaysModulesDataMap.get(dateString) || []);
+      // When a date is selected, also update the displayed month to that date's month
+      setMonth(selectedDate);
     } else {
       setModulesForSelectedDate([]);
     }
+  }, [selectedDate, classDaysModulesDataMap]);
+
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    // The month state will be updated by the useEffect above when selectedDate changes
   };
 
   const modifiers = {
@@ -141,7 +156,8 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
             mode="single"
             selected={selectedDate}
             onSelect={handleDateSelect}
-            initialFocus
+            month={month} // Control the displayed month
+            onMonthChange={setMonth} // Update month when user navigates
             modifiers={modifiers}
             modifiersStyles={modifiersStyles}
             className="rounded-md border shadow w-full"
