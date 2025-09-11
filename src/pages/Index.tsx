@@ -18,6 +18,14 @@ const backgroundImages = [
   '/images/ancientbarber4.jpg',
 ];
 
+const courseObjectives = [
+  "Understand the history and evolution of line cutting and precision cutting.",
+  "Master the tools and techniques used in line cutting and precision cutting.",
+  "Develop the skills to create a wide range of designs and styles using line cutting and precision cutting.",
+  "Understand the importance of cleanliness and hygiene in the barbering profession.",
+  "Gain confidence and proficiency in performing line cutting and precision cutting on live clients.",
+];
+
 const Index = () => {
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
   const [modulesByPhase, setModulesByPhase] = useState<Record<string, CurriculumModule[]>>({});
@@ -120,6 +128,15 @@ const Index = () => {
         <p className="text-lg text-muted-foreground mb-8 text-center max-w-2xl">
           Your journey to mastering the art of hair styling starts here. Track your progress, complete lessons, and unlock your potential.
         </p>
+
+        <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Course Objectives</h2>
+          <ul className="list-disc list-inside text-muted-foreground space-y-2">
+            {courseObjectives.map((objective, index) => (
+              <li key={index}>{objective}</li>
+            ))}
+          </ul>
+        </div>
 
         {dataLoading ? ( // Use dataLoading for overall content loading
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
