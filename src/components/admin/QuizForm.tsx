@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { Quiz, CurriculumLesson } from '@/data/curriculum';
+import { Quiz, LessonOption } from '@/data/curriculum'; // Import LessonOption
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,7 +23,7 @@ interface QuizFormProps {
 }
 
 const QuizForm: React.FC<QuizFormProps> = ({ quiz, onSuccess }) => {
-  const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
+  const [lessons, setLessons] = useState<LessonOption[]>([]); // Use LessonOption[]
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -39,7 +39,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz, onSuccess }) => {
       if (error) {
         showError('Failed to load lessons.');
       } else {
-        setLessons(data || []);
+        setLessons(data || []); // Data matches LessonOption[]
       }
     };
     fetchLessons();

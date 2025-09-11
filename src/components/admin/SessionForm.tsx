@@ -17,14 +17,18 @@ import {
 } from '@/components/ui/form';
 import { showError, showSuccess } from '@/utils/toast';
 
+// Define the schema for the form's input values (which are strings for array-like fields)
 const formSchema = z.object({
   session_number: z.coerce.number().min(1, { message: 'Session number must be at least 1.' }),
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().optional(),
+  // These fields are input as strings, then transformed to arrays for the database
   topics: z.string().optional().transform(val => val ? val.split('\n').map(s => s.trim()).filter(s => s.length > 0) : []),
   assignments: z.string().optional().transform(val => val ? val.split('\n').map(s => s.trim()).filter(s => s.length > 0) : []),
   covers_days: z.string().optional().transform(val => val ? val.split(',').map(Number).filter(n => !isNaN(n) && n > 0) : []),
 });
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface SessionFormProps {
   session?: CurriculumSession | null;
@@ -32,12 +36,13 @@ interface SessionFormProps {
 }
 
 const SessionForm: React.FC<SessionFormProps> = ({ session, onSuccess }) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       session_number: session?.session_number || 1,
       title: session?.title || '',
       description: session?.description || '',
+      // Convert arrays back to strings for form display
       topics: session?.topics?.join('\n') || '',
       assignments: session?.assignments?.join('\n') || '',
       covers_days: session?.covers_days?.join(',') || '',
@@ -50,6 +55,7 @@ const SessionForm: React.FC<SessionFormProps> = ({ session, onSuccess }) => {
         session_number: session.session_number,
         title: session.title,
         description: session.description || '',
+        // Convert arrays back to strings for form display
         topics: session.topics?.join('\n') || '',
         assignments: session.assignments?.join('\n') || '',
         covers_days: session.covers_days?.join(',') || '',
@@ -66,15 +72,16 @@ const SessionForm: React.FC<SessionFormProps> = ({ session, onSuccess }) => {
     }
   }, [session, form]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     try {
+      // The values are already transformed by the schema's .transform()
       const payload = {
         session_number: values.session_number,
         title: values.title,
         description: values.description,
-        topics: values.topics,
-        assignments: values.assignments,
-        covers_days: values.covers_days,
+        topics: values.topics, // This will be string[] due to transform
+        assignments: values.assignments, // This will be string[] due to transform
+        covers_days: values.covers_days, // This will be number[] due to transform
       };
 
       if (session) {
@@ -175,7 +182,8 @@ const SessionForm: React.FC<SessionFormProps> = ({ session, onSuccess }) => {
             <FormItem>
               <FormLabel>Covers Days (comma-separated numbers)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 1,2,3" {...field} />
+                {/* Ensure the value passed to Input is a string */}
+                <Input placeholder="e.g., 1,2,3" {...field} value={field.value as string} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -9,7 +9,7 @@ import { showError } from '@/utils/toast';
 import { CheckCircle, Circle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { getLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
+// import { getLocalStudentProgress } from '@/utils/localProgress'; // REMOVED: Import local progress utility
 
 const ModuleDetail: React.FC = () => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
@@ -49,7 +49,13 @@ const ModuleDetail: React.FC = () => {
 
         // Load student progress from local storage
         if (localUser) {
-          setStudentProgress(getLocalStudentProgress(localUser.id));
+          // setStudentProgress(getLocalStudentProgress(localUser.id)); // REMOVED: Use Supabase for progress
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .select('*')
+            .eq('user_id', localUser.id);
+          if (progressError) throw progressError;
+          setStudentProgress(progressData || []);
         }
 
       } catch (error: any) {

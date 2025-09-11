@@ -1,3 +1,23 @@
+import * as z from "zod";
+
+export interface CurriculumPhase {
+  id: string;
+  title: string;
+  description?: string;
+  weeks?: number;
+}
+
+export interface CurriculumModule {
+  id: string;
+  phase_id: string;
+  title: string;
+  description?: string;
+  order_index: number;
+  course_week?: number;
+  tools_needed?: string;
+  preparation_guide?: string;
+}
+
 export interface CurriculumSession {
   id: string;
   session_number: number;
@@ -50,6 +70,7 @@ export interface QuizQuestion {
 
 export interface QuizAttempt {
   id: string;
+  user_id: string; // Added user_id
   score: number;
   answers: Record<string, string>;
   submitted_at: string;
@@ -88,4 +109,10 @@ export interface UserProfile {
   role: 'user' | 'admin';
   full_name?: string;
   avatar_url?: string;
+}
+
+// Session form
+export interface LessonOption {
+  id: string;
+  title: string;
 }
