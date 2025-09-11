@@ -107,9 +107,9 @@ const Index = () => {
     }
   };
 
-  // Calculate the course start date: next Monday from today (Sept 11, 2025)
+  // Calculate the course start date: last Monday from today (Sept 11, 2025)
   // September is month 8 (0-indexed)
-  const courseStartDate = new Date(2025, 8, 15); 
+  const courseStartDate = new Date(2025, 8, 8); 
 
   return (
     <Layout>

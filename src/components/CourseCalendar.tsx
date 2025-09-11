@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { courseOutline, DailyLesson } from '@/data/courseSchedule';
 
 interface CourseCalendarProps {
-  startDate: Date; // The actual start date of the course
+  startDate: Date; // The actual start date of the course (e.g., the first class Monday)
 }
 
 const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
@@ -19,23 +19,18 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
   useEffect(() => {
     const generateCourseDates = () => {
       const datesMap = new Map<string, DailyLesson[]>();
-      let currentDate = startDate;
+      let currentClassDate = startDate; // Start with the first class Monday
 
       courseOutline.forEach(week => {
-        week.days.forEach(lesson => {
-          // Skip weekends (Sunday = 0, Saturday = 6)
-          while (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
-            currentDate = addDays(currentDate, 1);
-          }
+        const dateString = format(currentClassDate, 'yyyy-MM-dd');
+        if (!datesMap.has(dateString)) {
+          datesMap.set(dateString, []);
+        }
+        // Assign all daily lessons for the current week to this single class day
+        datesMap.get(dateString)?.push(...week.days);
 
-          const dateString = format(currentDate, 'yyyy-MM-dd');
-          if (!datesMap.has(dateString)) {
-            datesMap.set(dateString, []);
-          }
-          datesMap.get(dateString)?.push(lesson);
-
-          currentDate = addDays(currentDate, 1); // Move to the next day
-        });
+        // Advance to the next class Monday (two weeks later)
+        currentClassDate = addDays(currentClassDate, 14);
       });
       setCourseDates(datesMap);
     };
