@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-import { useUserRole } from '@/hooks/useUserRole';
+// import { useUserRole } from '@/hooks/useUserRole'; // Removed
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import QuestionForm from '@/components/admin/QuestionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const QuestionManagement: React.FC = () => {
-  const { role, loading: roleLoading } = useUserRole();
+  // const { role, loading: roleLoading } = useUserRole(); // Removed
   const { quizId } = useParams<{ quizId: string }>();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -51,10 +51,10 @@ const QuestionManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!roleLoading && role === 'admin') {
+    // if (!roleLoading && role === 'admin') { // Modified condition
       fetchQuestions();
-    }
-  }, [role, roleLoading, quizId]);
+    // }
+  }, [quizId]); // Removed role, roleLoading from dependencies
 
   const handleDeleteQuestion = async (questionId: string) => {
     try {
@@ -83,20 +83,23 @@ const QuestionManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (roleLoading || !quizId) {
+  // Removed roleLoading check
+  // if (roleLoading || !quizId) { // Modified condition
+  if (!quizId) {
     return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
   }
 
-  if (role !== 'admin') {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Removed role !== 'admin' check
+  // if (role !== 'admin') {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
   return (
     <Layout>

@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ListChecks } from 'lucide-react';
-import { useUserRole } from '@/hooks/useUserRole';
+// import { useUserRole } from '@/hooks/useUserRole'; // Removed
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import QuizForm from '@/components/admin/QuizForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const QuizManagement: React.FC = () => {
-  const { role, loading: roleLoading } = useUserRole();
+  // const { role, loading: roleLoading } = useUserRole(); // Removed
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -48,10 +48,10 @@ const QuizManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!roleLoading && role === 'admin') {
+    // if (!roleLoading && role === 'admin') { // Modified condition
       fetchQuizzes();
-    }
-  }, [role, roleLoading]);
+    // }
+  }, []); // Removed role, roleLoading from dependencies
 
   const handleDeleteQuiz = async (quizId: string) => {
     try {
@@ -80,20 +80,22 @@ const QuizManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (roleLoading) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
-  }
+  // Removed roleLoading check
+  // if (roleLoading) {
+  //   return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+  // }
 
-  if (role !== 'admin') {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Removed role !== 'admin' check
+  // if (role !== 'admin') {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
   return (
     <Layout>
