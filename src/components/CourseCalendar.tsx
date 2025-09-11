@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
 import { CurriculumPhase, CurriculumModule } from '@/data/curriculum';
+import { Skeleton } from '@/components/ui/skeleton'; // Added import for Skeleton
 
 interface CourseCalendarProps {
   startDate: Date; // The actual start date of the course (e.g., the first class Monday)
