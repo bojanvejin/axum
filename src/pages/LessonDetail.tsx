@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, setSupabaseUserId } from '@/integrations/supabase/client'; // Import setSupabaseUserId
 import { CurriculumLesson, StudentProgress, CurriculumSession } from '@/data/curriculum';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
@@ -33,6 +33,13 @@ const LessonDetail: React.FC = () => {
     const fetchLessonAndProgress = async () => {
       setLoading(true);
       try {
+        if (localUser.id) { // Add this check
+          await setSupabaseUserId(localUser.id);
+        } else {
+          console.warn("localUser.id is missing or empty in LessonDetail, cannot set Supabase RLS user_id.");
+          await setSupabaseUserId(null); // Clear RLS user_id if localUser.id is invalid
+        }
+
         // Fetch current lesson details and its session
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')

@@ -16,15 +16,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Function to set the user_id in the Supabase session context for RLS
 const setSupabaseUserId = async (userId: string | null) => {
-  if (userId) {
-    const { error } = await supabase.rpc('set_user_id', { user_id_input: userId });
+  // Treat empty string as null for UUID conversion
+  const idToSet = (userId === "" || userId === undefined) ? null : userId;
+
+  if (idToSet) {
+    const { error } = await supabase.rpc('set_user_id', { user_id_input: idToSet });
     if (error) {
       console.error('Error setting Supabase user_id for RLS:', error);
     } else {
-      console.log('Supabase user_id set for RLS:', userId);
+      console.log('Supabase user_id set for RLS:', idToSet);
     }
   } else {
-    // Clear the user_id if no local user is present
+    // Clear the user_id if no local user is present or ID is empty
     const { error } = await supabase.rpc('set_user_id', { user_id_input: null });
     if (error) {
       console.error('Error clearing Supabase user_id for RLS:', error);

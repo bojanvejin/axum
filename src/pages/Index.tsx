@@ -3,7 +3,7 @@ import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
 import SessionOverviewCard from "@/components/SessionOverviewCard";
 import { CurriculumSession, CurriculumLesson, StudentProgress } from "@/data/curriculum";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, setSupabaseUserId } from '@/integrations/supabase/client'; // Import setSupabaseUserId
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -42,6 +42,14 @@ const Index = () => {
     const fetchData = async () => {
       setDataLoading(true);
       try {
+        // Set Supabase user ID for RLS
+        if (localUser.id) {
+          await setSupabaseUserId(localUser.id);
+        } else {
+          console.warn("localUser.id is missing or empty, cannot set Supabase RLS user_id.");
+          await setSupabaseUserId(null); // Clear RLS user_id if localUser.id is invalid
+        }
+
         const { data: sessionsData, error: sessionsError } = await supabase
           .from('sessions')
           .select('*')
