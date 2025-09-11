@@ -1,14 +1,14 @@
 import React from 'react';
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AxumLogo from '@/components/AxumLogo';
 import { Toaster } from '@/components/ui/sonner';
-import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
-  const { t } = useLanguage(); // Use translation hook
+  const { t } = useLanguage();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -19,47 +19,16 @@ const Login: React.FC = () => {
             {t('welcome_title')}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground text-center">
-            {t('sign_in_prompt')}
+            {t('login_removed_message')}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Auth
-            supabaseClient={supabase}
-            view="magic_link"
-            showLinks={false}
-            providers={[]}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: 'hsl(var(--primary))',
-                    brandAccent: 'hsl(var(--primary-foreground))',
-                    inputBackground: 'hsl(var(--input))',
-                    inputBorder: 'hsl(var(--border))',
-                    inputBorderHover: 'hsl(var(--ring))',
-                    inputBorderFocus: 'hsl(var(--ring))',
-                    inputText: 'hsl(var(--foreground))',
-                    messageText: 'hsl(var(--foreground))',
-                    messageBackground: 'hsl(var(--muted))',
-                    anchorTextColor: 'hsl(var(--primary))',
-                    anchorTextHoverColor: 'hsl(var(--primary-foreground))',
-                  },
-                },
-              },
-            }}
-            theme="light"
-            localization={{
-              variables: {
-                magic_link: {
-                  email_input_label: t('email_address'),
-                  email_input_placeholder: t('your_email_address'),
-                  button_label: t('send_magic_link'),
-                  loading_button_label: t('sending'),
-                },
-              },
-            }}
-          />
+        <CardContent className="text-center">
+          <p className="mb-4 text-muted-foreground">
+            {t('login_removed_explanation')}
+          </p>
+          <Button onClick={() => navigate('/')} className="w-full">
+            {t('return_to_home')}
+          </Button>
         </CardContent>
       </Card>
       <Toaster />

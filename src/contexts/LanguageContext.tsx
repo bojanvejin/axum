@@ -162,7 +162,7 @@ const translations: Record<Language, Record<string, string>> = {
     logged_out: "You have been logged out.",
     failed_to_load_profile: "Failed to load user profile: {{message}}",
     unexpected_error_session_check: "An unexpected error occurred during session check: {{message}}",
-    failed_to_get_initial_session: "Failed to get initial session: {{message}}",
+    failed_to_get_initial_session: "Failed to get initial session: {{message}",
     failed_to_load_phases: "Failed to load phases: {{message}}",
     phase_deleted_successfully: "Phase deleted successfully!",
     failed_to_delete_phase: "Failed to delete phase: {{message}}",
@@ -192,10 +192,12 @@ const translations: Record<Language, Record<string, string>> = {
     failed_to_delete_question: "Failed to delete question: {{message}}",
     question_updated_successfully: "Question updated successfully!",
     question_added_successfully: "Question added successfully!",
-    failed_to_save_question: "Failed to save question: {{message}}",
+    failed_to_save_question: "Failed to save question: {{message}",
     failed_to_load_users: "Failed to load users: {{message}}",
     failed_to_load_quiz: "Failed to load quiz: {{message}}",
     attempt_submitted: "Attempt {{attemptNum}} submitted! Your score: {{score}}%",
+    login_removed_message: "Login functionality has been removed.",
+    login_removed_explanation: "For security reasons, direct login via email has been disabled. If you have an active session, you will be automatically redirected to the home page. If not, please contact support for access.",
   },
   fr: {
     welcome_title: "Bienvenue au programme de formation Axum",
@@ -382,6 +384,8 @@ const translations: Record<Language, Record<string, string>> = {
     failed_to_load_users: "Échec du chargement des utilisateurs : {{message}}",
     failed_to_load_quiz: "Échec du chargement du quiz : {{message}}",
     attempt_submitted: "Tentative {{attemptNum}} soumise ! Votre score : {{score}}%",
+    login_removed_message: "La fonctionnalité de connexion a été supprimée.",
+    login_removed_explanation: "Pour des raisons de sécurité, la connexion directe par e-mail a été désactivée. Si vous avez une session active, vous serez automatiquement redirigé vers la page d'accueil. Sinon, veuillez contacter le support pour l'accès.",
   },
 };
 
