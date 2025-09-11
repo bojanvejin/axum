@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 import { getLocalStudentProgress, setLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
+import CourseCalendar from '@/components/CourseCalendar'; // New import
 
 const backgroundImages = [
   '/images/axum-salon-interior.jpeg',
@@ -106,6 +107,10 @@ const Index = () => {
     }
   };
 
+  // Calculate the course start date: next Monday from today (Sept 11, 2025)
+  // September is month 8 (0-indexed)
+  const courseStartDate = new Date(2025, 8, 15); 
+
   return (
     <Layout>
       <div className="flex flex-col items-center justify-center py-8">
@@ -142,6 +147,9 @@ const Index = () => {
             </Button>
           </div>
         )}
+
+        <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Course Schedule</h2>
+        <CourseCalendar startDate={courseStartDate} />
 
         <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Curriculum Phases</h2>
         {dataLoading ? (
