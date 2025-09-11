@@ -2,73 +2,24 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import NameInputPage from "./pages/NameInputPage"; // Import the new NameInputPage
-import SessionDetail from "./pages/SessionDetail";
+import PhaseDetail from "./pages/PhaseDetail";
+import ModuleDetail from "./pages/ModuleDetail";
 import LessonDetail from "./pages/LessonDetail";
 import AdminDashboard from "./pages/AdminDashboard";
-import SessionManagement from "./pages/admin/SessionManagement";
+import PhaseManagement from "./pages/admin/PhaseManagement";
+import ModuleManagement from "./pages/admin/ModuleManagement";
 import LessonManagement from "./pages/admin/LessonManagement";
 import QuizManagement from "./pages/admin/QuizManagement";
 import QuestionManagement from "./pages/admin/QuestionManagement";
-// UserManagement is removed as it relies on Supabase Auth profiles
+// UserManagement will be removed as it relies on Supabase auth
 import { ThemeProvider } from "next-themes";
-import { getLocalUser } from "./utils/localUser"; // Import local user utility
+// SessionContextProvider will be removed
 
 const queryClient = new QueryClient();
-
-// Component to check for local user and redirect if not found
-const UserCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const localUser = getLocalUser();
-  return localUser ? <>{children}</> : <Navigate to="/enter-name" replace />;
-};
-
-// AdminRoute component to protect admin routes based on local user name
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const localUser = getLocalUser();
-  // Simple local check: user is admin if their name is "Admin"
-  const isAdmin = localUser?.name === "Admin";
-
-  if (!localUser) {
-    return <Navigate to="/enter-name" replace />;
-  }
-
-  return isAdmin ? <>{children}</> : <Navigate to="/" replace />; // Redirect non-admins to home
-};
-
-const AppContent = () => {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/enter-name" element={<NameInputPage />} />
-        <Route path="*" element={<UserCheck><AppRoutes /></UserCheck>} />
-      </Routes>
-    </BrowserRouter>
-  );
-};
-
-const AppRoutes = () => {
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/sessions/:sessionId" element={<SessionDetail />} />
-      <Route path="/lessons/:lessonId" element={<LessonDetail />} />
-
-      {/* Admin Routes - now protected by local name check */}
-      <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-      <Route path="/admin/curriculum/sessions" element={<AdminRoute><SessionManagement /></AdminRoute>} />
-      <Route path="/admin/curriculum/sessions/:sessionId/lessons" element={<AdminRoute><LessonManagement /></AdminRoute>} />
-      <Route path="/admin/curriculum/quizzes" element={<AdminRoute><QuizManagement /></AdminRoute>} />
-      <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<AdminRoute><QuestionManagement /></AdminRoute>} />
-      {/* UserManagement removed as it relies on Supabase Auth profiles */}
-
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -76,7 +27,25 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <AppContent />
+        <BrowserRouter>
+          {/* SessionContextProvider removed */}
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/enter-name" element={<NameInputPage />} /> {/* New route for name input */}
+            <Route path="/phases/:phaseId" element={<PhaseDetail />} />
+            <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
+            <Route path="/lessons/:lessonId" element={<LessonDetail />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/curriculum/phases" element={<PhaseManagement />} />
+            <Route path="/admin/curriculum/phases/:phaseId/modules" element={<ModuleManagement />} />
+            <Route path="/admin/curriculum/phases/:phaseId/modules/:moduleId/lessons" element={<LessonManagement />} />
+            <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
+            <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
+            {/* UserManagement route removed */}
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

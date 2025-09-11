@@ -1,32 +1,16 @@
 import React from 'react';
 import Layout from '@/components/Layout';
-import { Link, useNavigate } from 'react-router-dom';
+// useUserRole is no longer needed
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 const AdminDashboard: React.FC = () => {
-  const localUser = getLocalUser();
-  const navigate = useNavigate();
+  // role and loading are no longer needed
+  // const { role, loading } = useUserRole();
 
-  // Simple local check: user is admin if their name is "Admin"
-  const isAdmin = localUser?.name === "Admin";
-
-  if (!localUser) {
-    navigate('/enter-name'); // Redirect if no local user
-    return null;
-  }
-
-  if (!isAdmin) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Since we removed Supabase auth, there's no concept of 'admin' role.
+  // For now, we'll assume anyone who navigates here can see it,
+  // but in a real application, you'd implement a different authorization mechanism.
 
   return (
     <Layout>
@@ -39,11 +23,11 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Manage Sessions</CardTitle>
+              <CardTitle>Manage Curriculum</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-sm">Add, edit, or remove course sessions and their lessons.</p>
-              <Link to="/admin/curriculum/sessions" className="text-blue-500 hover:underline mt-4 block">Go to Session Management</Link>
+              <p className="text-muted-foreground text-sm">Add, edit, or remove phases, modules, and lessons.</p>
+              <Link to="/admin/curriculum/phases" className="text-blue-500 hover:underline mt-4 block">Go to Curriculum Management</Link>
             </CardContent>
           </Card>
           <Card>
@@ -55,6 +39,7 @@ const AdminDashboard: React.FC = () => {
               <Link to="/admin/curriculum/quizzes" className="text-blue-500 hover:underline mt-4 block">Go to Quiz Management</Link>
             </CardContent>
           </Card>
+          {/* User Management card removed */}
           <Card>
             <CardHeader>
               <CardTitle>View Reports</CardTitle>
@@ -62,24 +47,6 @@ const AdminDashboard: React.FC = () => {
             <CardContent>
               <p className="text-muted-foreground text-sm">Access student progress and quiz performance reports.</p>
               <Link to="#" className="text-blue-500 hover:underline mt-4 block">Go to Reports</Link>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Manage Uploads & Feedback</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">Review student submissions and provide feedback.</p>
-              <Link to="#" className="text-blue-500 hover:underline mt-4 block">Go to Uploads & Feedback</Link>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Generate Certificates</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">Generate and manage graduation certificates for students.</p>
-              <Link to="#" className="text-blue-500 hover:underline mt-4 block">Go to Certificate Generation</Link>
             </CardContent>
           </Card>
         </div>

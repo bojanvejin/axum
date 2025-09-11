@@ -1,3 +1,5 @@
+"use client";
+
 import { v4 as uuidv4 } from 'uuid';
 
 const USER_KEY = 'axum_local_user';
@@ -14,21 +16,20 @@ export const getLocalUser = (): LocalUser | null => {
 };
 
 export const setLocalUser = (name: string): LocalUser => {
-  const existingUser = getLocalUser();
-  if (existingUser) {
-    // If user exists, update name but keep ID
-    const updatedUser = { ...existingUser, name };
-    localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
-    return updatedUser;
-  } else {
-    // If no user, create new ID and store
-    const newUser: LocalUser = {
-      id: uuidv4(),
-      name,
-    };
-    localStorage.setItem(USER_KEY, JSON.stringify(newUser));
-    return newUser;
+  if (typeof window === 'undefined') {
+    // In a server-side context, return a dummy user or throw an error
+    return { id: uuidv4(), name };
   }
+  const existingUser = getLocalUser();
+  if (existingUser && existingUser.name === name) {
+    return existingUser;
+  }
+  const newUser: LocalUser = {
+    id: uuidv4(), // Generate a new ID for a new user or if name changes
+    name,
+  };
+  localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+  return newUser;
 };
 
 export const clearLocalUser = () => {

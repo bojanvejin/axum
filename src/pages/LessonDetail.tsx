@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { supabase, setSupabaseUserId } from '@/integrations/supabase/client'; // Import setSupabaseUserId
-import { CurriculumLesson, StudentProgress, CurriculumSession } from '@/data/curriculum';
+import { supabase } from '@/integrations/supabase/client';
+import { CurriculumLesson, StudentProgress, CurriculumModule, CurriculumPhase } from '@/data/curriculum';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
@@ -11,78 +11,72 @@ import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
 import { getLocalUser } from '@/utils/localUser'; // Import local user utility
+import { getLocalStudentProgress, setLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
-  const localUser = getLocalUser(); // Get local user
   const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
-  const [sessionLessons, setSessionLessons] = useState<CurriculumLesson[]>([]);
+  const [moduleLessons, setModuleLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [currentSession, setCurrentSession] = useState<CurriculumSession | null>(null);
+  const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
+  const [currentPhase, setCurrentPhase] = useState<CurriculumPhase | null>(null);
   const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
+  const localUser = getLocalUser(); // Get local user
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!localUser) {
-      navigate('/enter-name'); // Redirect if not logged in
+      navigate('/enter-name'); // Redirect if no local user
       return;
     }
 
     const fetchLessonAndProgress = async () => {
       setLoading(true);
       try {
-        if (localUser.id) { // Add this check
-          await setSupabaseUserId(localUser.id);
-        } else {
-          console.warn("localUser.id is missing or empty in LessonDetail, cannot set Supabase RLS user_id.");
-          await setSupabaseUserId(null); // Clear RLS user_id if localUser.id is invalid
-        }
-
-        // Fetch current lesson details and its session
+        // Fetch current lesson details and its module/phase
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')
-          .select('*, sessions(id, title, session_number)') // Select session details
+          .select('*, modules(id, title, phase_id, phases(id, title))') // Select module and phase details
           .eq('id', lessonId)
           .single();
 
         if (lessonError) throw lessonError;
         setLesson(lessonData);
 
-        const session = lessonData?.sessions as CurriculumSession;
-        if (session) {
-          setCurrentSession(session);
+        const module = lessonData?.modules as CurriculumModule & { phases: CurriculumPhase };
+        if (module) {
+          setCurrentModule(module);
+          setCurrentPhase(module.phases);
 
-          // Fetch all lessons for the current session (for sidebar navigation and next lesson)
-          const { data: lessonsInSession, error: sessionLessonsError } = await supabase
+          // Fetch all lessons for the current module (for sidebar navigation and next lesson)
+          const { data: lessonsInModule, error: moduleLessonsError } = await supabase
             .from('lessons')
             .select('*')
-            .eq('session_id', session.id)
+            .eq('module_id', module.id)
             .order('order_index', { ascending: true });
-          if (sessionLessonsError) throw sessionLessonsError;
-          setSessionLessons(lessonsInSession || []);
+          if (moduleLessonsError) throw moduleLessonsError;
+          setModuleLessons(lessonsInModule || []);
 
           // Determine next lesson
-          const currentIndex = lessonsInSession?.findIndex(l => l.id === lessonId);
-          if (currentIndex !== undefined && lessonsInSession && currentIndex < lessonsInSession.length - 1) {
-            setNextLesson(lessonsInSession[currentIndex + 1]);
+          const currentIndex = lessonsInModule?.findIndex(l => l.id === lessonId);
+          if (currentIndex !== undefined && lessonsInModule && currentIndex < lessonsInModule.length - 1) {
+            setNextLesson(lessonsInModule[currentIndex + 1]);
           } else {
             setNextLesson(null); // No next lesson
           }
         } else {
-          setSessionLessons([]);
+          setModuleLessons([]);
           setNextLesson(null);
         }
 
-        // Load student progress from Supabase using local user ID
-        const { data: progressData, error: progressError } = await supabase
-          .from('student_progress')
-          .select('*')
-          .eq('user_id', localUser.id); // Use localUser.id
-        if (progressError) throw progressError;
-        setStudentProgress(progressData || []);
-        setIsCompleted(progressData?.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
+        // Load student progress from local storage
+        if (localUser) {
+          const progressData = getLocalStudentProgress(localUser.id);
+          setStudentProgress(progressData);
+          setIsCompleted(progressData.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
+        }
 
       } catch (error: any) {
         showError(`Failed to load lesson details: ${error.message}`);
@@ -92,44 +86,37 @@ const LessonDetail: React.FC = () => {
       }
     };
 
-    if (lessonId && localUser) {
+    if (lessonId && localUser) { // Only fetch data if a local user is present
       fetchLessonAndProgress();
     }
   }, [lessonId, localUser, navigate]);
 
   const handleMarkComplete = async () => {
     if (!localUser) {
-      showError("You must be identified to mark a lesson complete.");
+      showError("User not identified. Please refresh and enter your name.");
       return;
     }
 
     setLoading(true);
     try {
-      const existingProgress = studentProgress.find(p => p.lesson_id === lessonId);
+      const currentProgress = getLocalStudentProgress(localUser.id);
+      const existingProgressIndex = currentProgress.findIndex(p => p.lesson_id === lessonId);
 
-      if (existingProgress) {
-        const { error } = await supabase
-          .from('student_progress')
-          .update({ status: 'completed', completed_at: new Date().toISOString() })
-          .eq('id', existingProgress.id)
-          .eq('user_id', localUser.id); // Ensure only current user's progress is updated
-        if (error) throw error;
+      let updatedProgress: StudentProgress[];
+      if (existingProgressIndex > -1) {
+        updatedProgress = currentProgress.map((p, index) =>
+          index === existingProgressIndex ? { ...p, status: 'completed', completed_at: new Date().toISOString() } : p
+        );
       } else {
-        const { error } = await supabase
-          .from('student_progress')
-          .insert({ user_id: localUser.id, lesson_id: lessonId!, status: 'completed', completed_at: new Date().toISOString() });
-        if (error) throw error;
+        updatedProgress = [
+          ...currentProgress,
+          { id: crypto.randomUUID(), user_id: localUser.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }
+        ];
       }
+      setLocalStudentProgress(localUser.id, updatedProgress); // Save to local storage
 
       setIsCompleted(true);
-      // Re-fetch progress to update state
-      const { data: updatedProgress, error: fetchError } = await supabase
-        .from('student_progress')
-        .select('*')
-        .eq('user_id', localUser.id);
-      if (fetchError) throw fetchError;
-      setStudentProgress(updatedProgress || []);
-
+      setStudentProgress(updatedProgress);
       showSuccess("Lesson marked as complete!");
     } catch (error: any) {
       showError(`Failed to mark lesson complete: ${error.message}`);
@@ -184,89 +171,78 @@ const LessonDetail: React.FC = () => {
     <Layout>
       <div className="flex h-full">
         <LessonNavigationSidebar
-          lessons={sessionLessons}
+          lessons={moduleLessons}
           currentLessonId={lessonId!}
           studentProgress={studentProgress}
         />
         <div className="flex-grow container mx-auto p-4 overflow-y-auto">
           <div className="flex items-center mb-4">
-            {currentSession && (
+            {currentModule && currentPhase && (
               <Button variant="ghost" size="icon" asChild>
-                <Link to={`/sessions/${currentSession.id}`}>
-                      <ArrowLeft className="h-5 w-5" />
-                    </Link>
-                  </Button>
-                )}
-                <h1 className="text-3xl md:text-4xl font-bold ml-2">{lesson.title}</h1>
-              </div>
-              <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
+                <Link to={`/phases/${currentPhase.id}/modules/${currentModule.id}`}>
+                  <ArrowLeft className="h-5 w-5" />
+                </Link>
+              </Button>
+            )}
+            <h1 className="text-3xl md:text-4xl font-bold ml-2">{lesson.title}</h1>
+          </div>
+          <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
 
-              {currentSession?.session_number !== undefined && (
-                <p className="text-md text-muted-foreground mb-2">
-                  Session: {currentSession.session_number}
-                </p>
-              )}
-              {lesson.week_number !== undefined && lesson.day_number !== undefined && (
-                <p className="text-md text-muted-foreground mb-6">
-                  Scheduled: Week {lesson.week_number}, Day {lesson.day_number}
-                </p>
-              )}
+          <div className="mb-6">
+            <TextToSpeechButton textToSpeak={lessonText} />
+          </div>
 
-              <div className="mb-6">
-                <TextToSpeechButton textToSpeak={lessonText} />
-              </div>
+          <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || '<p>No content available for this lesson yet.</p>' }} />
 
-              <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || '<p>No content available for this lesson yet.</p>' }} />
-
-              {lesson.video_url && (
-                <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-4">Video Demonstration</h2>
-                  <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
-                    <iframe
-                      src={lesson.video_url}
-                      title={lesson.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full"
-                    ></iframe>
-                  </div>
-                </div>
-              )}
-
-              {lesson.resources_url && (
-                <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-4">Resources</h2>
-                  <a href={lesson.resources_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                    Download Resources
-                  </a>
-                </div>
-              )}
-
-              {lesson.quiz_id && (
-                <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-4">Knowledge Check Quiz</h2>
-                  <QuizComponent quizId={lesson.quiz_id} lessonId={lesson.id} onQuizAttempted={handleQuizAttempted} />
-                </div>
-              )}
-
-              <div className="flex justify-between items-center mt-8">
-                <Button
-                  onClick={handleMarkComplete}
-                  disabled={isCompleted || loading}
-                  className="w-full md:w-auto"
-                >
-                  {isCompleted ? "Completed!" : "Mark Complete"}
-                </Button>
-                {nextLesson && (
-                  <Button onClick={() => navigate(`/lessons/${nextLesson.id}`)} className="ml-auto">
-                    Next Lesson <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                )}
+          {lesson.video_url && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Video Demonstration</h2>
+              <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
+                <iframe
+                  src={lesson.video_url}
+                  title={lesson.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
               </div>
             </div>
-          </div>
-        </Layout>
-      );
-    };
+          )}
 
-    export default LessonDetail;
+          {lesson.resources_url && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Resources</h2>
+              <a href={lesson.resources_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                Download Resources
+              </a>
+            </div>
+          )}
+
+          {lesson.quiz_id && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Knowledge Check Quiz</h2>
+              <QuizComponent quizId={lesson.quiz_id} lessonId={lesson.id} onQuizAttempted={handleQuizAttempted} />
+            </div>
+          )}
+
+          <div className="flex justify-between items-center mt-8">
+            <Button
+              onClick={handleMarkComplete}
+              disabled={isCompleted || loading}
+              className="w-full md:w-auto"
+            >
+              {isCompleted ? "Completed!" : "Mark Complete"}
+            </Button>
+            {nextLesson && (
+              <Button onClick={() => navigate(`/lessons/${nextLesson.id}`)} className="ml-auto">
+                Next Lesson <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default LessonDetail;

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { QuizAttempt } from '@/data/curriculum'; // Import QuizAttempt interface
+import { getLocalQuizAttempts, addLocalQuizAttempt } from '@/utils/localProgress'; // Import local quiz attempts utility
 
 interface QuizQuestion {
   id: string;
@@ -15,6 +15,13 @@ interface QuizQuestion {
   question_type: string;
   options: string[];
   correct_answer: string;
+}
+
+interface QuizAttempt {
+  id: string;
+  score: number;
+  answers: Record<string, string>;
+  submitted_at: string; // Add submitted_at for consistency
 }
 
 interface QuizComponentProps {
@@ -27,13 +34,13 @@ const MAX_ATTEMPTS = 3;
 const PASSING_SCORE = 90; // Equivalent to an 'A'
 
 const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizAttempted }) => {
-  const localUser = getLocalUser(); // Get local user
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingResultsOf, setViewingResultsOf] = useState<QuizAttempt | null>(null);
+  const localUser = getLocalUser(); // Get local user
 
   const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { id: '', score: -1, answers: {}, submitted_at: '' });
   const hasPassed = bestAttempt.score >= PASSING_SCORE;
@@ -56,18 +63,12 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
         if (questionsError) throw questionsError;
         setQuestions(questionsData || []);
 
-        // Fetch quiz attempts from Supabase using local user ID
-        const { data: attemptsData, error: attemptsError } = await supabase
-          .from('quiz_attempts')
-          .select('*')
-          .eq('user_id', localUser.id) // Use localUser.id
-          .eq('quiz_id', quizId)
-          .order('submitted_at', { ascending: true });
-        if (attemptsError) throw attemptsError;
-        setAttempts(attemptsData || []);
+        // Load quiz attempts from local storage
+        const loadedAttempts = getLocalQuizAttempts(localUser.id, quizId);
+        setAttempts(loadedAttempts);
 
-        const latestAttempt = attemptsData?.[attemptsData.length - 1];
-        const best = attemptsData?.reduce((max, current) => (current.score > (max?.score ?? -1) ? current : max), null);
+        const latestAttempt = loadedAttempts[loadedAttempts.length - 1]; // Get the latest attempt
+        const best = loadedAttempts.reduce((max, current) => (current.score > (max?.score ?? -1) ? current : max), null);
         const passed = best && best.score >= PASSING_SCORE;
 
         if (passed) {
@@ -83,10 +84,10 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       }
     };
 
-    if (localUser) {
+    if (localUser) { // Only fetch data if a local user is present
       fetchQuizData();
     } else {
-      setLoading(false); // Not identified, so no quiz data to load
+      setLoading(false);
     }
   }, [quizId, localUser]);
 
@@ -96,7 +97,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
 
   const handleSubmitQuiz = async () => {
     if (!localUser) {
-      showError("You must be identified to submit a quiz.");
+      showError("User not identified. Please refresh and enter your name.");
       return;
     }
     setIsSubmitting(true);
@@ -111,23 +112,21 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     const calculatedScore = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
 
     try {
-      const newAttempt: Omit<QuizAttempt, 'id'> = {
-        user_id: localUser.id, // Use localUser.id
-        quiz_id: quizId,
+      const newAttempt: QuizAttempt = {
+        id: crypto.randomUUID(), // Generate a unique ID for the attempt
         score: calculatedScore,
         answers: userAnswers,
         submitted_at: new Date().toISOString(),
       };
-
-      const { data, error } = await supabase.from('quiz_attempts').insert(newAttempt).select().single();
-      if (error) throw error;
-
+      
+      addLocalQuizAttempt(localUser.id, quizId, newAttempt); // Save to local storage
+      
       showSuccess(`Attempt ${attemptsMade + 1} submitted! Your score: ${calculatedScore.toFixed(0)}%`);
-
-      const updatedAttempts = [...attempts, data];
+      
+      const updatedAttempts = [...attempts, newAttempt];
       setAttempts(updatedAttempts);
-      setViewingResultsOf(data);
-
+      setViewingResultsOf(newAttempt);
+      
       onQuizAttempted?.(calculatedScore, questions.length);
     } catch (error: any) {
       showError(`Failed to submit quiz: ${error.message}`);

@@ -1,15 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isSameDay } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
-import { CurriculumSession } from '@/data/curriculum';
-import { showError } from '@/utils/toast';
-import { Link } from 'react-router-dom';
-import { Skeleton } from '@/components/ui/skeleton';
+import { courseOutline, DailyLesson } from '@/data/courseSchedule';
 
 interface CourseCalendarProps {
   startDate: Date; // The actual start date of the course (e.g., the first class Monday)
@@ -17,135 +13,69 @@ interface CourseCalendarProps {
 
 const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [month, setMonth] = useState<Date>(startDate);
-  const [sessionsForSelectedDate, setSessionsForSelectedDate] = useState<CurriculumSession[]>([]);
-  const [classDaysSessionIdsMap, setClassDaysSessionIdsMap] = useState<Map<string, Set<string>>>(new Map());
-  const [classDaysSessionsDataMap, setClassDaysSessionsDataMap] = useState<Map<string, CurriculumSession[]>>(new Map());
-  const [loading, setLoading] = useState(true);
+  const [lessonsForSelectedDate, setLessonsForSelectedDate] = useState<DailyLesson[]>([]);
+  const [courseDates, setCourseDates] = useState<Map<string, DailyLesson[]>>(new Map()); // Map date string to lessons
 
   useEffect(() => {
-    const fetchAndGenerateCourseDates = async () => {
-      setLoading(true);
-      try {
-        // Fetch all sessions
-        const { data: sessionsData, error } = await supabase
-          .from('sessions')
-          .select('*')
-          .order('session_number', { ascending: true });
+    const generateCourseDates = () => {
+      const datesMap = new Map<string, DailyLesson[]>();
+      let currentClassDate = startDate; // Start with the first class Monday
 
-        if (error) throw error;
-
-        const newClassDaysSessionIdsMap = new Map<string, Set<string>>();
-        const newClassDaysSessionsDataMap = new Map<string, CurriculumSession[]>();
-
-        sessionsData?.forEach(session => {
-          if (session.covers_days && session.covers_days.length > 0) {
-            // Assuming 'covers_days' refers to the day number from the start of the course
-            // And that the session is "scheduled" on the first day it covers.
-            const firstCoveredDay = Math.min(...session.covers_days);
-            // Calculate the actual calendar date for this session
-            const classDay = addDays(startDate, firstCoveredDay - 1); // -1 because day 1 is 0 days after startDate
-            const dateString = format(classDay, 'yyyy-MM-dd');
-
-            // For highlighting
-            if (!newClassDaysSessionIdsMap.has(dateString)) {
-              newClassDaysSessionIdsMap.set(dateString, new Set());
-            }
-            newClassDaysSessionIdsMap.get(dateString)?.add(session.id);
-
-            // For displaying session details
-            if (!newClassDaysSessionsDataMap.has(dateString)) {
-              newClassDaysSessionsDataMap.set(dateString, []);
-            }
-            const sessionsForThisDay = newClassDaysSessionsDataMap.get(dateString);
-            if (sessionsForThisDay && !sessionsForThisDay.some(s => s.id === session.id)) {
-              sessionsForThisDay.push(session);
-            }
-          }
-        });
-
-        // Sort sessions within each day by session_number
-        newClassDaysSessionsDataMap.forEach(sessions => {
-          sessions.sort((a, b) => a.session_number - b.session_number);
-        });
-
-        setClassDaysSessionIdsMap(newClassDaysSessionIdsMap);
-        setClassDaysSessionsDataMap(newClassDaysSessionsDataMap);
-
-        // If no date is selected, default to showing sessions for the first scheduled day if available
-        if (!selectedDate) {
-          const firstScheduledDateString = Array.from(newClassDaysSessionIdsMap.keys()).sort()[0];
-          if (firstScheduledDateString) {
-            const firstScheduledDate = new Date(firstScheduledDateString);
-            setSelectedDate(firstScheduledDate);
-            setMonth(firstScheduledDate);
-            setSessionsForSelectedDate(newClassDaysSessionsDataMap.get(firstScheduledDateString) || []);
-          }
+      courseOutline.forEach(week => {
+        const dateString = format(currentClassDate, 'yyyy-MM-dd');
+        if (!datesMap.has(dateString)) {
+          datesMap.set(dateString, []);
         }
+        // Assign all daily lessons for the current week to this single class day
+        datesMap.get(dateString)?.push(...week.days);
 
-      } catch (err: any) {
-        showError(`Failed to load course schedule: ${err.message}`);
-        console.error('Error fetching sessions for calendar:', err);
-      } finally {
-        setLoading(false);
-      }
+        // Advance to the next class Monday (two weeks later)
+        currentClassDate = addDays(currentClassDate, 14);
+      });
+      setCourseDates(datesMap);
     };
 
-    fetchAndGenerateCourseDates();
+    generateCourseDates();
   }, [startDate]);
-
-  useEffect(() => {
-    if (selectedDate) {
-      const dateString = format(selectedDate, 'yyyy-MM-dd');
-      setSessionsForSelectedDate(classDaysSessionsDataMap.get(dateString) || []);
-      setMonth(selectedDate);
-    } else {
-      setSessionsForSelectedDate([]);
-    }
-  }, [selectedDate, classDaysSessionsDataMap]);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
+    if (date) {
+      const dateString = format(date, 'yyyy-MM-dd');
+      setLessonsForSelectedDate(courseDates.get(dateString) || []);
+    } else {
+      setLessonsForSelectedDate([]);
+    }
   };
 
   const modifiers = {
-    classDays: (date: Date) => {
+    courseDays: (date: Date) => {
       const dateString = format(date, 'yyyy-MM-dd');
-      return classDaysSessionIdsMap.has(dateString);
+      return courseDates.has(dateString);
     },
   };
 
   const modifiersStyles = {
-    classDays: {
+    courseDays: {
       backgroundColor: 'hsl(var(--primary))',
       color: 'hsl(var(--primary-foreground))',
       borderRadius: '0.375rem', // rounded-md
     },
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col lg:flex-row gap-8 p-4 w-full max-w-6xl mx-auto">
-        <Skeleton className="flex-shrink-0 lg:w-1/2 h-[400px]" />
-        <Skeleton className="flex-grow lg:w-1/2 h-[400px]" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col lg:flex-row gap-8 p-4 w-full max-w-6xl mx-auto">
       <Card className="flex-shrink-0 lg:w-1/2">
         <CardHeader>
           <CardTitle>Course Schedule</CardTitle>
-          <CardDescription>Click on a highlighted day to see the sessions.</CardDescription>
+          <CardDescription>Click on a highlighted day to see the lessons.</CardDescription>
         </CardHeader>
         <CardContent>
           <Calendar
             mode="single"
             selected={selectedDate}
             onSelect={handleDateSelect}
-            month={month}
-            onMonthChange={setMonth}
+            initialFocus
             modifiers={modifiers}
             modifiersStyles={modifiersStyles}
             className="rounded-md border shadow w-full"
@@ -156,24 +86,21 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
       <Card className="flex-grow lg:w-1/2">
         <CardHeader>
           <CardTitle>
-            {selectedDate ? `Sessions for ${format(selectedDate, 'PPP')}` : 'Select a Date'}
+            {selectedDate ? `Lessons for ${format(selectedDate, 'PPP')}` : 'Select a Date'}
           </CardTitle>
           <CardDescription>
-            {selectedDate && sessionsForSelectedDate.length === 0 && 'No sessions scheduled for this day.'}
+            {selectedDate && lessonsForSelectedDate.length === 0 && 'No lessons scheduled for this day.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[300px] pr-4">
-            {sessionsForSelectedDate.length > 0 ? (
+            {lessonsForSelectedDate.length > 0 ? (
               <div className="space-y-4">
-                {sessionsForSelectedDate.map((session, index) => (
-                  <Link to={`/sessions/${session.id}`} key={session.id} className="block">
-                        <div className="border-b pb-4 last:border-b-0 last:pb-0 hover:bg-accent p-2 rounded-md transition-colors">
-                          <h3 className="text-lg font-semibold">Session {session.session_number}: {session.title}</h3>
-                          <p className="text-muted-foreground text-sm">{session.description}</p>
-                          {session.covers_days && <p className="text-xs text-muted-foreground mt-1">Covers Days: {session.covers_days.join(', ')}</p>}
-                        </div>
-                      </Link>
+                {lessonsForSelectedDate.map((lesson, index) => (
+                  <div key={index} className="border-b pb-4 last:border-b-0 last:pb-0">
+                    <h3 className="text-lg font-semibold">{lesson.title}</h3>
+                    <p className="text-muted-foreground text-sm">{lesson.description}</p>
+                  </div>
                 ))}
               </div>
             ) : (

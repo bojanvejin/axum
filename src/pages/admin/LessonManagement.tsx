@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { CurriculumLesson, CurriculumSession } from '@/data/curriculum';
+import { CurriculumLesson } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
+// import { useUserRole } from '@/hooks/useUserRole'; // Removed
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,33 +24,29 @@ import LessonForm from '@/components/admin/LessonForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const LessonManagement: React.FC = () => {
-  const localUser = getLocalUser();
-  const navigate = useNavigate();
-  const isAdmin = localUser?.name === "Admin"; // Simple local admin check
-
-  const { sessionId } = useParams<{ sessionId: string }>();
+  // const { role, loading: roleLoading } = useUserRole(); // Removed
+  const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
-  const [sessionTitle, setSessionTitle] = useState<string>('');
+  const [moduleTitle, setModuleTitle] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<CurriculumLesson | null>(null);
 
   const fetchLessons = async () => {
-    if (!sessionId) return;
     setLoading(true);
     try {
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('sessions')
+      const { data: moduleData, error: moduleError } = await supabase
+        .from('modules')
         .select('title')
-        .eq('id', sessionId)
+        .eq('id', moduleId)
         .single();
-      if (sessionError) throw sessionError;
-      setSessionTitle(sessionData?.title || 'Unknown Session');
+      if (moduleError) throw moduleError;
+      setModuleTitle(moduleData?.title || 'Unknown Module');
 
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('module_id', moduleId)
         .order('order_index', { ascending: true });
       if (error) throw error;
       setLessons(data || []);
@@ -62,16 +58,12 @@ const LessonManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!localUser) {
-      navigate('/enter-name');
-      return;
-    }
-    if (isAdmin && sessionId) {
-      fetchLessons();
-    } else if (!isAdmin) {
-      navigate('/'); // Redirect non-admins
-    }
-  }, [sessionId, localUser, isAdmin, navigate]);
+    // if (!roleLoading && role === 'admin' && moduleId) { // Modified condition
+      if (moduleId) { // Only fetch if moduleId is available
+        fetchLessons();
+      }
+    // }
+  }, [moduleId]); // Removed role, roleLoading from dependencies
 
   const handleDeleteLesson = async (lessonId: string) => {
     try {
@@ -100,24 +92,34 @@ const LessonManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (!localUser || !isAdmin) {
-    return null; // Handled by useEffect redirect
-  }
-
-  if (loading || !sessionId) {
+  // Removed roleLoading check
+  // if (roleLoading || !moduleId) { // Modified condition
+  if (!moduleId) {
     return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
   }
+
+  // Removed role !== 'admin' check
+  // if (role !== 'admin') {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
   return (
     <Layout>
       <div className="container mx-auto p-4">
         <div className="flex items-center mb-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link to={`/admin/curriculum/sessions`}>
+            <Link to={`/admin/curriculum/phases/${phaseId}/modules`}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-3xl md:text-4xl font-bold ml-2">Lessons for "{sessionTitle}"</h1>
+          <h1 className="text-3xl md:text-4xl font-bold ml-2">Lessons for "{moduleTitle}"</h1>
         </div>
         <div className="flex justify-end items-center mb-6">
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -130,12 +132,16 @@ const LessonManagement: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>{editingLesson ? 'Edit Lesson' : 'Add New Lesson'}</DialogTitle>
               </DialogHeader>
-              <LessonForm sessionId={sessionId} lesson={editingLesson} onSuccess={handleFormSuccess} />
+              <LessonForm moduleId={moduleId} lesson={editingLesson} onSuccess={handleFormSuccess} />
             </DialogContent>
           </Dialog>
         </div>
 
-        {lessons.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+          </div>
+        ) : lessons.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No lessons found. Click "Add New Lesson" to get started!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -147,9 +153,6 @@ const LessonManagement: React.FC = () => {
                 <CardContent>
                   <p className="text-sm text-muted-foreground line-clamp-2">{lesson.objectives}</p>
                   <p className="text-xs text-muted-foreground mt-2">Order: {lesson.order_index}</p>
-                  {lesson.week_number && lesson.day_number && (
-                    <p className="text-xs text-muted-foreground">Scheduled: Week {lesson.week_number}, Day {lesson.day_number}</p>
-                  )}
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditForm(lesson)}>

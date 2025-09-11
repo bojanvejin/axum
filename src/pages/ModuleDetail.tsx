@@ -3,13 +3,14 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { CheckCircle, Circle, ArrowLeft } from 'lucide-react';
+// useUserRole is no longer needed
+import { CheckCircle, Circle, Settings, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-// import { getLocalStudentProgress } from '@/utils/localProgress'; // REMOVED: Import local progress utility
+import { getLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
 
 const ModuleDetail: React.FC = () => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
@@ -19,6 +20,8 @@ const ModuleDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const localUser = getLocalUser(); // Get local user
   const navigate = useNavigate();
+  // role and roleLoading are no longer needed
+  // const { role, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     if (!localUser) {
@@ -31,7 +34,7 @@ const ModuleDetail: React.FC = () => {
       try {
         const { data: moduleData, error: moduleError } = await supabase
           .from('modules')
-          .select('*, phases(title)') // Select module details including phase title, tools_needed, and preparation_guide
+          .select('*')
           .eq('id', moduleId)
           .single();
 
@@ -49,13 +52,7 @@ const ModuleDetail: React.FC = () => {
 
         // Load student progress from local storage
         if (localUser) {
-          // setStudentProgress(getLocalStudentProgress(localUser.id)); // REMOVED: Use Supabase for progress
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', localUser.id);
-          if (progressError) throw progressError;
-          setStudentProgress(progressData || []);
+          setStudentProgress(getLocalStudentProgress(localUser.id));
         }
 
       } catch (error: any) {
@@ -74,7 +71,7 @@ const ModuleDetail: React.FC = () => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
   };
 
-  if (loading) {
+  if (loading) { // Removed roleLoading from condition
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -111,59 +108,33 @@ const ModuleDetail: React.FC = () => {
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{module.title}</h1>
           </div>
+          {/* Admin link removed as roles are no longer managed via Supabase auth */}
+          {/* {role === 'admin' && (
+            <Link to={`/admin/curriculum/phases/${phaseId}/modules/${moduleId}/lessons`}>
+              <Button variant="outline" size="sm">
+                <Settings className="mr-2 h-4 w-4" /> Manage Lessons
+              </Button>
+            </Link>
+          )} */}
         </div>
-        <p className="text-lg text-muted-foreground mt-2 mb-2">{module.description}</p>
-        {module.course_week !== undefined && (
-          <p className="text-md text-muted-foreground mb-8">
-            Scheduled: Course Week {module.course_week}
-          </p>
-        )}
-
-        {module.tools_needed && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl">Tools You'll Need</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground whitespace-pre-wrap">{module.tools_needed}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {module.preparation_guide && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl">How to Prepare</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground whitespace-pre-wrap">{module.preparation_guide}</p>
-            </CardContent>
-          </Card>
-        )}
+        <p className="text-lg text-muted-foreground mt-2 mb-8">{module.description}</p>
 
         <h2 className="text-2xl font-semibold my-6">Lessons</h2>
-        {lessons.length === 0 ? (
-          <p className="text-muted-foreground">No lessons available for this module yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lessons.map((lesson) => (
-              <Link to={`/lessons/${lesson.id}`} key={lesson.id}>
-                <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xl">{lesson.title}</CardTitle>
-                    {localUser && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <p className="text-muted-foreground text-sm">{lesson.objectives}</p>
-                    {lesson.week_number !== undefined && lesson.day_number !== undefined && (
-                      <p className="text-xs text-muted-foreground mt-2">Week {lesson.week_number}, Day {lesson.day_number}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {lessons.map((lesson) => (
+            <Link to={`/lessons/${lesson.id}`} key={lesson.id}>
+              <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xl">{lesson.title}</CardTitle>
+                  {localUser && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-muted-foreground text-sm">{lesson.objectives}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </div>
     </Layout>
   );

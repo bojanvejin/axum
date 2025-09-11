@@ -18,14 +18,12 @@ const formSchema = z.object({
   video_url: z.string().url().optional().or(z.literal('')),
   resources_url: z.string().url().optional().or(z.literal('')),
   order_index: z.coerce.number().min(0),
-  session_id: z.string().uuid(), // Changed from module_id
+  module_id: z.string().uuid(),
   quiz_id: z.string().uuid().nullable().optional(),
-  week_number: z.coerce.number().min(1).optional(), // New field
-  day_number: z.coerce.number().min(1).optional(), // New field
 });
 
 interface LessonFormProps {
-  sessionId: string; // Changed from moduleId
+  moduleId: string;
   lesson?: CurriculumLesson | null;
   onSuccess: () => void;
 }
@@ -35,7 +33,7 @@ interface Quiz {
   title: string;
 }
 
-const LessonForm: React.FC<LessonFormProps> = ({ sessionId, lesson, onSuccess }) => {
+const LessonForm: React.FC<LessonFormProps> = ({ moduleId, lesson, onSuccess }) => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,10 +44,8 @@ const LessonForm: React.FC<LessonFormProps> = ({ sessionId, lesson, onSuccess })
       video_url: '',
       resources_url: '',
       order_index: 0,
-      session_id: sessionId, // Changed from module_id
+      module_id: moduleId,
       quiz_id: null,
-      week_number: undefined,
-      day_number: undefined,
     },
   });
 
@@ -67,13 +63,7 @@ const LessonForm: React.FC<LessonFormProps> = ({ sessionId, lesson, onSuccess })
 
   useEffect(() => {
     if (lesson) {
-      form.reset({
-        ...lesson,
-        session_id: lesson.session_id, // Ensure session_id is set
-        quiz_id: lesson.quiz_id || null,
-        week_number: lesson.week_number || undefined,
-        day_number: lesson.day_number || undefined,
-      });
+      form.reset({ ...lesson, quiz_id: lesson.quiz_id || null });
     } else {
       form.reset({
         title: '',
@@ -82,13 +72,11 @@ const LessonForm: React.FC<LessonFormProps> = ({ sessionId, lesson, onSuccess })
         video_url: '',
         resources_url: '',
         order_index: 0,
-        session_id: sessionId, // Ensure session_id is set for new lessons
+        module_id: moduleId,
         quiz_id: null,
-        week_number: undefined,
-        day_number: undefined,
       });
     }
-  }, [lesson, sessionId, form]);
+  }, [lesson, moduleId, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -132,14 +120,6 @@ const LessonForm: React.FC<LessonFormProps> = ({ sessionId, lesson, onSuccess })
         <FormField control={form.control} name="order_index" render={({ field }) => (
           <FormItem><FormLabel>Order Index</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField control={form.control} name="week_number" render={({ field }) => (
-            <FormItem><FormLabel>Week Number</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField control={form.control} name="day_number" render={({ field }) => (
-            <FormItem><FormLabel>Day Number</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-          )} />
-        </div>
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Saving...' : 'Save Lesson'}
         </Button>
