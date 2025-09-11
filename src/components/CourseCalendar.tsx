@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { CurriculumModule, CurriculumLesson, CurriculumPhase } from '@/data/curriculum';
+import { CurriculumModule, CurriculumPhase } from '@/data/curriculum';
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,30 +33,22 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
     const fetchAndGenerateCourseDates = async () => {
       setLoading(true);
       try {
-        // Fetch all lessons along with their module and phase details
-        const { data: lessonsData, error } = await supabase
-          .from('lessons')
-          .select('id, title, week_number, day_number, modules(id, phase_id, title, description, order_index, course_week, phases(title))')
-          .order('week_number', { ascending: true })
-          .order('day_number', { ascending: true });
+        // Fetch all modules along with their phase details
+        const { data: modulesData, error } = await supabase
+          .from('modules')
+          .select('*, phases(title)') // Select module details including phase title
+          .order('course_week', { ascending: true }); // Order by course_week
 
         if (error) throw error;
 
         const newClassDaysModuleIdsMap = new Map<string, Set<string>>();
         const newClassDaysModulesDataMap = new Map<string, ModuleWithPhaseTitle[]>();
 
-        lessonsData?.forEach(lesson => {
-          if (lesson.week_number !== undefined && lesson.week_number !== null &&
-              lesson.day_number !== undefined && lesson.day_number !== null &&
-              lesson.modules) {
-            
-            const module = lesson.modules as ModuleWithPhaseTitle; // Cast to our extended type
-            
-            // Calculate the actual calendar date for this lesson
-            // Assuming week_number 1 starts on startDate, day_number 1 is the first day of that week.
-            // We need to adjust for 0-indexed days if startDate is a Monday (day 0 of the week).
-            // Let's assume startDate is the first day (Day 1) of Week 1.
-            const daysToAdd = (lesson.week_number - 1) * 7 + (lesson.day_number - 1);
+        modulesData?.forEach(module => {
+          if (module.course_week !== undefined && module.course_week !== null) {
+            // Calculate the actual calendar date for this module (always a Monday for its course_week)
+            // If startDate is the first Monday of Week 1, then Week N's module is (N-1)*7 days after startDate.
+            const daysToAdd = (module.course_week - 1) * 7;
             const classDay = addDays(startDate, daysToAdd);
             const dateString = format(classDay, 'yyyy-MM-dd');
 
@@ -73,12 +65,12 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
             const modulesForThisDay = newClassDaysModulesDataMap.get(dateString);
             // Add module only if it's not already added for this day
             if (modulesForThisDay && !modulesForThisDay.some(m => m.id === module.id)) {
-              modulesForThisDay.push(module);
+              modulesForThisDay.push(module as ModuleWithPhaseTitle); // Cast to extended type
             }
           }
         });
 
-        // Sort modules within each day by order_index
+        // Sort modules within each day by order_index (though for this setup, each day should only have one module)
         newClassDaysModulesDataMap.forEach(modules => {
           modules.sort((a, b) => a.order_index - b.order_index);
         });
@@ -94,7 +86,7 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
 
       } catch (err: any) {
         showError(`Failed to load course schedule: ${err.message}`);
-        console.error('Error fetching lessons for calendar:', err);
+        console.error('Error fetching modules for calendar:', err);
       } finally {
         setLoading(false);
       }
