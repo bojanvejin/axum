@@ -6,9 +6,9 @@ import { CurriculumPhase, CurriculumModule } from '@/data/curriculum';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
-import { Settings, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const PhaseDetail: React.FC = () => {
@@ -16,7 +16,7 @@ const PhaseDetail: React.FC = () => {
   const [phase, setPhase] = useState<CurriculumPhase | null>(null);
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [loading, setLoading] = useState(true);
-  const { role, loading: roleLoading } = useUserRole();
+  const { loading: authLoading } = useAuth(); // Use authLoading from useAuth
   const { t } = useLanguage(); // Use translation hook
 
   useEffect(() => {
@@ -48,12 +48,12 @@ const PhaseDetail: React.FC = () => {
       }
     };
 
-    if (phaseId) {
+    if (phaseId && !authLoading) { // Check authLoading here
       fetchPhaseAndModules();
     }
-  }, [phaseId, t]);
+  }, [phaseId, authLoading, t]); // Add authLoading to dependencies
 
-  if (loading || roleLoading) {
+  if (loading || authLoading) { // Use authLoading here
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -92,13 +92,7 @@ const PhaseDetail: React.FC = () => {
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{phase.title}</h1>
           </div>
-          {role === 'admin' && (
-            <Link to={`/admin/curriculum/phases/${phase.id}/modules`}>
-              <Button variant="outline" size="sm">
-                <Settings className="mr-2 h-4 w-4" /> {t('manage_modules')}
-              </Button>
-            </Link>
-          )}
+          {/* Admin management button removed */}
         </div>
         <p className="text-lg text-muted-foreground mb-8">{phase.description}</p>
 

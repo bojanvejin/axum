@@ -6,7 +6,7 @@ import { CurriculumLesson, StudentProgress, CurriculumModule, CurriculumPhase } 
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
-import { useSession } from '@/components/SessionContextProvider';
+import { useAuth } from '@/contexts/AuthContext'; // Changed from useSession
 import LessonNavigationSidebar from '@/components/LessonNavigationSidebar';
 import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -23,7 +23,7 @@ const LessonDetail: React.FC = () => {
   const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
   const [currentPhase, setCurrentPhase] = useState<CurriculumPhase | null>(null);
   const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
-  const { user, loading: userLoading } = useSession();
+  const { userName, isAuthenticated, loading: authLoading } = useAuth(); // Changed from useSession
   const navigate = useNavigate();
   const { t } = useLanguage(); // Use translation hook
 
@@ -64,17 +64,14 @@ const LessonDetail: React.FC = () => {
           setNextLesson(null);
         }
 
-        if (user) {
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', user.id);
-
-          if (progressError && progressError.code !== 'PGRST116') {
-            throw progressError;
-          }
-          setStudentProgress(progressData || []);
-          setIsCompleted(progressData?.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
+        if (isAuthenticated && userName) {
+          const storedProgress = localStorage.getItem(`progress_${userName}`);
+          const parsedProgress: StudentProgress[] = storedProgress ? JSON.parse(storedProgress) : [];
+          setStudentProgress(parsedProgress);
+          setIsCompleted(parsedProgress.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
+        } else {
+          setStudentProgress([]);
+          setIsCompleted(false);
         }
 
       } catch (error: any) {
@@ -85,41 +82,32 @@ const LessonDetail: React.FC = () => {
       }
     };
 
-    if (lessonId && !userLoading) {
+    if (lessonId && !authLoading) {
       fetchLessonAndProgress();
     }
-  }, [lessonId, user, userLoading, t]);
+  }, [lessonId, isAuthenticated, userName, authLoading, t]);
 
   const handleMarkComplete = async () => {
-    if (!user) {
+    if (!isAuthenticated || !userName) {
       showError(t('must_be_logged_in_to_mark_complete'));
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('student_progress')
-        .upsert(
-          {
-            user_id: user.id,
-            lesson_id: lessonId!,
-            completed_at: new Date().toISOString(),
-            status: 'completed',
-          },
-          { onConflict: 'user_id,lesson_id' }
-        );
+      const newProgressEntry: StudentProgress = {
+        id: lessonId!, // Use lessonId as a unique identifier for progress in local storage
+        user_id: userName, // Use userName as user_id for local storage
+        lesson_id: lessonId!,
+        completed_at: new Date().toISOString(),
+        status: 'completed',
+      };
 
-      if (error) throw error;
+      const updatedProgress = studentProgress.filter(p => p.lesson_id !== lessonId).concat(newProgressEntry);
+      localStorage.setItem(`progress_${userName}`, JSON.stringify(updatedProgress));
+
       setIsCompleted(true);
-      setStudentProgress(prev => {
-        const existing = prev.find(p => p.lesson_id === lessonId);
-        if (existing) {
-          return prev.map(p => p.lesson_id === lessonId ? { ...p, status: 'completed', completed_at: new Date().toISOString() } : p);
-        } else {
-          return [...prev, { id: 'new-id', user_id: user.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }];
-        }
-      });
+      setStudentProgress(updatedProgress);
       showSuccess(t('lesson_marked_complete'));
     } catch (error: any) {
       showError(t('lesson_mark_complete_failed', { message: error.message }));
@@ -144,7 +132,7 @@ const LessonDetail: React.FC = () => {
     return div.textContent || div.innerText || '';
   }, [lesson?.content_html]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <Layout>
         <div className="flex h-full">
@@ -231,7 +219,7 @@ const LessonDetail: React.FC = () => {
           <div className="flex justify-between items-center mt-8">
             <Button
               onClick={handleMarkComplete}
-              disabled={isCompleted || loading}
+              disabled={isCompleted || loading || !isAuthenticated}
               className="w-full md:w-auto"
             >
               {isCompleted ? t('completed') : t('mark_complete')}

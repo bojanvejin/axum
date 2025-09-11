@@ -7,10 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSession } from '@/components/SessionContextProvider';
+import { useAuth } from '@/contexts/AuthContext'; // Changed from useSession
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { useUserRole } from '@/hooks/useUserRole';
 import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const backgroundImages = [
@@ -24,8 +23,7 @@ const Index = () => {
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const { user, loading: userSessionLoading } = useSession();
-  const { role, loading: roleLoading } = useUserRole();
+  const { userName, isAuthenticated, loading: authLoading } = useAuth(); // Changed from useSession
   const navigate = useNavigate();
   const { t } = useLanguage(); // Use translation hook
 
@@ -61,13 +59,11 @@ const Index = () => {
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
 
-        if (user) {
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', user.id);
-          if (progressError) throw progressError;
-          setStudentProgress(progressData || []);
+        if (isAuthenticated && userName) {
+          const storedProgress = localStorage.getItem(`progress_${userName}`);
+          if (storedProgress) {
+            setStudentProgress(JSON.parse(storedProgress));
+          }
         }
 
       } catch (error: any)
@@ -79,18 +75,18 @@ const Index = () => {
       }
     };
 
-    if (!userSessionLoading) {
+    if (!authLoading) {
       fetchData();
     }
-  }, [user, userSessionLoading, t]);
+  }, [isAuthenticated, userName, authLoading, t]);
 
   const totalLessons = allLessons.length;
   const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
   const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
 
   const handleContinueLearning = () => {
-    if (!user) {
-      navigate('/login');
+    if (!isAuthenticated) {
+      navigate('/simple-login');
       return;
     }
 
@@ -116,12 +112,12 @@ const Index = () => {
           {t('welcome_description')}
         </p>
 
-        {userSessionLoading ? (
+        {authLoading ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
             <p className="text-lg text-muted-foreground mb-4">{t('loading_session')}</p>
             <Skeleton className="h-10 w-full" />
           </div>
-        ) : user ? (
+        ) : isAuthenticated ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
             <h2 className="text-xl font-semibold mb-2">{t('your_progress')}</h2>
             <div className="flex items-center gap-4">
@@ -137,7 +133,7 @@ const Index = () => {
             <p className="text-lg text-muted-foreground mb-4">
               {t('sign_in_prompt')}
             </p>
-            <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
+            <Button onClick={() => navigate('/simple-login')} className="w-full md:w-auto">
               {t('go_to_login')}
             </Button>
           </div>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useSession } from '@/components/SessionContextProvider';
+import { useAuth } from '@/contexts/AuthContext'; // Changed from useSession
 import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface CurriculumPhaseOverviewCardProps {
@@ -15,7 +15,7 @@ interface CurriculumPhaseOverviewCardProps {
 }
 
 const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress, backgroundImage }) => {
-  const { user } = useSession();
+  const { isAuthenticated } = useAuth(); // Changed from useSession
   const { t } = useLanguage(); // Use translation hook
 
   const getPhaseProgress = () => {
@@ -48,7 +48,7 @@ const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = 
           <CardDescription className="text-gray-300 mt-1 line-clamp-2">{phase.description}</CardDescription>
           <p className="text-sm text-gray-400 mt-2">{t('duration_weeks', { weeks: phase.weeks })}</p>
         </div>
-        {user && (
+        {isAuthenticated && (
           <div className="mt-4">
             <div className="flex justify-between items-center text-sm mb-1">
               <span>{t('your_progress')}</span>

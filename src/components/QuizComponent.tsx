@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { useSession } from '@/components/SessionContextProvider';
+import { useAuth } from '@/contexts/AuthContext'; // Changed from useSession
 import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface QuizQuestion {
@@ -18,9 +18,10 @@ interface QuizQuestion {
 }
 
 interface QuizAttempt {
-  id: string;
+  id: string; // Using quizId + attempt number for local storage ID
   score: number;
   answers: Record<string, string>;
+  timestamp: string;
 }
 
 interface QuizComponentProps {
@@ -39,17 +40,17 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingResultsOf, setViewingResultsOf] = useState<QuizAttempt | null>(null);
-  const { user } = useSession();
+  const { userName, isAuthenticated } = useAuth(); // Changed from useSession
   const { t } = useLanguage(); // Use translation hook
 
-  const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { score: -1, id: '', answers: {} });
+  const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { score: -1, id: '', answers: {}, timestamp: '' });
   const hasPassed = bestAttempt.score >= PASSING_SCORE;
   const attemptsMade = attempts.length;
   const canAttempt = !hasPassed && attemptsMade < MAX_ATTEMPTS;
 
   useEffect(() => {
     const fetchQuizData = async () => {
-      if (!quizId || !user) {
+      if (!quizId) {
         setLoading(false);
         return;
       }
@@ -63,24 +64,23 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
         if (questionsError) throw questionsError;
         setQuestions(questionsData || []);
 
-        const { data: attemptsData, error: attemptsError } = await supabase
-          .from('quiz_attempts')
-          .select('id, score, answers')
-          .eq('user_id', user.id)
-          .eq('quiz_id', quizId)
-          .order('created_at', { ascending: false });
-        if (attemptsError) throw attemptsError;
-        const loadedAttempts = attemptsData || [];
-        setAttempts(loadedAttempts);
+        if (isAuthenticated && userName) {
+          const storedAttempts = localStorage.getItem(`quiz_attempts_${userName}_${quizId}`);
+          const loadedAttempts: QuizAttempt[] = storedAttempts ? JSON.parse(storedAttempts) : [];
+          setAttempts(loadedAttempts);
 
-        const latestAttempt = loadedAttempts[0];
-        const best = loadedAttempts.reduce((max, current) => (current.score > (max?.score ?? -1) ? current : max), null);
-        const passed = best && best.score >= PASSING_SCORE;
+          const latestAttempt = loadedAttempts[0];
+          const best = loadedAttempts.reduce((max, current) => (current.score > (max?.score ?? -1) ? current : max), null);
+          const passed = best && best.score >= PASSING_SCORE;
 
-        if (passed) {
-          setViewingResultsOf(best);
-        } else if (latestAttempt) {
-          setViewingResultsOf(latestAttempt);
+          if (passed) {
+            setViewingResultsOf(best);
+          } else if (latestAttempt) {
+            setViewingResultsOf(latestAttempt);
+          }
+        } else {
+          setAttempts([]);
+          setViewingResultsOf(null);
         }
 
       } catch (error: any) {
@@ -90,19 +90,15 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       }
     };
 
-    if (user) {
-      fetchQuizData();
-    } else {
-      setLoading(false);
-    }
-  }, [quizId, user, t]);
+    fetchQuizData();
+  }, [quizId, isAuthenticated, userName, t]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmitQuiz = async () => {
-    if (!user) {
+    if (!isAuthenticated || !userName) {
       showError(t('quiz_login_required'));
       return;
     }
@@ -118,22 +114,18 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     const calculatedScore = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
 
     try {
-      const { data: newAttempt, error } = await supabase
-        .from('quiz_attempts')
-        .insert({
-          user_id: user.id,
-          quiz_id: quizId,
-          score: calculatedScore,
-          answers: userAnswers,
-        })
-        .select('id, score, answers')
-        .single();
-
-      if (error) throw error;
+      const newAttempt: QuizAttempt = {
+        id: `${quizId}-${attemptsMade + 1}`,
+        score: calculatedScore,
+        answers: userAnswers,
+        timestamp: new Date().toISOString(),
+      };
+      
+      const updatedAttempts = [newAttempt, ...attempts];
+      localStorage.setItem(`quiz_attempts_${userName}_${quizId}`, JSON.stringify(updatedAttempts));
       
       showSuccess(t('attempt_submitted', { attemptNum: attemptsMade + 1, score: calculatedScore.toFixed(0) }));
       
-      const updatedAttempts = [newAttempt, ...attempts];
       setAttempts(updatedAttempts);
       setViewingResultsOf(newAttempt);
       
@@ -159,7 +151,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <p className="text-muted-foreground">{t('quiz_login_required')}</p>;
   }
 
