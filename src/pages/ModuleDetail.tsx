@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
 import { CheckCircle, Circle, ArrowLeft } from 'lucide-react';
@@ -31,7 +31,7 @@ const ModuleDetail: React.FC = () => {
       try {
         const { data: moduleData, error: moduleError } = await supabase
           .from('modules')
-          .select('*, phases(title)') // Select module details including phase title
+          .select('*, phases(title)') // Select module details including phase title, tools_needed, and preparation_guide
           .eq('id', moduleId)
           .single();
 
@@ -111,6 +111,28 @@ const ModuleDetail: React.FC = () => {
           <p className="text-md text-muted-foreground mb-8">
             Scheduled: Course Week {module.course_week}
           </p>
+        )}
+
+        {module.tools_needed && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-xl">Tools You'll Need</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground whitespace-pre-wrap">{module.tools_needed}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {module.preparation_guide && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-xl">How to Prepare</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground whitespace-pre-wrap">{module.preparation_guide}</p>
+            </CardContent>
+          </Card>
         )}
 
         <h2 className="text-2xl font-semibold my-6">Lessons</h2>

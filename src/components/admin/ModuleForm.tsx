@@ -22,6 +22,8 @@ const formSchema = z.object({
   description: z.string().optional(),
   order_index: z.coerce.number().min(0, { message: 'Order index cannot be negative.' }),
   phase_id: z.string().uuid({ message: 'Invalid Phase ID.' }), // Hidden field, but required
+  tools_needed: z.string().optional(), // New field
+  preparation_guide: z.string().optional(), // New field
 });
 
 interface ModuleFormProps {
@@ -38,6 +40,8 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
       description: module?.description || '',
       order_index: module?.order_index || 0,
       phase_id: phaseId, // Pre-fill phase_id
+      tools_needed: module?.tools_needed || '', // Default for new field
+      preparation_guide: module?.preparation_guide || '', // Default for new field
     },
   });
 
@@ -48,6 +52,8 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
         description: module.description || '',
         order_index: module.order_index,
         phase_id: module.phase_id,
+        tools_needed: module.tools_needed || '', // Reset for new field
+        preparation_guide: module.preparation_guide || '', // Reset for new field
       });
     } else {
       form.reset({
@@ -55,6 +61,8 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
         description: '',
         order_index: 0,
         phase_id: phaseId, // Ensure phaseId is set for new modules
+        tools_needed: '', // Reset for new field
+        preparation_guide: '', // Reset for new field
       });
     }
   }, [module, phaseId, form]);
@@ -110,6 +118,32 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
               <FormLabel>Description</FormLabel>
               <FormControl>
                 <Textarea placeholder="Brief description of the module" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="tools_needed"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tools Needed</FormLabel>
+              <FormControl>
+                <Textarea placeholder="List tools required for this module (e.g., Shears, Clippers, Combs)" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="preparation_guide"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Preparation Guide</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Instructions on how to prepare for this module (e.g., Watch introductory videos, Review safety guidelines)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

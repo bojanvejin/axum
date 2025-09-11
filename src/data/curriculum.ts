@@ -5,6 +5,8 @@ export interface CurriculumModule {
   description: string;
   order_index: number;
   course_week?: number; // New field to link to courseOutline week
+  tools_needed?: string; // New field for tools required
+  preparation_guide?: string; // New field for preparation guide
 }
 
 export interface CurriculumPhase {
