@@ -7,10 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from '@/components/SessionContextProvider';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const backgroundImages = [
   '/images/axum-salon-interior.jpeg',
@@ -23,9 +23,9 @@ const Index = () => {
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const { userName, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, loading: userSessionLoading } = useSession();
+  const { role, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
-  const { t } = useLanguage();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,34 +59,36 @@ const Index = () => {
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
 
-        if (isAuthenticated && userName) {
-          const storedProgress = localStorage.getItem(`progress_${userName}`);
-          if (storedProgress) {
-            setStudentProgress(JSON.parse(storedProgress));
-          }
+        if (user) {
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .select('*')
+            .eq('user_id', user.id);
+          if (progressError) throw progressError;
+          setStudentProgress(progressData || []);
         }
 
       } catch (error: any)
       {
-        showError(t('failed_to_load_curriculum', { message: error.message }));
+        showError(`Failed to load curriculum: ${error.message}`);
         console.error('Error fetching curriculum data:', error);
       } finally {
         setDataLoading(false);
       }
     };
 
-    if (!authLoading) {
+    if (!userSessionLoading) {
       fetchData();
     }
-  }, [isAuthenticated, userName, authLoading, t]);
+  }, [user, userSessionLoading]);
 
   const totalLessons = allLessons.length;
   const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
   const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
 
   const handleContinueLearning = () => {
-    if (!isAuthenticated) {
-      navigate('/simple-login');
+    if (!user) {
+      navigate('/login');
       return;
     }
 
@@ -98,58 +100,58 @@ const Index = () => {
     if (firstIncompleteLesson) {
       navigate(`/lessons/${firstIncompleteLesson.id}`);
     } else {
-      showSuccess(t('completed_all_lessons'));
+      showSuccess("You've completed all lessons! Congratulations!");
     }
   };
 
   return (
     <Layout>
-      <div className="flex flex-col items-center justify-center py-12 md:py-20 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-center tracking-tight">
-          {t('welcome_title')}
+      <div className="flex flex-col items-center justify-center py-8">
+        <h1 className="text-4xl md:text-5xl font-bold mb-2 text-center">
+          Welcome to the Axum Training Curriculum
         </h1>
-        <p className="text-xl text-muted-foreground mb-12 text-center max-w-3xl leading-relaxed">
-          {t('welcome_description')}
+        <p className="text-lg text-muted-foreground mb-8 text-center max-w-2xl">
+          Your journey to mastering the art of hair styling starts here. Track your progress, complete lessons, and unlock your potential.
         </p>
 
-        {authLoading ? (
-          <div className="w-full max-w-3xl mb-16 p-6 md:p-8 border border-border rounded-xl bg-card shadow-lg text-center">
-            <p className="text-lg text-muted-foreground mb-4">{t('loading_session')}</p>
+        {userSessionLoading ? (
+          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
+            <p className="text-lg text-muted-foreground mb-4">Loading user session...</p>
             <Skeleton className="h-10 w-full" />
           </div>
-        ) : isAuthenticated ? (
-          <div className="w-full max-w-3xl mb-16 p-6 md:p-8 border border-border rounded-xl bg-card shadow-lg">
-            <h2 className="text-2xl font-semibold mb-4">{t('your_progress')}</h2>
-            <div className="flex items-center gap-4 mb-6">
-              <Progress value={overallProgress} className="flex-grow h-3 rounded-full [&>div]:bg-primary" />
-              <span className="text-lg font-medium text-primary">{overallProgress.toFixed(0)}% {t('completed')}</span>
+        ) : user ? (
+          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
+            <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
+            <div className="flex items-center gap-4">
+              <Progress value={overallProgress} className="flex-grow" />
+              <span className="text-sm font-medium">{overallProgress.toFixed(0)}% Complete</span>
             </div>
-            <Button onClick={handleContinueLearning} className="w-full py-3 text-lg font-semibold">
-              {completedLessonsCount === totalLessons ? t('review_curriculum') : t('continue_learning')}
+            <Button onClick={handleContinueLearning} className="mt-4 w-full">
+              {completedLessonsCount === totalLessons ? "Review Curriculum" : "Continue Learning"}
             </Button>
           </div>
         ) : (
-          <div className="w-full max-w-3xl mb-16 p-6 md:p-8 border border-border rounded-xl bg-card shadow-lg text-center">
-            <p className="text-xl text-muted-foreground mb-6">
-              {t('sign_in_prompt')}
+          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
+            <p className="text-lg text-muted-foreground mb-4">
+              Please <Link to="/login" className="text-blue-500 hover:underline">sign in</Link> to track your progress and access full features.
             </p>
-            <Button onClick={() => navigate('/simple-login')} className="w-full md:w-auto py-3 text-lg font-semibold">
-              {t('go_to_login')}
+            <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
+              Go to Login
             </Button>
           </div>
         )}
 
-        <h2 className="text-4xl font-bold mb-10 mt-12 self-start w-full max-w-6xl mx-auto tracking-tight">{t('curriculum_phases')}</h2>
+        <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Curriculum Phases</h2>
         {dataLoading ? (
-          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
             {[...Array(2)].map((_, i) => (
-              <Skeleton key={i} className="h-72 w-full rounded-xl" />
+              <Skeleton key={i} className="h-64 w-full" />
             ))}
           </div>
         ) : phases.length === 0 ? (
-          <p className="text-muted-foreground text-center py-16 text-lg">{t('no_phases_found')}</p>
+          <p className="text-muted-foreground text-center py-8">No curriculum phases found.</p>
         ) : (
-          <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2 gap-8">
+          <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2">
             {phases.map((phase, index) => (
               <CurriculumPhaseOverviewCard
                 key={phase.id}

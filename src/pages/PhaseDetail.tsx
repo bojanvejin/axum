@@ -6,17 +6,16 @@ import { CurriculumPhase, CurriculumModule } from '@/data/curriculum';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react'; // Removed Settings
-import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
+import { Settings, ArrowLeft } from 'lucide-react'; // Import ArrowLeft
 
 const PhaseDetail: React.FC = () => {
   const { phaseId } = useParams<{ phaseId: string }>();
   const [phase, setPhase] = useState<CurriculumPhase | null>(null);
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [loading, setLoading] = useState(true);
-  // Removed useUserRole and role/roleLoading
-  const { t } = useLanguage(); // Use translation hook
+  const { role, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     const fetchPhaseAndModules = async () => {
@@ -40,7 +39,7 @@ const PhaseDetail: React.FC = () => {
         if (modulesError) throw modulesError;
         setModules(modulesData);
       } catch (error: any) {
-        showError(t('failed_to_load_phases', { message: error.message }));
+        showError(`Failed to load phase details: ${error.message}`);
         console.error('Error fetching phase or modules:', error);
       } finally {
         setLoading(false);
@@ -50,9 +49,9 @@ const PhaseDetail: React.FC = () => {
     if (phaseId) {
       fetchPhaseAndModules();
     }
-  }, [phaseId, t]);
+  }, [phaseId]);
 
-  if (loading) { // Removed roleLoading
+  if (loading || roleLoading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -72,8 +71,8 @@ const PhaseDetail: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">{t('phase_not_found')}</h2>
-          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_curriculum')}</Link>
+          <h2 className="text-2xl font-bold">Phase not found.</h2>
+          <Link to="/" className="text-blue-500 hover:underline">Return to Curriculum</Link>
         </div>
       </Layout>
     );
@@ -85,17 +84,23 @@ const PhaseDetail: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <Button variant="ghost" size="icon" asChild>
-              <Link to="/">
+              <Link to="/"> {/* Back button to main menu */}
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{phase.title}</h1>
           </div>
-          {/* Removed admin-specific button */}
+          {role === 'admin' && (
+            <Link to={`/admin/curriculum/phases/${phase.id}/modules`}>
+              <Button variant="outline" size="sm">
+                <Settings className="mr-2 h-4 w-4" /> Manage Modules
+              </Button>
+            </Link>
+          )}
         </div>
         <p className="text-lg text-muted-foreground mb-8">{phase.description}</p>
 
-        <h2 className="text-2xl font-semibold mb-6">{t('modules_for_weeks', { weeks: phase.weeks })}</h2>
+        <h2 className="text-2xl font-semibold mb-6">Modules ({phase.weeks} Weeks)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {modules.map((module) => (
             <Link to={`/phases/${phase.id}/modules/${module.id}`} key={module.id}>

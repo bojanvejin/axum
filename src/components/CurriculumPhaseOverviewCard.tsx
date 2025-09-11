@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext'; // Changed from useSession
-import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
+import { useSession } from '@/components/SessionContextProvider';
 
 interface CurriculumPhaseOverviewCardProps {
   phase: CurriculumPhase;
@@ -15,8 +14,7 @@ interface CurriculumPhaseOverviewCardProps {
 }
 
 const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress, backgroundImage }) => {
-  const { isAuthenticated } = useAuth(); // Changed from useSession
-  const { t } = useLanguage(); // Use translation hook
+  const { user } = useSession();
 
   const getPhaseProgress = () => {
     const lessonsInPhase = allLessons.filter(lesson => 
@@ -46,13 +44,13 @@ const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = 
         <div>
           <CardTitle className="text-2xl font-bold">{phase.title}</CardTitle>
           <CardDescription className="text-gray-300 mt-1 line-clamp-2">{phase.description}</CardDescription>
-          <p className="text-sm text-gray-400 mt-2">{t('duration_weeks', { weeks: phase.weeks })}</p>
+          <p className="text-sm text-gray-400 mt-2">Duration: {phase.weeks} Weeks</p>
         </div>
-        {isAuthenticated && (
+        {user && (
           <div className="mt-4">
             <div className="flex justify-between items-center text-sm mb-1">
-              <span>{t('your_progress')}</span>
-              <span>{completedCount}/{totalLessons} {t('lessons_plural')}</span>
+              <span>Progress</span>
+              <span>{completedCount}/{totalLessons} Lessons</span>
             </div>
             <Progress value={progressPercentage} className="h-2 [&>div]:bg-white" />
           </div>

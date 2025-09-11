@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, StopCircle } from 'lucide-react';
 import { showError } from '@/utils/toast';
-import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface TextToSpeechButtonProps {
   textToSpeak: string;
@@ -10,8 +9,8 @@ interface TextToSpeechButtonProps {
 
 const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({ textToSpeak }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const { t } = useLanguage(); // Use translation hook
   
+  // Memoize synth to avoid re-checking on every render
   const synth = React.useMemo(() => {
     if (typeof window !== 'undefined') {
       return window.speechSynthesis;
@@ -21,7 +20,7 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({ textToSpeak }) 
 
   const handleToggleSpeech = () => {
     if (!synth) {
-      showError(t('browser_no_tts'));
+      showError("Your browser does not support text-to-speech.");
       return;
     }
 
@@ -30,7 +29,7 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({ textToSpeak }) 
       setIsSpeaking(false);
     } else {
       if (synth.speaking) {
-        synth.cancel();
+        synth.cancel(); // Cancel any previous speech before starting a new one
       }
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.onend = () => {
@@ -38,7 +37,7 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({ textToSpeak }) 
       };
       utterance.onerror = (event) => {
         console.error('SpeechSynthesisUtterance.onerror', event);
-        showError(t('tts_error'));
+        showError("An error occurred during text-to-speech.");
         setIsSpeaking(false);
       };
       synth.speak(utterance);
@@ -46,6 +45,7 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({ textToSpeak }) 
     }
   };
 
+  // Cleanup on component unmount
   useEffect(() => {
     return () => {
       if (synth && synth.speaking) {
@@ -59,12 +59,12 @@ const TextToSpeechButton: React.FC<TextToSpeechButtonProps> = ({ textToSpeak }) 
       {isSpeaking ? (
         <>
           <StopCircle className="mr-2 h-4 w-4" />
-          {t('stop_reading')}
+          Stop Reading
         </>
       ) : (
         <>
           <Play className="mr-2 h-4 w-4" />
-          {t('read_aloud')}
+          Read Aloud
         </>
       )}
     </Button>
