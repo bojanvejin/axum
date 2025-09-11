@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { useUserRole } from '@/hooks/useUserRole';
+// import { useUserRole } from '@/hooks/useUserRole'; // Removed
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import PhaseForm from '@/components/admin/PhaseForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const PhaseManagement: React.FC = () => {
-  const { role, loading: roleLoading } = useUserRole();
+  // const { role, loading: roleLoading } = useUserRole(); // Removed
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -49,10 +49,10 @@ const PhaseManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!roleLoading && role === 'admin') {
+    // if (!roleLoading && role === 'admin') { // Modified condition
       fetchPhases();
-    }
-  }, [role, roleLoading]);
+    // }
+  }, []); // Removed role, roleLoading from dependencies
 
   const handleDeletePhase = async (phaseId: string) => {
     try {
@@ -86,27 +86,29 @@ const PhaseManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (roleLoading) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Loading user role...</h2>
-        </div>
-      </Layout>
-    );
-  }
+  // Removed roleLoading check
+  // if (roleLoading) {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold">Loading user role...</h2>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
-  if (role !== 'admin') {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Removed role !== 'admin' check
+  // if (role !== 'admin') {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+  //         <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
+  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
   return (
     <Layout>

@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-import { useUserRole } from '@/hooks/useUserRole';
+// import { useUserRole } from '@/hooks/useUserRole'; // Removed
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import LessonForm from '@/components/admin/LessonForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const LessonManagement: React.FC = () => {
-  const { role, loading: roleLoading } = useUserRole();
+  // const { role, loading: roleLoading } = useUserRole(); // Removed
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
   const [moduleTitle, setModuleTitle] = useState<string>('');
@@ -58,10 +58,12 @@ const LessonManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!roleLoading && role === 'admin' && moduleId) {
-      fetchLessons();
-    }
-  }, [role, roleLoading, moduleId]);
+    // if (!roleLoading && role === 'admin' && moduleId) { // Modified condition
+      if (moduleId) { // Only fetch if moduleId is available
+        fetchLessons();
+      }
+    // }
+  }, [moduleId]); // Removed role, roleLoading from dependencies
 
   const handleDeleteLesson = async (lessonId: string) => {
     try {
@@ -90,20 +92,23 @@ const LessonManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (roleLoading || !moduleId) {
+  // Removed roleLoading check
+  // if (roleLoading || !moduleId) { // Modified condition
+  if (!moduleId) {
     return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
   }
 
-  if (role !== 'admin') {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Removed role !== 'admin' check
+  // if (role !== 'admin') {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
   return (
     <Layout>

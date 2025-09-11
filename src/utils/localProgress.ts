@@ -1,6 +1,6 @@
 "use client";
 
-import { StudentProgress, QuizAttempt } from '@/data/curriculum'; // Assuming QuizAttempt is defined or will be defined
+import { StudentProgress, QuizAttempt } from '@/data/curriculum';
 
 const PROGRESS_KEY_PREFIX = 'axum_progress_';
 const QUIZ_ATTEMPTS_KEY_PREFIX = 'axum_quiz_attempts_';

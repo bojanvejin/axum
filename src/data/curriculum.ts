@@ -51,3 +51,11 @@ export interface QuizQuestion {
   options: string[];
   correct_answer: string;
 }
+
+// New interface for local quiz attempts
+export interface QuizAttempt {
+  id: string;
+  score: number;
+  answers: Record<string, string>;
+  submitted_at: string;
+}

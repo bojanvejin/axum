@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-import { useUserRole } from '@/hooks/useUserRole';
+// import { useUserRole } from '@/hooks/useUserRole'; // Removed
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import ModuleForm from '@/components/admin/ModuleForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const ModuleManagement: React.FC = () => {
-  const { role, loading: roleLoading } = useUserRole();
+  // const { role, loading: roleLoading } = useUserRole(); // Removed
   const { phaseId } = useParams<{ phaseId: string }>();
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [phaseTitle, setPhaseTitle] = useState<string>('');
@@ -63,10 +63,12 @@ const ModuleManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!roleLoading && role === 'admin' && phaseId) {
-      fetchModules();
-    }
-  }, [role, roleLoading, phaseId]);
+    // if (!roleLoading && role === 'admin' && phaseId) { // Modified condition
+      if (phaseId) { // Only fetch if phaseId is available
+        fetchModules();
+      }
+    // }
+  }, [phaseId]); // Removed role, roleLoading from dependencies
 
   const handleDeleteModule = async (moduleId: string) => {
     try {
@@ -100,27 +102,29 @@ const ModuleManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (roleLoading) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Loading user role...</h2>
-        </div>
-      </Layout>
-    );
-  }
+  // Removed roleLoading check
+  // if (roleLoading) {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold">Loading user role...</h2>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
-  if (role !== 'admin') {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
-  }
+  // Removed role !== 'admin' check
+  // if (role !== 'admin') {
+  //   return (
+  //     <Layout>
+  //       <div className="text-center py-8">
+  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+  //         <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
+  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+  //       </div>
+  //     </Layout>
+  //   );
+  // }
 
   if (!phaseId) {
     return (
