@@ -4,8 +4,7 @@ export interface CurriculumModule {
   title: string;
   description: string;
   order_index: number;
-  week_number?: number; // New field
-  day_number?: number;  // New field
+  course_week?: number; // New field to link to courseOutline week
 }
 
 export interface CurriculumPhase {
@@ -26,6 +25,8 @@ export interface CurriculumLesson {
   resources_url?: string;
   order_index: number;
   quiz_id?: string | null;
+  week_number?: number; // New field for scheduling
+  day_number?: number;  // New field for scheduling
 }
 
 export interface StudentProgress {

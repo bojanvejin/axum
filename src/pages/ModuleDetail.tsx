@@ -31,7 +31,7 @@ const ModuleDetail: React.FC = () => {
       try {
         const { data: moduleData, error: moduleError } = await supabase
           .from('modules')
-          .select('*, phases(title)') // Select module details including week_number, day_number, and phase title
+          .select('*, phases(title)') // Select module details including phase title
           .eq('id', moduleId)
           .single();
 
@@ -107,9 +107,9 @@ const ModuleDetail: React.FC = () => {
           </div>
         </div>
         <p className="text-lg text-muted-foreground mt-2 mb-2">{module.description}</p>
-        {module.week_number !== undefined && module.day_number !== undefined && (
+        {module.course_week !== undefined && (
           <p className="text-md text-muted-foreground mb-8">
-            Scheduled: Week {module.week_number}, Day {module.day_number}
+            Scheduled: Course Week {module.course_week}
           </p>
         )}
 
@@ -127,6 +127,9 @@ const ModuleDetail: React.FC = () => {
                   </CardHeader>
                   <CardContent className="flex-grow">
                     <p className="text-muted-foreground text-sm">{lesson.objectives}</p>
+                    {lesson.week_number !== undefined && lesson.day_number !== undefined && (
+                      <p className="text-xs text-muted-foreground mt-2">Week {lesson.week_number}, Day {lesson.day_number}</p>
+                    )}
                   </CardContent>
                 </Card>
               </Link>

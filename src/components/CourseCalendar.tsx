@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CurriculumModule } from '@/data/curriculum';
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
-import { Skeleton } from '@/components/ui/skeleton'; // Added import for Skeleton
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CourseCalendarProps {
   startDate: Date; // The actual start date of the course (e.g., the first class Monday)
@@ -18,7 +18,7 @@ interface CourseCalendarProps {
 const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [modulesForSelectedDate, setModulesForSelectedDate] = useState<CurriculumModule[]>([]);
-  const [courseDatesMap, setCourseDatesMap] = useState<Map<string, CurriculumModule[]>>(new Map()); // Map date string to modules
+  const [classDaysMap, setClassDaysMap] = useState<Map<string, CurriculumModule[]>>(new Map()); // Map date string to modules
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,29 +27,41 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
       try {
         const { data: modulesData, error } = await supabase
           .from('modules')
-          .select('*')
+          .select('id, phase_id, title, description, course_week') // Select course_week
           .order('order_index', { ascending: true });
 
         if (error) throw error;
 
-        const datesMap = new Map<string, CurriculumModule[]>();
+        const daysMap = new Map<string, CurriculumModule[]>();
         
         modulesData?.forEach(module => {
-          if (module.day_number !== undefined && module.day_number !== null) {
-            const moduleDate = addDays(startDate, module.day_number - 1); // Day 1 is startDate, Day 2 is startDate + 1, etc.
-            const dateString = format(moduleDate, 'yyyy-MM-dd');
-            if (!datesMap.has(dateString)) {
-              datesMap.set(dateString, []);
+          if (module.course_week !== undefined && module.course_week !== null) {
+            // Calculate the class day: every other Monday, starting from startDate
+            // Week 1 module is on startDate (Monday)
+            // Week 2 module is on startDate + 7 days (next Monday)
+            // Week 3 module is on startDate + 14 days (Monday after next)
+            // ... and so on.
+            // The user mentioned "every other monday", but the courseOutline has 6 weeks.
+            // Let's assume "every other Monday" means the *start* of each course week is a Monday.
+            // If the course is taught every other Monday, then week 1 is Monday, week 2 is 2 weeks after, etc.
+            // Given the courseOutline has 6 consecutive weeks, I'll assume each week's module starts on a Monday.
+            // If the actual class schedule is "every other Monday" for the *entire course*,
+            // then the `course_week` would need to map to a different `addDays` calculation.
+            // For now, I'll map `course_week` 1 to `startDate`, `course_week` 2 to `startDate + 7 days`, etc.
+            const classDay = addDays(startDate, (module.course_week - 1) * 7);
+            const dateString = format(classDay, 'yyyy-MM-dd');
+            if (!daysMap.has(dateString)) {
+              daysMap.set(dateString, []);
             }
-            datesMap.get(dateString)?.push(module);
+            daysMap.get(dateString)?.push(module);
           }
         });
-        setCourseDatesMap(datesMap);
+        setClassDaysMap(daysMap);
 
         // If a date was already selected, update its modules
         if (selectedDate) {
           const dateString = format(selectedDate, 'yyyy-MM-dd');
-          setModulesForSelectedDate(datesMap.get(dateString) || []);
+          setModulesForSelectedDate(daysMap.get(dateString) || []);
         }
 
       } catch (err: any) {
@@ -61,27 +73,27 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
     };
 
     fetchAndGenerateCourseDates();
-  }, [startDate]); // Re-run if startDate changes
+  }, [startDate, selectedDate]); // Re-run if startDate or selectedDate changes
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     if (date) {
       const dateString = format(date, 'yyyy-MM-dd');
-      setModulesForSelectedDate(courseDatesMap.get(dateString) || []);
+      setModulesForSelectedDate(classDaysMap.get(dateString) || []);
     } else {
       setModulesForSelectedDate([]);
     }
   };
 
   const modifiers = {
-    courseDays: (date: Date) => {
+    classDays: (date: Date) => {
       const dateString = format(date, 'yyyy-MM-dd');
-      return courseDatesMap.has(dateString);
+      return classDaysMap.has(dateString);
     },
   };
 
   const modifiersStyles = {
-    courseDays: {
+    classDays: {
       backgroundColor: 'hsl(var(--primary))',
       color: 'hsl(var(--primary-foreground))',
       borderRadius: '0.375rem', // rounded-md
@@ -135,7 +147,7 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
                         <div className="border-b pb-4 last:border-b-0 last:pb-0 hover:bg-accent p-2 rounded-md transition-colors">
                           <h3 className="text-lg font-semibold">{module.title}</h3>
                           <p className="text-muted-foreground text-sm">{module.description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">Week {module.week_number}, Day {module.day_number}</p>
+                          {module.course_week && <p className="text-xs text-muted-foreground mt-1">Course Week {module.course_week}</p>}
                         </div>
                       </Link>
                 ))}

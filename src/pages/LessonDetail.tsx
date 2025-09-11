@@ -38,7 +38,7 @@ const LessonDetail: React.FC = () => {
         // Fetch current lesson details and its module/phase
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')
-          .select('*, modules(id, title, phase_id, week_number, day_number, phases(id, title))') // Select module and phase details, including week_number and day_number
+          .select('*, modules(id, title, phase_id, course_week, phases(id, title))') // Select module and phase details, including course_week
           .eq('id', lessonId)
           .single();
 
@@ -188,9 +188,14 @@ const LessonDetail: React.FC = () => {
               </div>
               <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
 
-              {currentModule?.week_number !== undefined && currentModule?.day_number !== undefined && (
+              {currentModule?.course_week !== undefined && (
+                <p className="text-md text-muted-foreground mb-2">
+                  Module Week: {currentModule.course_week}
+                </p>
+              )}
+              {lesson.week_number !== undefined && lesson.day_number !== undefined && (
                 <p className="text-md text-muted-foreground mb-6">
-                  Scheduled: Week {currentModule.week_number}, Day {currentModule.day_number}
+                  Lesson Scheduled: Week {lesson.week_number}, Day {lesson.day_number}
                 </p>
               )}
 
