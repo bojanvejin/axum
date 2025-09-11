@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CurriculumModule } from '@/data/curriculum';
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton'; // Added import for Skeleton
 
 interface CourseCalendarProps {
   startDate: Date; // The actual start date of the course (e.g., the first class Monday)
@@ -33,31 +34,6 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
 
         const datesMap = new Map<string, CurriculumModule[]>();
         
-        // Assuming the course has a fixed schedule where each 'day_number' corresponds to a sequential day from startDate
-        // And 'week_number' helps in calculating the offset.
-        // For this specific request, each 'daily lesson' is a module, and they are scheduled sequentially.
-        // The user's `courseOutline` implies a weekly structure, but the request says "each lesson being taught"
-        // and "connect each lesson to the respective module though the calendar or vice versa".
-        // Given the previous `CourseCalendar` logic, it seems like the course has specific "class days" (e.g., every other Monday).
-        // Let's stick to the previous `CourseCalendar` logic where `currentClassDate` advances by 14 days.
-        // This means all modules for a given week in `courseOutline` are taught on a single "class day".
-
-        // Re-evaluating the user's request: "all of these modules cannot be accessed, please connect them: ... inside the module lesson, oince in the lesson module, you have a way of seeing what day its being taught in the calendar."
-        // This implies a 1:1 mapping between a module and a specific day it's taught.
-        // The `courseOutline` has `DailyLesson`s with `day` numbers.
-        // Let's assume `day_number` in the module corresponds to the `day` in `courseOutline`.
-        // And `week_number` in the module corresponds to the `week` in `courseOutline`.
-
-        // The `courseOutline` has 6 weeks, with varying numbers of days.
-        // Day 1, Day 2, Day 3, Day 4, Day 5 (Week 1)
-        // Day 6, Day 7, Day 8, Day 9, Day 10 (Week 2)
-        // ... up to Day 26 (Week 6)
-
-        // If each `DailyLesson` is now a module, and we want to see what day it's taught,
-        // we need to map each module to its *actual* calendar date.
-        // Let's assume `startDate` is the first day of the course (Day 1).
-        // Then a module with `day_number = N` would be `startDate + (N-1) days`.
-
         modulesData?.forEach(module => {
           if (module.day_number !== undefined && module.day_number !== null) {
             const moduleDate = addDays(startDate, module.day_number - 1); // Day 1 is startDate, Day 2 is startDate + 1, etc.
