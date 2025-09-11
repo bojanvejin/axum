@@ -39,6 +39,7 @@ const Login: React.FC = () => {
             }}
             theme="dark" // Using dark theme for Auth UI to match app's dark mode
             magicLink
+            redirectTo={window.location.origin} // This ensures the redirect is handled correctly
           />
         </CardContent>
       </Card>
