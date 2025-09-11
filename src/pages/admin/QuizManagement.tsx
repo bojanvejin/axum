@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Edit, Trash2, ListChecks } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { PlusCircle, Edit, Trash2, ListChecks, ArrowLeft } from 'lucide-react';
+import { useSession } from '@/components/SessionContextProvider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +23,13 @@ import {
 import QuizForm from '@/components/admin/QuizForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
+interface QuizWithLessonTitle extends Quiz {
+  lessons?: { title: string } | null;
+}
+
 const QuizManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const { user, isAdmin, loading: sessionLoading } = useSession();
+  const [quizzes, setQuizzes] = useState<QuizWithLessonTitle[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
@@ -35,7 +39,7 @@ const QuizManagement: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('quizzes')
-        .select('*')
+        .select('*, lessons(title)') // Select associated lesson title
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -48,10 +52,10 @@ const QuizManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin') { // Modified condition
+    if (!sessionLoading && isAdmin) {
       fetchQuizzes();
-    // }
-  }, []); // Removed role, roleLoading from dependencies
+    }
+  }, [sessionLoading, isAdmin]);
 
   const handleDeleteQuiz = async (quizId: string) => {
     try {
@@ -80,28 +84,33 @@ const QuizManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading) {
-  //   return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
-  // }
+  if (sessionLoading || loading) {
+    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+  }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user || !isAdmin) {
+    return (
+      <Layout>
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold">Manage Quizzes</h1>
+        <div className="flex items-center mb-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/admin">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <h1 className="text-3xl md:text-4xl font-bold ml-2">Manage Quizzes</h1>
+        </div>
+        <div className="flex justify-end items-center mb-6">
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAddForm}>
@@ -117,11 +126,7 @@ const QuizManagement: React.FC = () => {
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
-          </div>
-        ) : quizzes.length === 0 ? (
+        {quizzes.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No quizzes found. Click "Add New Quiz" to get started!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -132,11 +137,14 @@ const QuizManagement: React.FC = () => {
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <CardDescription>{quiz.description}</CardDescription>
+                  {quiz.lessons && (
+                    <p className="text-sm text-muted-foreground mt-2">Associated Lesson: {quiz.lessons.title}</p>
+                  )}
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
                   <Button variant="outline" size="sm" asChild>
                     <Link to={`/admin/curriculum/quizzes/${quiz.id}/questions`}>
-                      <ListChecks className="h-4 w-4" />
+                      <ListChecks className="h-4 w-4" /> Questions
                     </Link>
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => openEditForm(quiz)}>

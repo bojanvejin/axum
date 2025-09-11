@@ -1,28 +1,19 @@
-export interface CurriculumModule {
+export interface CurriculumSession {
   id: string;
-  phase_id: string;
+  session_number: number;
   title: string;
-  description: string;
-  order_index: number;
-  course_week?: number; // New field to link to courseOutline week
-  tools_needed?: string; // New field for tools required
-  preparation_guide?: string; // New field for preparation guide
-}
-
-export interface CurriculumPhase {
-  id: string;
-  title: string;
-  weeks: number;
-  description: string;
-  order_index: number;
+  description?: string;
+  topics?: string[]; // Array of text
+  assignments?: string[]; // Array of text
+  covers_days?: number[]; // Array of numbers
 }
 
 export interface CurriculumLesson {
   id: string;
-  module_id: string;
+  session_id: string;
   title: string;
-  objectives: string;
-  content_html: string;
+  objectives?: string;
+  content_html?: string;
   video_url?: string;
   resources_url?: string;
   order_index: number;
@@ -45,7 +36,7 @@ export interface Quiz {
   id: string;
   lesson_id?: string | null;
   title: string;
-  description: string;
+  description?: string;
 }
 
 export interface QuizQuestion {
@@ -57,10 +48,44 @@ export interface QuizQuestion {
   correct_answer: string;
 }
 
-// New interface for local quiz attempts
 export interface QuizAttempt {
   id: string;
   score: number;
   answers: Record<string, string>;
   submitted_at: string;
+}
+
+export interface Upload {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  file_url: string;
+  file_name: string;
+  submission_date: string;
+  status: 'pending' | 'reviewed' | 'approved';
+}
+
+export interface Feedback {
+  id: string;
+  upload_id: string;
+  instructor_id: string;
+  feedback_text: string;
+  feedback_video_url?: string;
+  created_at: string;
+}
+
+export interface Certificate {
+  id: string;
+  user_id: string;
+  certificate_url: string;
+  issue_date: string;
+}
+
+export interface UserProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  role: 'user' | 'admin';
+  full_name?: string;
+  avatar_url?: string;
 }

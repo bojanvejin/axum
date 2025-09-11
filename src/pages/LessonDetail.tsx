@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { CurriculumLesson, StudentProgress, CurriculumModule, CurriculumPhase } from '@/data/curriculum';
+import { CurriculumLesson, StudentProgress, CurriculumSession } from '@/data/curriculum';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
@@ -10,72 +10,73 @@ import LessonNavigationSidebar from '@/components/LessonNavigationSidebar';
 import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { getLocalStudentProgress, setLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
+import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
+  const { user, loading: sessionLoading } = useSession(); // Get user from session
   const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
-  const [moduleLessons, setModuleLessons] = useState<CurriculumLesson[]>([]);
+  const [sessionLessons, setSessionLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
-  const [currentPhase, setCurrentPhase] = useState<CurriculumPhase | null>(null);
+  const [currentSession, setCurrentSession] = useState<CurriculumSession | null>(null);
   const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
-  const localUser = getLocalUser(); // Get local user
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!localUser) {
-      navigate('/enter-name'); // Redirect if no local user
+    if (!user && !sessionLoading) {
+      navigate('/login'); // Redirect if not logged in
       return;
     }
 
     const fetchLessonAndProgress = async () => {
       setLoading(true);
       try {
-        // Fetch current lesson details and its module/phase
+        // Fetch current lesson details and its session
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')
-          .select('*, modules(id, title, phase_id, course_week, phases(id, title))') // Select module and phase details, including course_week
+          .select('*, sessions(id, title, session_number)') // Select session details
           .eq('id', lessonId)
           .single();
 
         if (lessonError) throw lessonError;
         setLesson(lessonData);
 
-        const module = lessonData?.modules as CurriculumModule & { phases: CurriculumPhase };
-        if (module) {
-          setCurrentModule(module);
-          setCurrentPhase(module.phases);
+        const session = lessonData?.sessions as CurriculumSession;
+        if (session) {
+          setCurrentSession(session);
 
-          // Fetch all lessons for the current module (for sidebar navigation and next lesson)
-          const { data: lessonsInModule, error: moduleLessonsError } = await supabase
+          // Fetch all lessons for the current session (for sidebar navigation and next lesson)
+          const { data: lessonsInSession, error: sessionLessonsError } = await supabase
             .from('lessons')
             .select('*')
-            .eq('module_id', module.id)
+            .eq('session_id', session.id)
             .order('order_index', { ascending: true });
-          if (moduleLessonsError) throw moduleLessonsError;
-          setModuleLessons(lessonsInModule || []);
+          if (sessionLessonsError) throw sessionLessonsError;
+          setSessionLessons(lessonsInSession || []);
 
           // Determine next lesson
-          const currentIndex = lessonsInModule?.findIndex(l => l.id === lessonId);
-          if (currentIndex !== undefined && lessonsInModule && currentIndex < lessonsInModule.length - 1) {
-            setNextLesson(lessonsInModule[currentIndex + 1]);
+          const currentIndex = lessonsInSession?.findIndex(l => l.id === lessonId);
+          if (currentIndex !== undefined && lessonsInSession && currentIndex < lessonsInSession.length - 1) {
+            setNextLesson(lessonsInSession[currentIndex + 1]);
           } else {
             setNextLesson(null); // No next lesson
           }
         } else {
-          setModuleLessons([]);
+          setSessionLessons([]);
           setNextLesson(null);
         }
 
-        // Load student progress from local storage
-        if (localUser) {
-          const progressData = getLocalStudentProgress(localUser.id);
-          setStudentProgress(progressData);
-          setIsCompleted(progressData.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
+        // Load student progress from Supabase
+        if (user) {
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .select('*')
+            .eq('user_id', user.id);
+          if (progressError) throw progressError;
+          setStudentProgress(progressData || []);
+          setIsCompleted(progressData?.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
         }
 
       } catch (error: any) {
@@ -86,37 +87,43 @@ const LessonDetail: React.FC = () => {
       }
     };
 
-    if (lessonId && localUser) { // Only fetch data if a local user is present
+    if (lessonId && user && !sessionLoading) {
       fetchLessonAndProgress();
     }
-  }, [lessonId, localUser, navigate]);
+  }, [lessonId, user, sessionLoading, navigate]);
 
   const handleMarkComplete = async () => {
-    if (!localUser) {
-      showError("User not identified. Please refresh and enter your name.");
+    if (!user) {
+      showError("You must be logged in to mark a lesson complete.");
       return;
     }
 
     setLoading(true);
     try {
-      const currentProgress = getLocalStudentProgress(localUser.id);
-      const existingProgressIndex = currentProgress.findIndex(p => p.lesson_id === lessonId);
+      const existingProgress = studentProgress.find(p => p.lesson_id === lessonId);
 
-      let updatedProgress: StudentProgress[];
-      if (existingProgressIndex > -1) {
-        updatedProgress = currentProgress.map((p, index) =>
-          index === existingProgressIndex ? { ...p, status: 'completed', completed_at: new Date().toISOString() } : p
-        );
+      if (existingProgress) {
+        const { error } = await supabase
+          .from('student_progress')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('id', existingProgress.id);
+        if (error) throw error;
       } else {
-        updatedProgress = [
-          ...currentProgress,
-          { id: crypto.randomUUID(), user_id: localUser.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }
-        ];
+        const { error } = await supabase
+          .from('student_progress')
+          .insert({ user_id: user.id, lesson_id: lessonId!, status: 'completed', completed_at: new Date().toISOString() });
+        if (error) throw error;
       }
-      setLocalStudentProgress(localUser.id, updatedProgress); // Save to local storage
 
       setIsCompleted(true);
-      setStudentProgress(updatedProgress);
+      // Re-fetch progress to update state
+      const { data: updatedProgress, error: fetchError } = await supabase
+        .from('student_progress')
+        .select('*')
+        .eq('user_id', user.id);
+      if (fetchError) throw fetchError;
+      setStudentProgress(updatedProgress || []);
+
       showSuccess("Lesson marked as complete!");
     } catch (error: any) {
       showError(`Failed to mark lesson complete: ${error.message}`);
@@ -141,7 +148,7 @@ const LessonDetail: React.FC = () => {
     return div.textContent || div.innerText || '';
   }, [lesson?.content_html]);
 
-  if (loading) {
+  if (loading || sessionLoading) {
     return (
       <Layout>
         <div className="flex h-full">
@@ -171,15 +178,15 @@ const LessonDetail: React.FC = () => {
     <Layout>
       <div className="flex h-full">
         <LessonNavigationSidebar
-          lessons={moduleLessons}
+          lessons={sessionLessons}
           currentLessonId={lessonId!}
           studentProgress={studentProgress}
         />
         <div className="flex-grow container mx-auto p-4 overflow-y-auto">
           <div className="flex items-center mb-4">
-            {currentModule && currentPhase && (
+            {currentSession && (
               <Button variant="ghost" size="icon" asChild>
-                <Link to={`/phases/${currentPhase.id}/modules/${currentModule.id}`}>
+                <Link to={`/sessions/${currentSession.id}`}>
                       <ArrowLeft className="h-5 w-5" />
                     </Link>
                   </Button>
@@ -188,14 +195,14 @@ const LessonDetail: React.FC = () => {
               </div>
               <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
 
-              {currentModule?.course_week !== undefined && (
+              {currentSession?.session_number !== undefined && (
                 <p className="text-md text-muted-foreground mb-2">
-                  Module Week: {currentModule.course_week}
+                  Session: {currentSession.session_number}
                 </p>
               )}
               {lesson.week_number !== undefined && lesson.day_number !== undefined && (
                 <p className="text-md text-muted-foreground mb-6">
-                  Lesson Scheduled: Week {lesson.week_number}, Day {lesson.day_number}
+                  Scheduled: Week {lesson.week_number}, Day {lesson.day_number}
                 </p>
               )}
 

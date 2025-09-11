@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { useSession } from '@/components/SessionContextProvider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,7 @@ import QuestionForm from '@/components/admin/QuestionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const QuestionManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
+  const { user, isAdmin, loading: sessionLoading } = useSession();
   const { quizId } = useParams<{ quizId: string }>();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -51,10 +51,10 @@ const QuestionManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin') { // Modified condition
+    if (!sessionLoading && isAdmin) {
       fetchQuestions();
-    // }
-  }, [quizId]); // Removed role, roleLoading from dependencies
+    }
+  }, [quizId, sessionLoading, isAdmin]);
 
   const handleDeleteQuestion = async (questionId: string) => {
     try {
@@ -83,23 +83,20 @@ const QuestionManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading || !quizId) { // Modified condition
-  if (!quizId) {
+  if (sessionLoading || loading || !quizId) {
     return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
   }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user || !isAdmin) {
+    return (
+      <Layout>
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -128,11 +125,7 @@ const QuestionManagement: React.FC = () => {
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
-          </div>
-        ) : questions.length === 0 ? (
+        {questions.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No questions found. Click "Add New Question" to get started!</p>
         ) : (
           <div className="space-y-4">

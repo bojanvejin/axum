@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { CurriculumLesson } from '@/data/curriculum';
+import { CurriculumLesson, CurriculumSession } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { useSession } from '@/components/SessionContextProvider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,10 +24,10 @@ import LessonForm from '@/components/admin/LessonForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const LessonManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
-  const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
+  const { user, isAdmin, loading: sessionLoading } = useSession();
+  const { sessionId } = useParams<{ sessionId: string }>(); // Changed from phaseId, moduleId
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
-  const [moduleTitle, setModuleTitle] = useState<string>('');
+  const [sessionTitle, setSessionTitle] = useState<string>(''); // Changed from moduleTitle
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<CurriculumLesson | null>(null);
@@ -35,18 +35,18 @@ const LessonManagement: React.FC = () => {
   const fetchLessons = async () => {
     setLoading(true);
     try {
-      const { data: moduleData, error: moduleError } = await supabase
-        .from('modules')
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('sessions')
         .select('title')
-        .eq('id', moduleId)
+        .eq('id', sessionId)
         .single();
-      if (moduleError) throw moduleError;
-      setModuleTitle(moduleData?.title || 'Unknown Module');
+      if (sessionError) throw sessionError;
+      setSessionTitle(sessionData?.title || 'Unknown Session');
 
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
-        .eq('module_id', moduleId)
+        .eq('session_id', sessionId) // Changed from module_id
         .order('order_index', { ascending: true });
       if (error) throw error;
       setLessons(data || []);
@@ -58,12 +58,10 @@ const LessonManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin' && moduleId) { // Modified condition
-      if (moduleId) { // Only fetch if moduleId is available
-        fetchLessons();
-      }
-    // }
-  }, [moduleId]); // Removed role, roleLoading from dependencies
+    if (!sessionLoading && isAdmin && sessionId) {
+      fetchLessons();
+    }
+  }, [sessionId, sessionLoading, isAdmin]);
 
   const handleDeleteLesson = async (lessonId: string) => {
     try {
@@ -92,34 +90,31 @@ const LessonManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading || !moduleId) { // Modified condition
-  if (!moduleId) {
+  if (sessionLoading || loading || !sessionId) {
     return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
   }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user || !isAdmin) {
+    return (
+      <Layout>
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="container mx-auto p-4">
         <div className="flex items-center mb-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link to={`/admin/curriculum/phases/${phaseId}/modules`}>
+            <Link to={`/admin/curriculum/sessions`}> {/* Link back to session management */}
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-3xl md:text-4xl font-bold ml-2">Lessons for "{moduleTitle}"</h1>
+          <h1 className="text-3xl md:text-4xl font-bold ml-2">Lessons for "{sessionTitle}"</h1>
         </div>
         <div className="flex justify-end items-center mb-6">
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -132,16 +127,12 @@ const LessonManagement: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>{editingLesson ? 'Edit Lesson' : 'Add New Lesson'}</DialogTitle>
               </DialogHeader>
-              <LessonForm moduleId={moduleId} lesson={editingLesson} onSuccess={handleFormSuccess} />
+              <LessonForm sessionId={sessionId} lesson={editingLesson} onSuccess={handleFormSuccess} />
             </DialogContent>
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
-          </div>
-        ) : lessons.length === 0 ? (
+        {lessons.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No lessons found. Click "Add New Lesson" to get started!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -153,6 +144,9 @@ const LessonManagement: React.FC = () => {
                 <CardContent>
                   <p className="text-sm text-muted-foreground line-clamp-2">{lesson.objectives}</p>
                   <p className="text-xs text-muted-foreground mt-2">Order: {lesson.order_index}</p>
+                  {lesson.week_number && lesson.day_number && (
+                    <p className="text-xs text-muted-foreground">Scheduled: Week {lesson.week_number}, Day {lesson.day_number}</p>
+                  )}
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditForm(lesson)}>

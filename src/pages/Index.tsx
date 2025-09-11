@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
-import CurriculumPhaseOverviewCard from "@/components/CurriculumPhaseOverviewCard";
-import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from "@/data/curriculum";
+import SessionOverviewCard from "@/components/SessionOverviewCard"; // New component
+import { CurriculumSession, CurriculumLesson, StudentProgress } from "@/data/curriculum";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { getLocalStudentProgress, setLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
-import CourseCalendar from '@/components/CourseCalendar'; // New import
+import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import CourseCalendar from '@/components/CourseCalendar';
 
 const backgroundImages = [
   '/images/axum-salon-interior.jpeg',
@@ -27,46 +26,28 @@ const courseObjectives = [
 ];
 
 const Index = () => {
-  const [phases, setPhases] = useState<CurriculumPhase[]>([]);
-  const [modulesByPhase, setModulesByPhase] = useState<Record<string, CurriculumModule[]>>({});
+  const { user, loading: sessionLoading } = useSession(); // Get user from session
+  const [sessions, setSessions] = useState<CurriculumSession[]>([]);
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [localUser, setLocalUser] = useState<{ id: string; name: string } | null>(null); // State for local user
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = getLocalUser();
-    if (!user) {
-      navigate('/enter-name'); // Redirect if no user name is set
+    if (!user && !sessionLoading) {
+      navigate('/login'); // Redirect if not logged in
       return;
     }
-    setLocalUser(user);
 
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        const { data: phasesData, error: phasesError } = await supabase
-          .from('phases')
+        const { data: sessionsData, error: sessionsError } = await supabase
+          .from('sessions')
           .select('*')
-          .order('order_index', { ascending: true });
-        if (phasesError) throw phasesError;
-        setPhases(phasesData || []);
-
-        const { data: modulesData, error: modulesError } = await supabase
-          .from('modules')
-          .select('*')
-          .order('order_index', { ascending: true });
-        if (modulesError) throw modulesError;
-
-        const organizedModules: Record<string, CurriculumModule[]> = {};
-        modulesData?.forEach(module => {
-          if (!organizedModules[module.phase_id]) {
-            organizedModules[module.phase_id] = [];
-          }
-          organizedModules[module.phase_id].push(module);
-        });
-        setModulesByPhase(organizedModules);
+          .order('session_number', { ascending: true });
+        if (sessionsError) throw sessionsError;
+        setSessions(sessionsData || []);
 
         const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
@@ -74,13 +55,17 @@ const Index = () => {
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
 
-        // Load student progress from local storage
+        // Load student progress from Supabase
         if (user) {
-          setStudentProgress(getLocalStudentProgress(user.id));
+          const { data: progressData, error: progressError } = await supabase
+            .from('student_progress')
+            .select('*')
+            .eq('user_id', user.id);
+          if (progressError) throw progressError;
+          setStudentProgress(progressData || []);
         }
 
-      } catch (error: any)
-      {
+      } catch (error: any) {
         showError(`Failed to load curriculum: ${error.message}`);
         console.error('Error fetching curriculum data:', error);
       } finally {
@@ -88,18 +73,18 @@ const Index = () => {
       }
     };
 
-    if (user) { // Only fetch data if a local user is present
+    if (user && !sessionLoading) {
       fetchData();
     }
-  }, [navigate]); // Depend on navigate to ensure redirect works
+  }, [user, sessionLoading, navigate]);
 
   const totalLessons = allLessons.length;
   const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
   const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
 
   const handleContinueLearning = () => {
-    if (!localUser) {
-      navigate('/enter-name');
+    if (!user) {
+      navigate('/login');
       return;
     }
 
@@ -117,7 +102,28 @@ const Index = () => {
 
   // Calculate the course start date: last Monday from today (Sept 11, 2025)
   // September is month 8 (0-indexed)
-  const courseStartDate = new Date(2025, 8, 8); 
+  const courseStartDate = new Date(2025, 8, 8);
+
+  if (sessionLoading || dataLoading) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center py-8">
+          <Skeleton className="h-12 w-3/4 mb-4" />
+          <Skeleton className="h-8 w-1/2 mb-8" />
+          <Skeleton className="h-48 w-full max-w-3xl mb-12" />
+          <Skeleton className="h-10 w-full max-w-3xl mb-12" />
+          <Skeleton className="h-8 w-1/4 mb-6 self-start ml-auto mr-auto" />
+          <Skeleton className="h-64 w-full max-w-6xl" />
+          <Skeleton className="h-8 w-1/4 mb-6 mt-8 self-start ml-auto mr-auto" />
+          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(2)].map((_, i) => (
+              <Skeleton key={i} className="h-64 w-full" />
+            ))}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -138,12 +144,7 @@ const Index = () => {
           </ul>
         </div>
 
-        {dataLoading ? ( // Use dataLoading for overall content loading
-          <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
-            <p className="text-lg text-muted-foreground mb-4">Loading curriculum data...</p>
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : localUser ? ( // Show progress if local user exists and data is loaded
+        {user ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
             <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
             <div className="flex items-center gap-4">
@@ -154,13 +155,13 @@ const Index = () => {
               {completedLessonsCount === totalLessons ? "Review Curriculum" : "Continue Learning"}
             </Button>
           </div>
-        ) : ( // Fallback if no local user (should be redirected by now)
+        ) : (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
             <p className="text-lg text-muted-foreground mb-4">
-              Please enter your name to track your progress and access full features.
+              Please log in to track your progress and access full features.
             </p>
-            <Button onClick={() => navigate('/enter-name')} className="w-full md:w-auto">
-              Enter Your Name
+            <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
+              Log In
             </Button>
           </div>
         )}
@@ -168,22 +169,15 @@ const Index = () => {
         <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Course Schedule</h2>
         <CourseCalendar startDate={courseStartDate} />
 
-        <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Curriculum Phases</h2>
-        {dataLoading ? (
-          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[...Array(2)].map((_, i) => (
-              <Skeleton key={i} className="h-64 w-full" />
-            ))}
-          </div>
-        ) : phases.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No curriculum phases found.</p>
+        <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Course Sessions</h2>
+        {sessions.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No course sessions found.</p>
         ) : (
           <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2">
-            {phases.map((phase, index) => (
-              <CurriculumPhaseOverviewCard
-                key={phase.id}
-                phase={phase}
-                modules={modulesByPhase[phase.id] || []}
+            {sessions.map((session, index) => (
+              <SessionOverviewCard
+                key={session.id}
+                session={session}
                 allLessons={allLessons}
                 studentProgress={studentProgress}
                 backgroundImage={backgroundImages[index % backgroundImages.length]}
