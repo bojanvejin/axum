@@ -6,9 +6,8 @@ import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { CheckCircle, Circle, Settings, ArrowLeft } from 'lucide-react';
-import { useSession } from '@/components/SessionContextProvider';
-import { useUserRole } from '@/hooks/useUserRole';
+import { CheckCircle, Circle, ArrowLeft } from 'lucide-react'; // Removed Settings
+import { useAuth } from '@/contexts/AuthContext'; // Changed from useSession
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
@@ -18,8 +17,7 @@ const ModuleDetail: React.FC = () => {
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, loading: userLoading } = useSession();
-  const { role, loading: roleLoading } = useUserRole();
+  const { isAuthenticated, userName, loading: authLoading } = useAuth(); // Changed from useSession
   const { t } = useLanguage(); // Use translation hook
 
   useEffect(() => {
@@ -44,13 +42,12 @@ const ModuleDetail: React.FC = () => {
         if (lessonsError) throw lessonsError;
         setLessons(lessonsData);
 
-        if (user) {
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', user.id);
-          if (progressError) throw progressError;
-          setStudentProgress(progressData || []);
+        // Load progress from local storage if authenticated
+        if (isAuthenticated && userName) {
+          const storedProgress = localStorage.getItem(`progress_${userName}`);
+          if (storedProgress) {
+            setStudentProgress(JSON.parse(storedProgress));
+          }
         }
 
       } catch (error: any) {
@@ -60,16 +57,16 @@ const ModuleDetail: React.FC = () => {
       }
     };
 
-    if (moduleId && !userLoading) {
+    if (moduleId && !authLoading) { // Changed from userLoading
       fetchModuleAndLessons();
     }
-  }, [moduleId, user, userLoading, t]);
+  }, [moduleId, isAuthenticated, userName, authLoading, t]); // Added isAuthenticated, userName, authLoading to dependencies
 
   const isLessonCompleted = (lessonId: string) => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
   };
 
-  if (loading || roleLoading) {
+  if (loading || authLoading) { // Changed from roleLoading
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -106,13 +103,7 @@ const ModuleDetail: React.FC = () => {
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{module.title}</h1>
           </div>
-          {role === 'admin' && (
-            <Link to={`/admin/curriculum/phases/${phaseId}/modules/${moduleId}/lessons`}>
-              <Button variant="outline" size="sm">
-                <Settings className="mr-2 h-4 w-4" /> {t('manage_lessons')}
-              </Button>
-            </Link>
-          )}
+          {/* Removed admin-specific button */}
         </div>
         <p className="text-lg text-muted-foreground mt-2 mb-8">{module.description}</p>
 
@@ -123,7 +114,7 @@ const ModuleDetail: React.FC = () => {
               <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-xl">{lesson.title}</CardTitle>
-                  {user && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
+                  {isAuthenticated && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground text-sm">{lesson.objectives}</p>
