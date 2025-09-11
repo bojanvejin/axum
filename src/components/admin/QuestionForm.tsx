@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showError, showSuccess } from '@/utils/toast';
 import { PlusCircle, Trash2 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const formSchema = z.object({
   question_text: z.string().min(1, 'Question text is required.'),
@@ -32,6 +33,7 @@ interface QuestionFormProps {
 }
 
 const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess }) => {
+  const { t } = useLanguage(); // Use translation hook
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,7 +69,6 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess
 
   const onSubmit = async (values: FormValues) => {
     try {
-      // Transform options back to simple string array for DB
       const payload = {
         ...values,
         options: values.options.map(opt => opt.value),
@@ -76,15 +77,15 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess
       if (question) {
         const { error } = await supabase.from('quiz_questions').update(payload).eq('id', question.id);
         if (error) throw error;
-        showSuccess('Question updated successfully!');
+        showSuccess(t('question_updated_successfully'));
       } else {
         const { error } = await supabase.from('quiz_questions').insert(payload);
         if (error) throw error;
-        showSuccess('Question added successfully!');
+        showSuccess(t('question_added_successfully'));
       }
       onSuccess();
     } catch (error: any) {
-      showError(`Failed to save question: ${error.message}`);
+      showError(t('failed_to_save_question', { message: error.message }));
     }
   };
 
@@ -94,11 +95,11 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField control={form.control} name="question_text" render={({ field }) => (
-          <FormItem><FormLabel>Question Text</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('question_text')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         
         <div>
-          <FormLabel>Options</FormLabel>
+          <FormLabel>{t('options')}</FormLabel>
           <div className="space-y-2 mt-2">
             {fields.map((field, index) => (
               <div key={field.id} className="flex items-center gap-2">
@@ -109,15 +110,15 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess
               </div>
             ))}
           </div>
-          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ value: '' })}><PlusCircle className="mr-2 h-4 w-4" /> Add Option</Button>
+          <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ value: '' })}><PlusCircle className="mr-2 h-4 w-4" /> {t('add_option')}</Button>
         </div>
 
         <FormField control={form.control} name="correct_answer" render={({ field }) => (
-          <FormItem><FormLabel>Correct Answer</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select the correct answer" /></SelectTrigger></FormControl><SelectContent>{options.map((opt, i) => opt.value && <SelectItem key={i} value={opt.value}>{opt.value}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('correct_answer')}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('select_a_quiz')} /></SelectTrigger></FormControl><SelectContent>{options.map((opt, i) => opt.value && <SelectItem key={i} value={opt.value}>{opt.value}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
         )} />
 
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Saving...' : 'Save Question'}
+          {form.formState.isSubmitting ? t('saving') : t('save_question')}
         </Button>
       </form>
     </Form>

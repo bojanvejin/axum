@@ -10,6 +10,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import UserRoleForm from '@/components/admin/UserRoleForm';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface ManagedUser {
   id: string;
@@ -24,6 +25,7 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const { t } = useLanguage(); // Use translation hook
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -32,7 +34,7 @@ const UserManagement: React.FC = () => {
       if (error) throw error;
       setUsers(data || []);
     } catch (error: any) {
-      showError(`Failed to load users: ${error.message}`);
+      showError(t('failed_to_load_users', { message: error.message }));
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,7 @@ const UserManagement: React.FC = () => {
     if (!roleLoading && role === 'admin') {
       fetchUsers();
     }
-  }, [role, roleLoading]);
+  }, [role, roleLoading, t]);
 
   const handleFormSuccess = () => {
     setEditingUser(null);
@@ -50,15 +52,15 @@ const UserManagement: React.FC = () => {
   };
 
   if (roleLoading) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+    return <Layout><div className="text-center py-8"><p>{t('loading')}</p></div></Layout>;
   }
 
   if (role !== 'admin') {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold mb-4">{t('access_denied')}</h2>
+          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_home')}</Link>
         </div>
       </Layout>
     );
@@ -67,12 +69,12 @@ const UserManagement: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl md:text-4xl font-bold mb-6">Manage Users</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-6">{t('manage_users_page_title')}</h1>
         
         <Dialog open={!!editingUser} onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Edit Role for {editingUser?.email}</DialogTitle>
+              <DialogTitle>{t('edit_role_for', { email: editingUser?.email || '' })}</DialogTitle>
             </DialogHeader>
             {editingUser && (
               <UserRoleForm
@@ -95,10 +97,10 @@ const UserManagement: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('email')}</TableHead>
+                  <TableHead>{t('role')}</TableHead>
+                  <TableHead className="text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -109,7 +111,7 @@ const UserManagement: React.FC = () => {
                     <TableCell className="capitalize">{user.role}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" onClick={() => setEditingUser(user)}>
-                        <Edit className="h-4 w-4 mr-2" /> Edit Role
+                        <Edit className="h-4 w-4 mr-2" /> {t('edit_role')}
                       </Button>
                     </TableCell>
                   </TableRow>

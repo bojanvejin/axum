@@ -2,13 +2,15 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { showError } from '@/utils/toast'; // Import showError
+import { showError } from '@/utils/toast';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
   role: string;
+  avatar_url: string | null; // Added avatar_url
 }
 
 interface SessionContextType {
@@ -26,6 +28,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t } = useLanguage(); // Use translation hook
 
   useEffect(() => {
     console.log('SessionContextProvider: Initializing...');
@@ -33,13 +36,13 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       console.log('SessionContextProvider: Fetching user profile for ID:', userId);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, role')
+        .select('id, first_name, last_name, role, avatar_url') // Select avatar_url
         .eq('id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') {
         console.error('SessionContextProvider: Error fetching user profile:', error);
-        showError(`Failed to load user profile: ${error.message}`);
+        showError(t('failed_to_load_profile', { message: error.message }));
         setProfile(null);
       } else if (data) {
         console.log('SessionContextProvider: User profile fetched:', data);
@@ -73,11 +76,10 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       }
     };
 
-    // Initial session check
     supabase.auth.getSession().then(async ({ data: { session: initialSession }, error: getSessionError }) => {
       if (getSessionError) {
         console.error('SessionContextProvider: Error getting initial session:', getSessionError);
-        showError(`Failed to get initial session: ${getSessionError.message}`);
+        showError(t('failed_to_get_initial_session', { message: getSessionError.message }));
       }
       console.log('SessionContextProvider: Initial session check result:', initialSession);
       setSession(initialSession);
@@ -97,8 +99,8 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       }
     }).catch(error => {
       console.error('SessionContextProvider: Uncaught error in getSession promise:', error);
-      showError(`An unexpected error occurred during session check: ${error.message}`);
-      setLoading(false); // Ensure loading is set to false even on uncaught errors
+      showError(t('unexpected_error_session_check', { message: error.message }));
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
@@ -107,7 +109,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       console.log('SessionContextProvider: Cleaning up auth state subscription.');
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, t]);
 
   return (
     <SessionContext.Provider value={{ session, user, profile, loading }}>

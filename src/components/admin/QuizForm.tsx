@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { showError, showSuccess } from '@/utils/toast';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'Title is required.' }),
@@ -21,6 +22,7 @@ interface QuizFormProps {
 }
 
 const QuizForm: React.FC<QuizFormProps> = ({ quiz, onSuccess }) => {
+  const { t } = useLanguage(); // Use translation hook
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,15 +43,15 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz, onSuccess }) => {
       if (quiz) {
         const { error } = await supabase.from('quizzes').update(values).eq('id', quiz.id);
         if (error) throw error;
-        showSuccess('Quiz updated successfully!');
+        showSuccess(t('quiz_updated_successfully'));
       } else {
         const { error } = await supabase.from('quizzes').insert(values);
         if (error) throw error;
-        showSuccess('Quiz added successfully!');
+        showSuccess(t('quiz_added_successfully'));
       }
       onSuccess();
     } catch (error: any) {
-      showError(`Failed to save quiz: ${error.message}`);
+      showError(t('failed_to_save_quiz', { message: error.message }));
     }
   };
 
@@ -57,13 +59,13 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz, onSuccess }) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField control={form.control} name="title" render={({ field }) => (
-          <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Quiz Title" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('title')}</FormLabel><FormControl><Input placeholder={t('quiz_title')} {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="description" render={({ field }) => (
-          <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Brief description of the quiz" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('description')}</FormLabel><FormControl><Textarea placeholder={t('description')} {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Saving...' : 'Save Quiz'}
+          {form.formState.isSubmitting ? t('saving') : t('save_quiz')}
         </Button>
       </form>
     </Form>

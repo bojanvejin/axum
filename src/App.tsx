@@ -15,9 +15,10 @@ import ModuleManagement from "./pages/admin/ModuleManagement";
 import LessonManagement from "./pages/admin/LessonManagement";
 import QuizManagement from "./pages/admin/QuizManagement";
 import QuestionManagement from "./pages/admin/QuestionManagement";
-import UserManagement from "./pages/admin/UserManagement"; // Import UserManagement
+import UserManagement from "./pages/admin/UserManagement";
 import { ThemeProvider } from "next-themes";
 import { SessionContextProvider } from "./components/SessionContextProvider";
+import { LanguageProvider } from "./contexts/LanguageContext"; // Import LanguageProvider
 
 const queryClient = new QueryClient();
 
@@ -28,24 +29,25 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SessionContextProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/phases/:phaseId" element={<PhaseDetail />} />
-              <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
-              <Route path="/lessons/:lessonId" element={<LessonDetail />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/curriculum/phases" element={<PhaseManagement />} />
-              <Route path="/admin/curriculum/phases/:phaseId/modules" element={<ModuleManagement />} />
-              <Route path="/admin/curriculum/phases/:phaseId/modules/:moduleId/lessons" element={<LessonManagement />} />
-              <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
-              <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
-              <Route path="/admin/users" element={<UserManagement />} /> {/* New User Management Route */}
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </SessionContextProvider>
+          <LanguageProvider> {/* Wrap with LanguageProvider */}
+            <SessionContextProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/phases/:phaseId" element={<PhaseDetail />} />
+                <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
+                <Route path="/lessons/:lessonId" element={<LessonDetail />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/curriculum/phases" element={<PhaseManagement />} />
+                <Route path="/admin/curriculum/phases/:phaseId/modules" element={<ModuleManagement />} />
+                <Route path="/admin/curriculum/phases/:phaseId/modules/:moduleId/lessons" element={<LessonManagement />} />
+                <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
+                <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
+                <Route path="/admin/users" element={<UserManagement />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </SessionContextProvider>
+          </LanguageProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

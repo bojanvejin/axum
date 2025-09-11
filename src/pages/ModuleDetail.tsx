@@ -6,10 +6,11 @@ import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-import { CheckCircle, Circle, Settings, ArrowLeft } from 'lucide-react'; // Import ArrowLeft
+import { CheckCircle, Circle, Settings, ArrowLeft } from 'lucide-react';
 import { useSession } from '@/components/SessionContextProvider';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const ModuleDetail: React.FC = () => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
@@ -19,6 +20,7 @@ const ModuleDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { user, loading: userLoading } = useSession();
   const { role, loading: roleLoading } = useUserRole();
+  const { t } = useLanguage(); // Use translation hook
 
   useEffect(() => {
     const fetchModuleAndLessons = async () => {
@@ -52,7 +54,7 @@ const ModuleDetail: React.FC = () => {
         }
 
       } catch (error: any) {
-        showError(`Failed to load module details: ${error.message}`);
+        showError(t('failed_to_load_modules', { message: error.message }));
       } finally {
         setLoading(false);
       }
@@ -61,7 +63,7 @@ const ModuleDetail: React.FC = () => {
     if (moduleId && !userLoading) {
       fetchModuleAndLessons();
     }
-  }, [moduleId, user, userLoading]);
+  }, [moduleId, user, userLoading, t]);
 
   const isLessonCompleted = (lessonId: string) => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
@@ -85,8 +87,8 @@ const ModuleDetail: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Module not found.</h2>
-          <Link to={`/phases/${phaseId}`} className="text-blue-500 hover:underline">Return to Phase</Link>
+          <h2 className="text-2xl font-bold">{t('module_not_found')}</h2>
+          <Link to={`/phases/${phaseId}`} className="text-blue-500 hover:underline">{t('return_to_phase')}</Link>
         </div>
       </Layout>
     );
@@ -107,14 +109,14 @@ const ModuleDetail: React.FC = () => {
           {role === 'admin' && (
             <Link to={`/admin/curriculum/phases/${phaseId}/modules/${moduleId}/lessons`}>
               <Button variant="outline" size="sm">
-                <Settings className="mr-2 h-4 w-4" /> Manage Lessons
+                <Settings className="mr-2 h-4 w-4" /> {t('manage_lessons')}
               </Button>
             </Link>
           )}
         </div>
         <p className="text-lg text-muted-foreground mt-2 mb-8">{module.description}</p>
 
-        <h2 className="text-2xl font-semibold my-6">Lessons</h2>
+        <h2 className="text-2xl font-semibold my-6">{t('lessons_plural')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {lessons.map((lesson) => (
             <Link to={`/lessons/${lesson.id}`} key={lesson.id}>

@@ -11,6 +11,7 @@ import { useSession } from '@/components/SessionContextProvider';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const backgroundImages = [
   '/images/axum-salon-interior.jpeg',
@@ -26,6 +27,7 @@ const Index = () => {
   const { user, loading: userSessionLoading } = useSession();
   const { role, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const { t } = useLanguage(); // Use translation hook
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,7 +72,7 @@ const Index = () => {
 
       } catch (error: any)
       {
-        showError(`Failed to load curriculum: ${error.message}`);
+        showError(t('failed_to_load_curriculum', { message: error.message }));
         console.error('Error fetching curriculum data:', error);
       } finally {
         setDataLoading(false);
@@ -80,7 +82,7 @@ const Index = () => {
     if (!userSessionLoading) {
       fetchData();
     }
-  }, [user, userSessionLoading]);
+  }, [user, userSessionLoading, t]);
 
   const totalLessons = allLessons.length;
   const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
@@ -100,7 +102,7 @@ const Index = () => {
     if (firstIncompleteLesson) {
       navigate(`/lessons/${firstIncompleteLesson.id}`);
     } else {
-      showSuccess("You've completed all lessons! Congratulations!");
+      showSuccess(t('completed_all_lessons'));
     }
   };
 
@@ -108,40 +110,40 @@ const Index = () => {
     <Layout>
       <div className="flex flex-col items-center justify-center py-8">
         <h1 className="text-4xl md:text-5xl font-bold mb-2 text-center">
-          Welcome to the Axum Training Curriculum
+          {t('welcome_title')}
         </h1>
         <p className="text-lg text-muted-foreground mb-8 text-center max-w-2xl">
-          Your journey to mastering the art of hair styling starts here. Track your progress, complete lessons, and unlock your potential.
+          {t('welcome_description')}
         </p>
 
         {userSessionLoading ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
-            <p className="text-lg text-muted-foreground mb-4">Loading user session...</p>
+            <p className="text-lg text-muted-foreground mb-4">{t('loading_session')}</p>
             <Skeleton className="h-10 w-full" />
           </div>
         ) : user ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
-            <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
+            <h2 className="text-xl font-semibold mb-2">{t('your_progress')}</h2>
             <div className="flex items-center gap-4">
               <Progress value={overallProgress} className="flex-grow" />
-              <span className="text-sm font-medium">{overallProgress.toFixed(0)}% Complete</span>
+              <span className="text-sm font-medium">{overallProgress.toFixed(0)}% {t('completed')}</span>
             </div>
             <Button onClick={handleContinueLearning} className="mt-4 w-full">
-              {completedLessonsCount === totalLessons ? "Review Curriculum" : "Continue Learning"}
+              {completedLessonsCount === totalLessons ? t('review_curriculum') : t('continue_learning')}
             </Button>
           </div>
         ) : (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
             <p className="text-lg text-muted-foreground mb-4">
-              Please <Link to="/login" className="text-blue-500 hover:underline">sign in</Link> to track your progress and access full features.
+              {t('sign_in_prompt')}
             </p>
             <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
-              Go to Login
+              {t('go_to_login')}
             </Button>
           </div>
         )}
 
-        <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Curriculum Phases</h2>
+        <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">{t('curriculum_phases')}</h2>
         {dataLoading ? (
           <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
             {[...Array(2)].map((_, i) => (
@@ -149,7 +151,7 @@ const Index = () => {
             ))}
           </div>
         ) : phases.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No curriculum phases found.</p>
+          <p className="text-muted-foreground text-center py-8">{t('no_phases_found')}</p>
         ) : (
           <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2">
             {phases.map((phase, index) => (

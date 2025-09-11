@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showError, showSuccess } from '@/utils/toast';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const formSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -35,6 +36,7 @@ interface Quiz {
 
 const LessonForm: React.FC<LessonFormProps> = ({ moduleId, lesson, onSuccess }) => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const { t } = useLanguage(); // Use translation hook
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -53,13 +55,13 @@ const LessonForm: React.FC<LessonFormProps> = ({ moduleId, lesson, onSuccess }) 
     const fetchQuizzes = async () => {
       const { data, error } = await supabase.from('quizzes').select('id, title');
       if (error) {
-        showError('Failed to load quizzes.');
+        showError(t('failed_to_load_quizzes'));
       } else {
         setQuizzes(data || []);
       }
     };
     fetchQuizzes();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (lesson) {
@@ -84,15 +86,15 @@ const LessonForm: React.FC<LessonFormProps> = ({ moduleId, lesson, onSuccess }) 
       if (lesson) {
         const { error } = await supabase.from('lessons').update(payload).eq('id', lesson.id);
         if (error) throw error;
-        showSuccess('Lesson updated successfully!');
+        showSuccess(t('lesson_updated_successfully'));
       } else {
         const { error } = await supabase.from('lessons').insert(payload);
         if (error) throw error;
-        showSuccess('Lesson added successfully!');
+        showSuccess(t('lesson_added_successfully'));
       }
       onSuccess();
     } catch (error: any) {
-      showError(`Failed to save lesson: ${error.message}`);
+      showError(t('failed_to_save_lesson', { message: error.message }));
     }
   };
 
@@ -100,28 +102,28 @@ const LessonForm: React.FC<LessonFormProps> = ({ moduleId, lesson, onSuccess }) 
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField control={form.control} name="title" render={({ field }) => (
-          <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('title')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="objectives" render={({ field }) => (
-          <FormItem><FormLabel>Objectives</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('objectives')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="content_html" render={({ field }) => (
-          <FormItem><FormLabel>Content (HTML)</FormLabel><FormControl><Textarea {...field} rows={10} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('content_html')}</FormLabel><FormControl><Textarea {...field} rows={10} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="video_url" render={({ field }) => (
-          <FormItem><FormLabel>Video URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('video_url')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="resources_url" render={({ field }) => (
-          <FormItem><FormLabel>Resources URL</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('resources_url')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="quiz_id" render={({ field }) => (
-          <FormItem><FormLabel>Quiz</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder="Select a quiz" /></SelectTrigger></FormControl><SelectContent><SelectItem value="">No Quiz</SelectItem>{quizzes.map(q => (<SelectItem key={q.id} value={q.id}>{q.title}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('quiz')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || ''}><FormControl><SelectTrigger><SelectValue placeholder={t('select_a_quiz')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="">{t('no_quiz')}</SelectItem>{quizzes.map(q => (<SelectItem key={q.id} value={q.id}>{q.title}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="order_index" render={({ field }) => (
-          <FormItem><FormLabel>Order Index</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>{t('order_index')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Saving...' : 'Save Lesson'}
+          {form.formState.isSubmitting ? t('saving') : t('save_lesson')}
         </Button>
       </form>
     </Form>

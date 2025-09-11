@@ -16,12 +16,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { showError, showSuccess } from '@/utils/toast';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().optional(),
   order_index: z.coerce.number().min(0, { message: 'Order index cannot be negative.' }),
-  phase_id: z.string().uuid({ message: 'Invalid Phase ID.' }), // Hidden field, but required
+  phase_id: z.string().uuid({ message: 'Invalid Phase ID.' }),
 });
 
 interface ModuleFormProps {
@@ -31,13 +32,14 @@ interface ModuleFormProps {
 }
 
 const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) => {
+  const { t } = useLanguage(); // Use translation hook
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: module?.title || '',
       description: module?.description || '',
       order_index: module?.order_index || 0,
-      phase_id: phaseId, // Pre-fill phase_id
+      phase_id: phaseId,
     },
   });
 
@@ -54,7 +56,7 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
         title: '',
         description: '',
         order_index: 0,
-        phase_id: phaseId, // Ensure phaseId is set for new modules
+        phase_id: phaseId,
       });
     }
   }, [module, phaseId, form]);
@@ -62,26 +64,24 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (module) {
-        // Update existing module
         const { error } = await supabase
           .from('modules')
           .update(values)
           .eq('id', module.id);
 
         if (error) throw error;
-        showSuccess('Module updated successfully!');
+        showSuccess(t('module_updated_successfully'));
       } else {
-        // Insert new module
         const { error } = await supabase
           .from('modules')
           .insert(values);
 
         if (error) throw error;
-        showSuccess('Module added successfully!');
+        showSuccess(t('module_added_successfully'));
       }
       onSuccess();
     } catch (error: any) {
-      showError(`Failed to save module: ${error.message}`);
+      showError(t('failed_to_save_module', { message: error.message }));
       console.error('Error saving module:', error);
     }
   };
@@ -94,9 +94,9 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>{t('title')}</FormLabel>
               <FormControl>
-                <Input placeholder="Module Title" {...field} />
+                <Input placeholder={t('module_title')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -107,9 +107,9 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t('description')}</FormLabel>
               <FormControl>
-                <Textarea placeholder="Brief description of the module" {...field} />
+                <Textarea placeholder={t('description')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -120,7 +120,7 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
           name="order_index"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Order Index</FormLabel>
+              <FormLabel>{t('order_index')}</FormLabel>
               <FormControl>
                 <Input type="number" {...field} />
               </FormControl>
@@ -128,13 +128,12 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
             </FormItem>
           )}
         />
-        {/* Hidden field for phase_id */}
         <FormField
           control={form.control}
           name="phase_id"
           render={({ field }) => (
             <FormItem className="hidden">
-              <FormLabel>Phase ID</FormLabel>
+              <FormLabel>{t('phase_id')}</FormLabel>
               <FormControl>
                 <Input type="hidden" {...field} />
               </FormControl>
@@ -143,7 +142,7 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
           )}
         />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Saving...' : (module ? 'Update Module' : 'Add Module')}
+          {form.formState.isSubmitting ? t('saving') : (module ? t('update_module') : t('add_module'))}
         </Button>
       </form>
     </Form>

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ModuleForm from '@/components/admin/ModuleForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const ModuleManagement: React.FC = () => {
   const { role, loading: roleLoading } = useUserRole();
@@ -31,11 +32,11 @@ const ModuleManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<CurriculumModule | null>(null);
+  const { t } = useLanguage(); // Use translation hook
 
   const fetchModules = async () => {
     setLoading(true);
     try {
-      // Fetch phase title
       const { data: phaseData, error: phaseError } = await supabase
         .from('phases')
         .select('title')
@@ -45,7 +46,6 @@ const ModuleManagement: React.FC = () => {
       if (phaseError) throw phaseError;
       setPhaseTitle(phaseData?.title || 'Unknown Phase');
 
-      // Fetch modules for the phase
       const { data, error } = await supabase
         .from('modules')
         .select('*')
@@ -55,7 +55,7 @@ const ModuleManagement: React.FC = () => {
       if (error) throw error;
       setModules(data || []);
     } catch (error: any) {
-      showError(`Failed to load modules: ${error.message}`);
+      showError(t('failed_to_load_modules', { message: error.message }));
       console.error('Error fetching modules:', error);
     } finally {
       setLoading(false);
@@ -66,7 +66,7 @@ const ModuleManagement: React.FC = () => {
     if (!roleLoading && role === 'admin' && phaseId) {
       fetchModules();
     }
-  }, [role, roleLoading, phaseId]);
+  }, [role, roleLoading, phaseId, t]);
 
   const handleDeleteModule = async (moduleId: string) => {
     try {
@@ -76,10 +76,10 @@ const ModuleManagement: React.FC = () => {
         .eq('id', moduleId);
 
       if (error) throw error;
-      showSuccess('Module deleted successfully!');
-      fetchModules(); // Refresh the list
+      showSuccess(t('module_deleted_successfully'));
+      fetchModules();
     } catch (error: any) {
-      showError(`Failed to delete module: ${error.message}`);
+      showError(t('failed_to_delete_module', { message: error.message }));
       console.error('Error deleting module:', error);
     }
   };
@@ -87,7 +87,7 @@ const ModuleManagement: React.FC = () => {
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setEditingModule(null);
-    fetchModules(); // Refresh the list after successful add/edit
+    fetchModules();
   };
 
   const openEditForm = (module: CurriculumModule) => {
@@ -104,7 +104,7 @@ const ModuleManagement: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Loading user role...</h2>
+          <h2 className="text-2xl font-bold">{t('loading_user_role')}</h2>
         </div>
       </Layout>
     );
@@ -114,9 +114,9 @@ const ModuleManagement: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold mb-4">{t('access_denied')}</h2>
+          <p className="text-muted-foreground mb-6">{t('no_permission')}</p>
+          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_home')}</Link>
         </div>
       </Layout>
     );
@@ -126,8 +126,8 @@ const ModuleManagement: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Phase ID missing.</h2>
-          <Link to="/admin/curriculum/phases" className="text-blue-500 hover:underline">Return to Phase Management</Link>
+          <h2 className="text-2xl font-bold mb-4">{t('phase_id_missing')}</h2>
+          <Link to="/admin/curriculum/phases" className="text-blue-500 hover:underline">{t('return_to_phase_management')}</Link>
         </div>
       </Layout>
     );
@@ -142,18 +142,18 @@ const ModuleManagement: React.FC = () => {
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-3xl md:text-4xl font-bold ml-2">Modules for "{phaseTitle}"</h1>
+          <h1 className="text-3xl md:text-4xl font-bold ml-2">{t('modules_for', { title: phaseTitle })}</h1>
         </div>
         <div className="flex justify-end items-center mb-6">
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAddForm}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Module
+                <PlusCircle className="mr-2 h-4 w-4" /> {t('add_new_module')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>{editingModule ? 'Edit Module' : 'Add New Module'}</DialogTitle>
+                <DialogTitle>{editingModule ? t('edit_module') : t('add_new_module')}</DialogTitle>
               </DialogHeader>
               <ModuleForm phaseId={phaseId} module={editingModule} onSuccess={handleFormSuccess} />
             </DialogContent>
@@ -167,7 +167,7 @@ const ModuleManagement: React.FC = () => {
             ))}
           </div>
         ) : modules.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No modules found for this phase. Click "Add New Module" to get started!</p>
+          <p className="text-muted-foreground text-center py-8">{t('no_modules_found')}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {modules.map((module) => (
@@ -177,7 +177,7 @@ const ModuleManagement: React.FC = () => {
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-sm text-muted-foreground mb-4">{module.description}</p>
-                  <p className="text-xs text-muted-foreground">Order: {module.order_index}</p>
+                  <p className="text-xs text-muted-foreground">{t('order_index')}: {module.order_index}</p>
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditForm(module)}>
@@ -191,15 +191,15 @@ const ModuleManagement: React.FC = () => {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('are_you_sure')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete the module and all associated lessons and quizzes.
+                          {t('delete_module_description')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => handleDeleteModule(module.id)}>
-                          Delete
+                          {t('delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import QuestionForm from '@/components/admin/QuestionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const QuestionManagement: React.FC = () => {
   const { role, loading: roleLoading } = useUserRole();
@@ -31,6 +32,7 @@ const QuestionManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  const { t } = useLanguage(); // Use translation hook
 
   const fetchQuestions = async () => {
     if (!quizId) return;
@@ -44,7 +46,7 @@ const QuestionManagement: React.FC = () => {
       if (error) throw error;
       setQuestions(data || []);
     } catch (error: any) {
-      showError(`Failed to load questions: ${error.message}`);
+      showError(t('failed_to_load_questions', { message: error.message }));
     } finally {
       setLoading(false);
     }
@@ -54,16 +56,16 @@ const QuestionManagement: React.FC = () => {
     if (!roleLoading && role === 'admin') {
       fetchQuestions();
     }
-  }, [role, roleLoading, quizId]);
+  }, [role, roleLoading, quizId, t]);
 
   const handleDeleteQuestion = async (questionId: string) => {
     try {
       const { error } = await supabase.from('quiz_questions').delete().eq('id', questionId);
       if (error) throw error;
-      showSuccess('Question deleted successfully!');
+      showSuccess(t('question_deleted_successfully'));
       fetchQuestions();
     } catch (error: any) {
-      showError(`Failed to delete question: ${error.message}`);
+      showError(t('failed_to_delete_question', { message: error.message }));
     }
   };
 
@@ -84,15 +86,15 @@ const QuestionManagement: React.FC = () => {
   };
 
   if (roleLoading || !quizId) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+    return <Layout><div className="text-center py-8"><p>{t('loading')}</p></div></Layout>;
   }
 
   if (role !== 'admin') {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold mb-4">{t('access_denied')}</h2>
+          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_home')}</Link>
         </div>
       </Layout>
     );
@@ -107,18 +109,18 @@ const QuestionManagement: React.FC = () => {
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-3xl md:text-4xl font-bold ml-2">Questions for "{quiz?.title}"</h1>
+          <h1 className="text-3xl md:text-4xl font-bold ml-2">{t('questions_for', { title: quiz?.title || '' })}</h1>
         </div>
         <div className="flex justify-end items-center mb-6">
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAddForm}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Question
+                <PlusCircle className="mr-2 h-4 w-4" /> {t('add_new_question')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add New Question'}</DialogTitle>
+                <DialogTitle>{editingQuestion ? t('edit_question') : t('add_new_question')}</DialogTitle>
               </DialogHeader>
               <QuestionForm quizId={quizId} question={editingQuestion} onSuccess={handleFormSuccess} />
             </DialogContent>
@@ -130,14 +132,14 @@ const QuestionManagement: React.FC = () => {
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
           </div>
         ) : questions.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No questions found. Click "Add New Question" to get started!</p>
+          <p className="text-muted-foreground text-center py-8">{t('no_questions_found')}</p>
         ) : (
           <div className="space-y-4">
             {questions.map((q, index) => (
               <Card key={q.id}>
                 <CardHeader className="flex flex-row justify-between items-start">
                   <div>
-                    <CardTitle>Question {index + 1}</CardTitle>
+                    <CardTitle>{t('question_text')} {index + 1}</CardTitle>
                     <CardDescription>{q.question_text}</CardDescription>
                   </div>
                   <div className="flex gap-2">
@@ -145,8 +147,8 @@ const QuestionManagement: React.FC = () => {
                     <AlertDialog>
                       <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                       <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the question.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteQuestion(q.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                        <AlertDialogHeader><AlertDialogTitle>{t('are_you_sure')}</AlertDialogTitle><AlertDialogDescription>{t('delete_question_description')}</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>{t('cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteQuestion(q.id)}>{t('delete')}</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>

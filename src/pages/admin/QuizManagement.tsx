@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import QuizForm from '@/components/admin/QuizForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const QuizManagement: React.FC = () => {
   const { role, loading: roleLoading } = useUserRole();
@@ -29,6 +30,7 @@ const QuizManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
+  const { t } = useLanguage(); // Use translation hook
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -41,7 +43,7 @@ const QuizManagement: React.FC = () => {
       if (error) throw error;
       setQuizzes(data || []);
     } catch (error: any) {
-      showError(`Failed to load quizzes: ${error.message}`);
+      showError(t('failed_to_load_quizzes', { message: error.message }));
     } finally {
       setLoading(false);
     }
@@ -51,16 +53,16 @@ const QuizManagement: React.FC = () => {
     if (!roleLoading && role === 'admin') {
       fetchQuizzes();
     }
-  }, [role, roleLoading]);
+  }, [role, roleLoading, t]);
 
   const handleDeleteQuiz = async (quizId: string) => {
     try {
       const { error } = await supabase.from('quizzes').delete().eq('id', quizId);
       if (error) throw error;
-      showSuccess('Quiz deleted successfully!');
+      showSuccess(t('quiz_deleted_successfully'));
       fetchQuizzes();
     } catch (error: any) {
-      showError(`Failed to delete quiz: ${error.message}`);
+      showError(t('failed_to_delete_quiz', { message: error.message }));
     }
   };
 
@@ -81,15 +83,15 @@ const QuizManagement: React.FC = () => {
   };
 
   if (roleLoading) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+    return <Layout><div className="text-center py-8"><p>{t('loading')}</p></div></Layout>;
   }
 
   if (role !== 'admin') {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold mb-4">{t('access_denied')}</h2>
+          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_home')}</Link>
         </div>
       </Layout>
     );
@@ -99,16 +101,16 @@ const QuizManagement: React.FC = () => {
     <Layout>
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold">Manage Quizzes</h1>
+          <h1 className="text-3xl md:text-4xl font-bold">{t('manage_quizzes')}</h1>
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAddForm}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Quiz
+                <PlusCircle className="mr-2 h-4 w-4" /> {t('add_new_quiz')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>{editingQuiz ? 'Edit Quiz' : 'Add New Quiz'}</DialogTitle>
+                <DialogTitle>{editingQuiz ? t('edit_quiz') : t('add_new_quiz')}</DialogTitle>
               </DialogHeader>
               <QuizForm quiz={editingQuiz} onSuccess={handleFormSuccess} />
             </DialogContent>
@@ -120,7 +122,7 @@ const QuizManagement: React.FC = () => {
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
           </div>
         ) : quizzes.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No quizzes found. Click "Add New Quiz" to get started!</p>
+          <p className="text-muted-foreground text-center py-8">{t('no_quizzes_found')}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quizzes.map((quiz) => (
@@ -146,12 +148,12 @@ const QuizManagement: React.FC = () => {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete the quiz and all its questions.</AlertDialogDescription>
+                        <AlertDialogTitle>{t('are_you_sure')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('delete_quiz_description')}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteQuiz(quiz.id)}>Delete</AlertDialogAction>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteQuiz(quiz.id)}>{t('delete')}</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

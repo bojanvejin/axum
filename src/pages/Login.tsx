@@ -5,18 +5,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AxumLogo from '@/components/AxumLogo';
 import { Toaster } from '@/components/ui/sonner';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const Login: React.FC = () => {
+  const { t } = useLanguage(); // Use translation hook
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md p-6">
         <CardHeader className="flex flex-col items-center space-y-4 mb-6">
           <AxumLogo />
           <CardTitle className="text-2xl font-bold text-center">
-            Welcome to Axum Training
+            {t('welcome_title')}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground text-center">
-            Enter your email below to receive a magic link to sign in.
+            {t('sign_in_prompt')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -49,10 +52,10 @@ const Login: React.FC = () => {
             localization={{
               variables: {
                 magic_link: {
-                  email_label: 'Email address',
-                  email_input_placeholder: 'Your email address',
-                  button_label: 'Send Magic Link',
-                  loading_button_label: 'Sending...',
+                  email_input_label: t('email_address'),
+                  email_input_placeholder: t('your_email_address'),
+                  button_label: t('send_magic_link'),
+                  loading_button_label: t('sending'),
                 },
               },
             }}

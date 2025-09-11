@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import PhaseForm from '@/components/admin/PhaseForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const PhaseManagement: React.FC = () => {
   const { role, loading: roleLoading } = useUserRole();
@@ -29,6 +30,7 @@ const PhaseManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPhase, setEditingPhase] = useState<CurriculumPhase | null>(null);
+  const { t } = useLanguage(); // Use translation hook
 
   const fetchPhases = async () => {
     setLoading(true);
@@ -41,7 +43,7 @@ const PhaseManagement: React.FC = () => {
       if (error) throw error;
       setPhases(data || []);
     } catch (error: any) {
-      showError(`Failed to load phases: ${error.message}`);
+      showError(t('failed_to_load_phases', { message: error.message }));
       console.error('Error fetching phases:', error);
     } finally {
       setLoading(false);
@@ -52,7 +54,7 @@ const PhaseManagement: React.FC = () => {
     if (!roleLoading && role === 'admin') {
       fetchPhases();
     }
-  }, [role, roleLoading]);
+  }, [role, roleLoading, t]);
 
   const handleDeletePhase = async (phaseId: string) => {
     try {
@@ -62,10 +64,10 @@ const PhaseManagement: React.FC = () => {
         .eq('id', phaseId);
 
       if (error) throw error;
-      showSuccess('Phase deleted successfully!');
-      fetchPhases(); // Refresh the list
+      showSuccess(t('phase_deleted_successfully'));
+      fetchPhases();
     } catch (error: any) {
-      showError(`Failed to delete phase: ${error.message}`);
+      showError(t('failed_to_delete_phase', { message: error.message }));
       console.error('Error deleting phase:', error);
     }
   };
@@ -73,7 +75,7 @@ const PhaseManagement: React.FC = () => {
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setEditingPhase(null);
-    fetchPhases(); // Refresh the list after successful add/edit
+    fetchPhases();
   };
 
   const openEditForm = (phase: CurriculumPhase) => {
@@ -90,7 +92,7 @@ const PhaseManagement: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Loading user role...</h2>
+          <h2 className="text-2xl font-bold">{t('loading_user_role')}</h2>
         </div>
       </Layout>
     );
@@ -100,9 +102,9 @@ const PhaseManagement: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold mb-4">{t('access_denied')}</h2>
+          <p className="text-muted-foreground mb-6">{t('no_permission')}</p>
+          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_home')}</Link>
         </div>
       </Layout>
     );
@@ -112,16 +114,16 @@ const PhaseManagement: React.FC = () => {
     <Layout>
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold">Manage Curriculum Phases</h1>
+          <h1 className="text-3xl md:text-4xl font-bold">{t('manage_curriculum_phases')}</h1>
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAddForm}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Phase
+                <PlusCircle className="mr-2 h-4 w-4" /> {t('add_new_phase')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>{editingPhase ? 'Edit Phase' : 'Add New Phase'}</DialogTitle>
+                <DialogTitle>{editingPhase ? t('edit_phase') : t('add_new_phase')}</DialogTitle>
               </DialogHeader>
               <PhaseForm phase={editingPhase} onSuccess={handleFormSuccess} />
             </DialogContent>
@@ -135,18 +137,18 @@ const PhaseManagement: React.FC = () => {
             ))}
           </div>
         ) : phases.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No phases found. Click "Add New Phase" to get started!</p>
+          <p className="text-muted-foreground text-center py-8">{t('no_phases_found_admin')}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {phases.map((phase) => (
               <Card key={phase.id} className="flex flex-col">
                 <CardHeader>
                   <CardTitle>{phase.title}</CardTitle>
-                  <CardDescription>Duration: {phase.weeks} Weeks</CardDescription>
+                  <CardDescription>{t('duration_weeks', { weeks: phase.weeks })}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-sm text-muted-foreground mb-4">{phase.description}</p>
-                  <p className="text-xs text-muted-foreground">Order: {phase.order_index}</p>
+                  <p className="text-xs text-muted-foreground">{t('order_index')}: {phase.order_index}</p>
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditForm(phase)}>
@@ -160,15 +162,15 @@ const PhaseManagement: React.FC = () => {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('are_you_sure')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete the phase and all associated modules, lessons, and quizzes.
+                          {t('delete_phase_description')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => handleDeletePhase(phase.id)}>
-                          Delete
+                          {t('delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

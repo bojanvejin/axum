@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showError, showSuccess } from '@/utils/toast';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const formSchema = z.object({
   role: z.enum(['user', 'admin']),
@@ -19,6 +20,7 @@ interface UserRoleFormProps {
 }
 
 const UserRoleForm: React.FC<UserRoleFormProps> = ({ userId, currentRole, onSuccess }) => {
+  const { t } = useLanguage(); // Use translation hook
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -34,10 +36,10 @@ const UserRoleForm: React.FC<UserRoleFormProps> = ({ userId, currentRole, onSucc
         .eq('id', userId);
 
       if (error) throw error;
-      showSuccess('User role updated successfully!');
+      showSuccess(t('user_role_updated'));
       onSuccess();
     } catch (error: any) {
-      showError(`Failed to update role: ${error.message}`);
+      showError(t('failed_to_update_role', { message: error.message }));
     }
   };
 
@@ -49,16 +51,16 @@ const UserRoleForm: React.FC<UserRoleFormProps> = ({ userId, currentRole, onSucc
           name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Role</FormLabel>
+              <FormLabel>{t('role')}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
+                    <SelectValue placeholder={t('select_a_role')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">{t('user')}</SelectItem>
+                  <SelectItem value="admin">{t('admin')}</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -66,7 +68,7 @@ const UserRoleForm: React.FC<UserRoleFormProps> = ({ userId, currentRole, onSucc
           )}
         />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Saving...' : 'Save Role'}
+          {form.formState.isSubmitting ? t('saving') : t('save_role')}
         </Button>
       </form>
     </Form>

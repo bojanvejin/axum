@@ -4,6 +4,7 @@ import { CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Circle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface LessonNavigationSidebarProps {
   lessons: CurriculumLesson[];
@@ -17,6 +18,7 @@ const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({
   studentProgress,
 }) => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
+  const { t } = useLanguage(); // Use translation hook
 
   const isLessonCompleted = (lessonId: string) => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
@@ -24,7 +26,7 @@ const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({
 
   return (
     <ScrollArea className="h-full w-64 border-r bg-card p-4 hidden md:block">
-      <h3 className="text-lg font-semibold mb-4">Lessons in this Module</h3>
+      <h3 className="text-lg font-semibold mb-4">{t('lessons_in_this_module')}</h3>
       <nav className="space-y-2">
         {lessons.map((lesson) => (
           <Link

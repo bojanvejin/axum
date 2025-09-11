@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { showError, showSuccess } from '@/utils/toast';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'Title is required.' }),
@@ -30,6 +31,7 @@ interface PhaseFormProps {
 }
 
 const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
+  const { t } = useLanguage(); // Use translation hook
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,26 +63,24 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (phase) {
-        // Update existing phase
         const { error } = await supabase
           .from('phases')
           .update(values)
           .eq('id', phase.id);
 
         if (error) throw error;
-        showSuccess('Phase updated successfully!');
+        showSuccess(t('phase_updated_successfully'));
       } else {
-        // Insert new phase
         const { error } = await supabase
           .from('phases')
           .insert(values);
 
         if (error) throw error;
-        showSuccess('Phase added successfully!');
+        showSuccess(t('phase_added_successfully'));
       }
       onSuccess();
     } catch (error: any) {
-      showError(`Failed to save phase: ${error.message}`);
+      showError(t('failed_to_save_phase', { message: error.message }));
       console.error('Error saving phase:', error);
     }
   };
@@ -93,9 +93,9 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>{t('title')}</FormLabel>
               <FormControl>
-                <Input placeholder="Phase Title" {...field} />
+                <Input placeholder={t('phase_title')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -106,9 +106,9 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t('description')}</FormLabel>
               <FormControl>
-                <Textarea placeholder="Brief description of the phase" {...field} />
+                <Textarea placeholder={t('description')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -119,7 +119,7 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
           name="weeks"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Duration (Weeks)</FormLabel>
+              <FormLabel>{t('duration_weeks_label')}</FormLabel>
               <FormControl>
                 <Input type="number" {...field} />
               </FormControl>
@@ -132,7 +132,7 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
           name="order_index"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Order Index</FormLabel>
+              <FormLabel>{t('order_index')}</FormLabel>
               <FormControl>
                 <Input type="number" {...field} />
               </FormControl>
@@ -141,7 +141,7 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
           )}
         />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Saving...' : (phase ? 'Update Phase' : 'Add Phase')}
+          {form.formState.isSubmitting ? t('saving') : (phase ? t('update_phase') : t('add_phase'))}
         </Button>
       </form>
     </Form>

@@ -1,6 +1,7 @@
 import React from 'react';
 import AxumLogo from './AxumLogo';
 import ThemeToggle from './ThemeToggle';
+import LanguageToggle from './LanguageToggle'; // Import LanguageToggle
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSession } from './SessionContextProvider';
@@ -17,6 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,13 +28,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { role, loading: roleLoading } = useUserRole();
   const { user, profile, session } = useSession();
   const navigate = useNavigate();
+  const { t } = useLanguage(); // Use translation hook
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      showError(`Logout failed: ${error.message}`);
+      showError(t('logout_failed', { message: error.message }));
     } else {
-      showSuccess("You have been logged out.");
+      showSuccess(t('logged_out'));
       navigate('/login');
     }
   };
@@ -56,9 +59,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex items-center gap-4">
           {!roleLoading && role === 'admin' && (
             <Link to="/admin" className="text-sm font-medium text-primary hover:underline">
-              Admin Dashboard
+              {t('admin_dashboard')}
             </Link>
           )}
+          <LanguageToggle /> {/* Add LanguageToggle here */}
           <ThemeToggle />
           {session && (
             <DropdownMenu>
@@ -84,7 +88,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>{t('sign_out')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

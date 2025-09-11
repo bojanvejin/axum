@@ -11,6 +11,7 @@ import LessonNavigationSidebar from '@/components/LessonNavigationSidebar';
 import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -24,15 +25,15 @@ const LessonDetail: React.FC = () => {
   const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
   const { user, loading: userLoading } = useSession();
   const navigate = useNavigate();
+  const { t } = useLanguage(); // Use translation hook
 
   useEffect(() => {
     const fetchLessonAndProgress = async () => {
       setLoading(true);
       try {
-        // Fetch current lesson details and its module/phase
         const { data: lessonData, error: lessonError } = await supabase
           .from('lessons')
-          .select('*, modules(id, title, phase_id, phases(id, title))') // Select module and phase details
+          .select('*, modules(id, title, phase_id, phases(id, title))')
           .eq('id', lessonId)
           .single();
 
@@ -44,7 +45,6 @@ const LessonDetail: React.FC = () => {
           setCurrentModule(module);
           setCurrentPhase(module.phases);
 
-          // Fetch all lessons for the current module (for sidebar navigation and next lesson)
           const { data: lessonsInModule, error: moduleLessonsError } = await supabase
             .from('lessons')
             .select('*')
@@ -53,19 +53,17 @@ const LessonDetail: React.FC = () => {
           if (moduleLessonsError) throw moduleLessonsError;
           setModuleLessons(lessonsInModule || []);
 
-          // Determine next lesson
           const currentIndex = lessonsInModule?.findIndex(l => l.id === lessonId);
           if (currentIndex !== undefined && lessonsInModule && currentIndex < lessonsInModule.length - 1) {
             setNextLesson(lessonsInModule[currentIndex + 1]);
           } else {
-            setNextLesson(null); // No next lesson
+            setNextLesson(null);
           }
         } else {
           setModuleLessons([]);
           setNextLesson(null);
         }
 
-        // Fetch student progress if user is logged in
         if (user) {
           const { data: progressData, error: progressError } = await supabase
             .from('student_progress')
@@ -80,7 +78,7 @@ const LessonDetail: React.FC = () => {
         }
 
       } catch (error: any) {
-        showError(`Failed to load lesson details: ${error.message}`);
+        showError(t('failed_to_load_lessons', { message: error.message }));
         console.error('Error fetching lesson or progress:', error);
       } finally {
         setLoading(false);
@@ -90,11 +88,11 @@ const LessonDetail: React.FC = () => {
     if (lessonId && !userLoading) {
       fetchLessonAndProgress();
     }
-  }, [lessonId, user, userLoading]);
+  }, [lessonId, user, userLoading, t]);
 
   const handleMarkComplete = async () => {
     if (!user) {
-      showError("You must be logged in to mark lessons complete.");
+      showError(t('must_be_logged_in_to_mark_complete'));
       return;
     }
 
@@ -122,9 +120,9 @@ const LessonDetail: React.FC = () => {
           return [...prev, { id: 'new-id', user_id: user.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }];
         }
       });
-      showSuccess("Lesson marked as complete!");
+      showSuccess(t('lesson_marked_complete'));
     } catch (error: any) {
-      showError(`Failed to mark lesson complete: ${error.message}`);
+      showError(t('lesson_mark_complete_failed', { message: error.message }));
       console.error('Error marking lesson complete:', error);
     } finally {
       setLoading(false);
@@ -132,11 +130,10 @@ const LessonDetail: React.FC = () => {
   };
 
   const handleQuizAttempted = (score: number, totalQuestions: number) => {
-    // Optionally update progress or show a message based on quiz completion
-    if (score >= 70) { // Example: Mark complete if score is 70% or higher
+    if (score >= 70) {
       handleMarkComplete();
     } else {
-      showError("Quiz score too low to mark lesson complete. Please review and try again.");
+      showError(t('quiz_score_too_low'));
     }
   };
 
@@ -166,8 +163,8 @@ const LessonDetail: React.FC = () => {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Lesson not found.</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold">{t('lesson_not_found')}</h2>
+          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_home')}</Link>
         </div>
       </Layout>
     );
@@ -192,17 +189,17 @@ const LessonDetail: React.FC = () => {
             )}
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{lesson.title}</h1>
           </div>
-          <p className="text-lg text-muted-foreground mb-4">Objectives: {lesson.objectives}</p>
+          <p className="text-lg text-muted-foreground mb-4">{t('objectives')}: {lesson.objectives}</p>
 
           <div className="mb-6">
             <TextToSpeechButton textToSpeak={lessonText} />
           </div>
 
-          <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || '<p>No content available for this lesson yet.</p>' }} />
+          <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || `<p>${t('no_content_available')}</p>` }} />
 
           {lesson.video_url && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Video Demonstration</h2>
+              <h2 className="text-2xl font-semibold mb-4">{t('video_demonstration')}</h2>
               <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
                 <iframe
                   src={lesson.video_url}
@@ -217,16 +214,16 @@ const LessonDetail: React.FC = () => {
 
           {lesson.resources_url && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Resources</h2>
+              <h2 className="text-2xl font-semibold mb-4">{t('resources')}</h2>
               <a href={lesson.resources_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                Download Resources
+                {t('download_resources')}
               </a>
             </div>
           )}
 
           {lesson.quiz_id && (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Knowledge Check Quiz</h2>
+              <h2 className="text-2xl font-semibold mb-4">{t('knowledge_check_quiz')}</h2>
               <QuizComponent quizId={lesson.quiz_id} lessonId={lesson.id} onQuizAttempted={handleQuizAttempted} />
             </div>
           )}
@@ -237,11 +234,11 @@ const LessonDetail: React.FC = () => {
               disabled={isCompleted || loading}
               className="w-full md:w-auto"
             >
-              {isCompleted ? "Completed!" : "Mark Complete"}
+              {isCompleted ? t('completed') : t('mark_complete')}
             </Button>
             {nextLesson && (
               <Button onClick={() => navigate(`/lessons/${nextLesson.id}`)} className="ml-auto">
-                Next Lesson <ArrowRight className="ml-2 h-4 w-4" />
+                {t('next_lesson')} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             )}
           </div>

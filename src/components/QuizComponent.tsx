@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { useSession } from '@/components/SessionContextProvider';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 interface QuizQuestion {
   id: string;
@@ -39,6 +40,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingResultsOf, setViewingResultsOf] = useState<QuizAttempt | null>(null);
   const { user } = useSession();
+  const { t } = useLanguage(); // Use translation hook
 
   const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { score: -1, id: '', answers: {} });
   const hasPassed = bestAttempt.score >= PASSING_SCORE;
@@ -82,7 +84,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
         }
 
       } catch (error: any) {
-        showError(`Failed to load quiz: ${error.message}`);
+        showError(t('failed_to_load_quiz', { message: error.message }));
       } finally {
         setLoading(false);
       }
@@ -93,7 +95,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     } else {
       setLoading(false);
     }
-  }, [quizId, user]);
+  }, [quizId, user, t]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -101,7 +103,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
 
   const handleSubmitQuiz = async () => {
     if (!user) {
-      showError("You must be logged in to submit a quiz.");
+      showError(t('quiz_login_required'));
       return;
     }
     setIsSubmitting(true);
@@ -129,7 +131,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
 
       if (error) throw error;
       
-      showSuccess(`Attempt ${attemptsMade + 1} submitted! Your score: ${calculatedScore.toFixed(0)}%`);
+      showSuccess(t('attempt_submitted', { attemptNum: attemptsMade + 1, score: calculatedScore.toFixed(0) }));
       
       const updatedAttempts = [newAttempt, ...attempts];
       setAttempts(updatedAttempts);
@@ -137,7 +139,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       
       onQuizAttempted?.(calculatedScore, questions.length);
     } catch (error: any) {
-      showError(`Failed to submit quiz: ${error.message}`);
+      showError(t('quiz_submit_failed', { message: error.message }));
     } finally {
       setIsSubmitting(false);
     }
@@ -158,11 +160,11 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
   }
 
   if (!user) {
-    return <p className="text-muted-foreground">Please log in to take the quiz.</p>;
+    return <p className="text-muted-foreground">{t('quiz_login_required')}</p>;
   }
 
   if (questions.length === 0) {
-    return <p className="text-muted-foreground">No questions available for this quiz yet.</p>;
+    return <p className="text-muted-foreground">{t('quiz_no_questions')}</p>;
   }
 
   const answersToShow = viewingResultsOf?.answers || userAnswers;
@@ -171,11 +173,11 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle>Quiz</CardTitle>
+        <CardTitle>{t('quiz_title')}</CardTitle>
         <CardDescription>
-          {hasPassed && `Congratulations! You passed with a score of ${bestAttempt.score.toFixed(0)}%.`}
-          {!hasPassed && attemptsMade >= MAX_ATTEMPTS && `You have used all ${MAX_ATTEMPTS} attempts. Your best score was ${bestAttempt.score.toFixed(0)}%.`}
-          {canAttempt && `Attempt ${attemptsMade + 1} of ${MAX_ATTEMPTS}. You need ${PASSING_SCORE}% to pass.`}
+          {hasPassed && t('quiz_passed_congrats', { score: bestAttempt.score.toFixed(0) })}
+          {!hasPassed && attemptsMade >= MAX_ATTEMPTS && t('quiz_attempts_used', { maxAttempts: MAX_ATTEMPTS, bestScore: bestAttempt.score.toFixed(0) })}
+          {canAttempt && ` ${t('quiz_can_attempt', { currentAttempt: attemptsMade + 1, maxAttempts: MAX_ATTEMPTS, passingScore: PASSING_SCORE })}`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -193,11 +195,11 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
                 let resultIndicator = null;
                 if (isViewingMode) {
                   if (isSelected && isCorrect) {
-                    resultIndicator = <span className="text-green-500 ml-2">Correct!</span>;
+                    resultIndicator = <span className="text-green-500 ml-2">{t('quiz_correct')}</span>;
                   } else if (isSelected && !isCorrect) {
-                    resultIndicator = <span className="text-red-500 ml-2">Incorrect.</span>;
+                    resultIndicator = <span className="text-red-500 ml-2">{t('quiz_incorrect')}</span>;
                   } else if (isCorrect) {
-                    resultIndicator = <span className="text-green-600 ml-2">Correct answer</span>;
+                    resultIndicator = <span className="text-green-600 ml-2">{t('quiz_correct_answer')}</span>;
                   }
                 }
                 return (
@@ -215,15 +217,15 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       <CardFooter className="flex flex-col items-start gap-4">
         {canAttempt && !isViewingMode && (
           <Button onClick={handleSubmitQuiz} disabled={Object.keys(userAnswers).length !== questions.length || isSubmitting}>
-            {isSubmitting ? 'Submitting...' : `Submit Attempt ${attemptsMade + 1}`}
+            {isSubmitting ? t('submitting') : t('submit_attempt', { currentAttempt: attemptsMade + 1 })}
           </Button>
         )}
         {canAttempt && isViewingMode && (
           <Button onClick={handleRetakeQuiz}>
-            Take Attempt {attemptsMade + 1}
+            {t('take_attempt', { currentAttempt: attemptsMade + 1 })}
           </Button>
         )}
-        {isViewingMode && <p className="text-lg font-bold">Score for this attempt: {viewingResultsOf?.score.toFixed(0)}%</p>}
+        {isViewingMode && <p className="text-lg font-bold">{t('score_for_attempt', { score: viewingResultsOf?.score.toFixed(0) })}</p>}
       </CardFooter>
     </Card>
   );

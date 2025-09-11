@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import LessonForm from '@/components/admin/LessonForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useLanguage } from '@/contexts/LanguageContext'; // Import useLanguage
 
 const LessonManagement: React.FC = () => {
   const { role, loading: roleLoading } = useUserRole();
@@ -31,6 +32,7 @@ const LessonManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<CurriculumLesson | null>(null);
+  const { t } = useLanguage(); // Use translation hook
 
   const fetchLessons = async () => {
     setLoading(true);
@@ -51,7 +53,7 @@ const LessonManagement: React.FC = () => {
       if (error) throw error;
       setLessons(data || []);
     } catch (error: any) {
-      showError(`Failed to load lessons: ${error.message}`);
+      showError(t('failed_to_load_lessons', { message: error.message }));
     } finally {
       setLoading(false);
     }
@@ -61,16 +63,16 @@ const LessonManagement: React.FC = () => {
     if (!roleLoading && role === 'admin' && moduleId) {
       fetchLessons();
     }
-  }, [role, roleLoading, moduleId]);
+  }, [role, roleLoading, moduleId, t]);
 
   const handleDeleteLesson = async (lessonId: string) => {
     try {
       const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
       if (error) throw error;
-      showSuccess('Lesson deleted successfully!');
+      showSuccess(t('lesson_deleted_successfully'));
       fetchLessons();
     } catch (error: any) {
-      showError(`Failed to delete lesson: ${error.message}`);
+      showError(t('failed_to_delete_lesson', { message: error.message }));
     }
   };
 
@@ -91,15 +93,15 @@ const LessonManagement: React.FC = () => {
   };
 
   if (roleLoading || !moduleId) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+    return <Layout><div className="text-center py-8"><p>{t('loading')}</p></div></Layout>;
   }
 
   if (role !== 'admin') {
     return (
       <Layout>
         <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold mb-4">{t('access_denied')}</h2>
+          <Link to="/" className="text-blue-500 hover:underline">{t('return_to_home')}</Link>
         </div>
       </Layout>
     );
@@ -114,18 +116,18 @@ const LessonManagement: React.FC = () => {
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-3xl md:text-4xl font-bold ml-2">Lessons for "{moduleTitle}"</h1>
+          <h1 className="text-3xl md:text-4xl font-bold ml-2">{t('lessons_for', { title: moduleTitle })}</h1>
         </div>
         <div className="flex justify-end items-center mb-6">
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
               <Button onClick={openAddForm}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Lesson
+                <PlusCircle className="mr-2 h-4 w-4" /> {t('add_new_lesson')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{editingLesson ? 'Edit Lesson' : 'Add New Lesson'}</DialogTitle>
+                <DialogTitle>{editingLesson ? t('edit_lesson') : t('add_new_lesson')}</DialogTitle>
               </DialogHeader>
               <LessonForm moduleId={moduleId} lesson={editingLesson} onSuccess={handleFormSuccess} />
             </DialogContent>
@@ -137,7 +139,7 @@ const LessonManagement: React.FC = () => {
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
           </div>
         ) : lessons.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No lessons found. Click "Add New Lesson" to get started!</p>
+          <p className="text-muted-foreground text-center py-8">{t('no_lessons_found')}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {lessons.map((lesson) => (
@@ -147,7 +149,7 @@ const LessonManagement: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground line-clamp-2">{lesson.objectives}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Order: {lesson.order_index}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t('order_index')}: {lesson.order_index}</p>
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditForm(lesson)}>
@@ -159,12 +161,12 @@ const LessonManagement: React.FC = () => {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently delete the lesson.</AlertDialogDescription>
+                        <AlertDialogTitle>{t('are_you_sure')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('delete_lesson_description')}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteLesson(lesson.id)}>Delete</AlertDialogAction>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteLesson(lesson.id)}>{t('delete')}</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
