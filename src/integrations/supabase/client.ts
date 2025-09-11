@@ -15,25 +15,24 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Function to set the user_id in the Supabase session context for RLS
-const setSupabaseUserId = async () => {
-  const localUser = getLocalUser();
-  if (localUser) {
-    const { error } = await supabase.rpc('set_user_id', { user_id_input: localUser.id });
+const setSupabaseUserId = async (userId: string | null) => {
+  if (userId) {
+    const { error } = await supabase.rpc('set_user_id', { user_id_input: userId });
     if (error) {
       console.error('Error setting Supabase user_id for RLS:', error);
     } else {
-      console.log('Supabase user_id set for RLS:', localUser.id);
+      console.log('Supabase user_id set for RLS:', userId);
     }
   } else {
     // Clear the user_id if no local user is present
-    await supabase.rpc('set_user_id', { user_id_input: null });
-    console.log('Supabase user_id cleared for RLS.');
+    const { error } = await supabase.rpc('set_user_id', { user_id_input: null });
+    if (error) {
+      console.error('Error clearing Supabase user_id for RLS:', error);
+    } else {
+      console.log('Supabase user_id cleared for RLS.');
+    }
   }
 };
 
-// Call this function on initial load and whenever the local user might change
-setSupabaseUserId();
-
-// You might want to re-call setSupabaseUserId when the local user changes (e.g., after setLocalUser or clearLocalUser)
-// This would typically be handled by a global state or context, but for this local-storage based approach,
-// we'll rely on page reloads or explicit calls after local storage changes.
+// Export the function so it can be called from components
+export { setSupabaseUserId };
