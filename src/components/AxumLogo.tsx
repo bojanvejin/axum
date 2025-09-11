@@ -1,8 +1,12 @@
 import React from 'react';
 
-const AxumLogo = () => {
+interface AxumLogoProps {
+  className?: string;
+}
+
+const AxumLogo: React.FC<AxumLogoProps> = ({ className }) => {
   return (
-    <img src="/axum-logo.png" alt="Axum Logo" className="h-8 w-auto" />
+    <img src="/axum-logo.png" alt="Axum Logo" className={className} />
   );
 };
 
