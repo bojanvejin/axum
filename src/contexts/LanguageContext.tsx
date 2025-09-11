@@ -5,7 +5,7 @@ type Language = 'en' | 'fr';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -174,7 +174,7 @@ const translations: Record<Language, Record<string, string>> = {
     failed_to_delete_module: "Failed to delete module: {{message}}",
     module_updated_successfully: "Module updated successfully!",
     module_added_successfully: "Module added successfully!",
-    failed_to_save_module: "Failed to save module: {{message}",
+    failed_to_save_module: "Failed to save module: {{message}}",
     failed_to_load_lessons: "Failed to load lessons: {{message}}",
     lesson_deleted_successfully: "Lesson deleted successfully!",
     failed_to_delete_lesson: "Failed to delete lesson: {{message}}",
