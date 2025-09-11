@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 import { QuizAttempt } from '@/data/curriculum'; // Import QuizAttempt interface
 
 interface QuizQuestion {
@@ -27,7 +27,7 @@ const MAX_ATTEMPTS = 3;
 const PASSING_SCORE = 90; // Equivalent to an 'A'
 
 const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizAttempted }) => {
-  const { user, loading: sessionLoading } = useSession(); // Get user from session
+  const localUser = getLocalUser(); // Get local user
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
@@ -42,7 +42,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
 
   useEffect(() => {
     const fetchQuizData = async () => {
-      if (!quizId || !user) {
+      if (!quizId || !localUser) {
         setLoading(false);
         return;
       }
@@ -56,11 +56,11 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
         if (questionsError) throw questionsError;
         setQuestions(questionsData || []);
 
-        // Fetch quiz attempts from Supabase
+        // Fetch quiz attempts from Supabase using local user ID
         const { data: attemptsData, error: attemptsError } = await supabase
           .from('quiz_attempts')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', localUser.id) // Use localUser.id
           .eq('quiz_id', quizId)
           .order('submitted_at', { ascending: true });
         if (attemptsError) throw attemptsError;
@@ -83,20 +83,20 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       }
     };
 
-    if (user && !sessionLoading) {
+    if (localUser) {
       fetchQuizData();
-    } else if (!user && !sessionLoading) {
-      setLoading(false); // Not logged in, so no quiz data to load
+    } else {
+      setLoading(false); // Not identified, so no quiz data to load
     }
-  }, [quizId, user, sessionLoading]);
+  }, [quizId, localUser]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmitQuiz = async () => {
-    if (!user) {
-      showError("You must be logged in to submit a quiz.");
+    if (!localUser) {
+      showError("You must be identified to submit a quiz.");
       return;
     }
     setIsSubmitting(true);
@@ -112,7 +112,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
 
     try {
       const newAttempt: Omit<QuizAttempt, 'id'> = {
-        user_id: user.id,
+        user_id: localUser.id, // Use localUser.id
         quiz_id: quizId,
         score: calculatedScore,
         answers: userAnswers,
@@ -141,7 +141,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     setViewingResultsOf(null);
   };
 
-  if (loading || sessionLoading) {
+  if (loading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-full" />
@@ -150,8 +150,8 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     );
   }
 
-  if (!user) {
-    return <p className="text-muted-foreground">Please log in to take the quiz.</p>;
+  if (!localUser) {
+    return <p className="text-muted-foreground">Please enter your name to take the quiz.</p>;
   }
 
   if (questions.length === 0) {

@@ -4,6 +4,7 @@ import { CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Circle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 interface LessonNavigationSidebarProps {
   lessons: CurriculumLesson[];
@@ -16,7 +17,8 @@ const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({
   currentLessonId,
   studentProgress,
 }) => {
-  const { sessionId } = useParams<{ sessionId: string }>(); // Now using sessionId
+  const { sessionId } = useParams<{ sessionId: string }>();
+  const localUser = getLocalUser(); // Get local user
 
   const isLessonCompleted = (lessonId: string) => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
@@ -37,11 +39,11 @@ const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({
                 : "text-muted-foreground",
             )}
           >
-            {isLessonCompleted(lesson.id) ? (
+            {localUser && (isLessonCompleted(lesson.id) ? (
               <CheckCircle className="text-green-500" size={16} />
             ) : (
               <Circle className="text-muted-foreground" size={16} />
-            )}
+            ))}
             {lesson.title}
           </Link>
         ))}

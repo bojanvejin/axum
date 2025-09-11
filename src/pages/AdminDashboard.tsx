@@ -1,24 +1,22 @@
 import React from 'react';
 import Layout from '@/components/Layout';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 const AdminDashboard: React.FC = () => {
-  const { user, isAdmin, loading } = useSession();
+  const localUser = getLocalUser();
+  const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold">Loading user role...</h2>
-        </div>
-      </Layout>
-    );
+  // Simple local check: user is admin if their name is "Admin"
+  const isAdmin = localUser?.name === "Admin";
+
+  if (!localUser) {
+    navigate('/enter-name'); // Redirect if no local user
+    return null;
   }
 
-  if (!user || !isAdmin) {
-    // This case should ideally be handled by AdminRoute, but as a fallback
+  if (!isAdmin) {
     return (
       <Layout>
         <div className="text-center py-8">
@@ -55,15 +53,6 @@ const AdminDashboard: React.FC = () => {
             <CardContent>
               <p className="text-muted-foreground text-sm">Create and manage quizzes and their questions.</p>
               <Link to="/admin/curriculum/quizzes" className="text-blue-500 hover:underline mt-4 block">Go to Quiz Management</Link>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Manage Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">View and manage user roles and profiles.</p>
-              <Link to="/admin/users" className="text-blue-500 hover:underline mt-4 block">Go to User Management</Link>
             </CardContent>
           </Card>
           <Card>

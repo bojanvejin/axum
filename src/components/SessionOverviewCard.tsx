@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CurriculumSession, CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 interface SessionOverviewCardProps {
   session: CurriculumSession;
@@ -13,7 +13,7 @@ interface SessionOverviewCardProps {
 }
 
 const SessionOverviewCard: React.FC<SessionOverviewCardProps> = ({ session, allLessons, studentProgress, backgroundImage }) => {
-  const { user } = useSession(); // Get user from session
+  const localUser = getLocalUser(); // Get local user
 
   const getSessionProgress = () => {
     const lessonsInSession = allLessons.filter(lesson => lesson.session_id === session.id);
@@ -45,7 +45,7 @@ const SessionOverviewCard: React.FC<SessionOverviewCardProps> = ({ session, allL
             <p className="text-sm text-gray-400 mt-2">Covers Days: {session.covers_days.join(', ')}</p>
           )}
         </div>
-        {user && ( // Conditionally render progress if user is logged in
+        {localUser && ( // Conditionally render progress if user is identified
           <div className="mt-4">
             <div className="flex justify-between items-center text-sm mb-1">
               <span>Progress</span>

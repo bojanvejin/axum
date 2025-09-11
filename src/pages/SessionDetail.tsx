@@ -8,11 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
 import { CheckCircle, Circle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 const SessionDetail: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
-  const { user, loading: sessionLoading } = useSession();
+  const localUser = getLocalUser(); // Get local user
   const [session, setSession] = useState<CurriculumSession | null>(null);
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
@@ -20,8 +20,8 @@ const SessionDetail: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user && !sessionLoading) {
-      navigate('/login');
+    if (!localUser) {
+      navigate('/enter-name');
       return;
     }
 
@@ -46,14 +46,13 @@ const SessionDetail: React.FC = () => {
         if (lessonsError) throw lessonsError;
         setLessons(lessonsData || []);
 
-        if (user) {
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', user.id);
-          if (progressError) throw progressError;
-          setStudentProgress(progressData || []);
-        }
+        // Fetch student progress from Supabase using local user ID
+        const { data: progressData, error: progressError } = await supabase
+          .from('student_progress')
+          .select('*')
+          .eq('user_id', localUser.id); // Use localUser.id
+        if (progressError) throw progressError;
+        setStudentProgress(progressData || []);
 
       } catch (error: any) {
         showError(`Failed to load session details: ${error.message}`);
@@ -63,16 +62,16 @@ const SessionDetail: React.FC = () => {
       }
     };
 
-    if (sessionId && user && !sessionLoading) {
+    if (sessionId && localUser) {
       fetchSessionAndLessons();
     }
-  }, [sessionId, user, sessionLoading, navigate]);
+  }, [sessionId, localUser, navigate]);
 
   const isLessonCompleted = (lessonId: string) => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
   };
 
-  if (loading || sessionLoading) {
+  if (loading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -152,7 +151,7 @@ const SessionDetail: React.FC = () => {
                 <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-xl">{lesson.title}</CardTitle>
-                    {user && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
+                    {localUser && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
                   </CardHeader>
                   <CardContent className="flex-grow">
                     <p className="text-muted-foreground text-sm">{lesson.objectives}</p>

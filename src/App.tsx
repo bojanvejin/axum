@@ -5,41 +5,34 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import Login from "./pages/Login"; // Import the new Login page
-import SessionDetail from "./pages/SessionDetail"; // New SessionDetail page
+import NameInputPage from "./pages/NameInputPage"; // Import the new NameInputPage
+import SessionDetail from "./pages/SessionDetail";
 import LessonDetail from "./pages/LessonDetail";
 import AdminDashboard from "./pages/AdminDashboard";
-import SessionManagement from "./pages/admin/SessionManagement"; // New SessionManagement
-import LessonManagement from "./pages/admin/LessonManagement"; // Updated LessonManagement
+import SessionManagement from "./pages/admin/SessionManagement";
+import LessonManagement from "./pages/admin/LessonManagement";
 import QuizManagement from "./pages/admin/QuizManagement";
 import QuestionManagement from "./pages/admin/QuestionManagement";
-import UserManagement from "./pages/admin/UserManagement"; // Re-adding UserManagement for admin roles
+// UserManagement is removed as it relies on Supabase Auth profiles
 import { ThemeProvider } from "next-themes";
-import { SessionContextProvider, useSession } from "./components/SessionContextProvider"; // Import SessionContextProvider and useSession
+import { getLocalUser } from "./utils/localUser"; // Import local user utility
 
 const queryClient = new QueryClient();
 
-// PrivateRoute component to protect routes
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { session, loading } = useSession();
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading authentication...</div>;
-  }
-
-  return session ? <>{children}</> : <Navigate to="/login" replace />;
+// Component to check for local user and redirect if not found
+const UserCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const localUser = getLocalUser();
+  return localUser ? <>{children}</> : <Navigate to="/enter-name" replace />;
 };
 
-// AdminRoute component to protect admin routes
+// AdminRoute component to protect admin routes based on local user name
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { session, loading, isAdmin } = useSession();
+  const localUser = getLocalUser();
+  // Simple local check: user is admin if their name is "Admin"
+  const isAdmin = localUser?.name === "Admin";
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading authentication...</div>;
-  }
-
-  if (!session) {
-    return <Navigate to="/login" replace />;
+  if (!localUser) {
+    return <Navigate to="/enter-name" replace />;
   }
 
   return isAdmin ? <>{children}</> : <Navigate to="/" replace />; // Redirect non-admins to home
@@ -49,8 +42,8 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<PrivateRoute><AppRoutes /></PrivateRoute>} />
+        <Route path="/enter-name" element={<NameInputPage />} />
+        <Route path="*" element={<UserCheck><AppRoutes /></UserCheck>} />
       </Routes>
     </BrowserRouter>
   );
@@ -63,13 +56,13 @@ const AppRoutes = () => {
       <Route path="/sessions/:sessionId" element={<SessionDetail />} />
       <Route path="/lessons/:lessonId" element={<LessonDetail />} />
 
-      {/* Admin Routes */}
+      {/* Admin Routes - now protected by local name check */}
       <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/curriculum/sessions" element={<AdminRoute><SessionManagement /></AdminRoute>} />
       <Route path="/admin/curriculum/sessions/:sessionId/lessons" element={<AdminRoute><LessonManagement /></AdminRoute>} />
       <Route path="/admin/curriculum/quizzes" element={<AdminRoute><QuizManagement /></AdminRoute>} />
       <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<AdminRoute><QuestionManagement /></AdminRoute>} />
-      <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} /> {/* Re-added UserManagement */}
+      {/* UserManagement removed as it relies on Supabase Auth profiles */}
 
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
@@ -83,9 +76,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <SessionContextProvider>
-          <AppContent />
-        </SessionContextProvider>
+        <AppContent />
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

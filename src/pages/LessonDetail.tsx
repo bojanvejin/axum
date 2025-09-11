@@ -10,11 +10,11 @@ import LessonNavigationSidebar from '@/components/LessonNavigationSidebar';
 import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
-  const { user, loading: sessionLoading } = useSession(); // Get user from session
+  const localUser = getLocalUser(); // Get local user
   const [lesson, setLesson] = useState<CurriculumLesson | null>(null);
   const [sessionLessons, setSessionLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
@@ -25,8 +25,8 @@ const LessonDetail: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user && !sessionLoading) {
-      navigate('/login'); // Redirect if not logged in
+    if (!localUser) {
+      navigate('/enter-name'); // Redirect if not logged in
       return;
     }
 
@@ -68,16 +68,14 @@ const LessonDetail: React.FC = () => {
           setNextLesson(null);
         }
 
-        // Load student progress from Supabase
-        if (user) {
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', user.id);
-          if (progressError) throw progressError;
-          setStudentProgress(progressData || []);
-          setIsCompleted(progressData?.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
-        }
+        // Load student progress from Supabase using local user ID
+        const { data: progressData, error: progressError } = await supabase
+          .from('student_progress')
+          .select('*')
+          .eq('user_id', localUser.id); // Use localUser.id
+        if (progressError) throw progressError;
+        setStudentProgress(progressData || []);
+        setIsCompleted(progressData?.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
 
       } catch (error: any) {
         showError(`Failed to load lesson details: ${error.message}`);
@@ -87,14 +85,14 @@ const LessonDetail: React.FC = () => {
       }
     };
 
-    if (lessonId && user && !sessionLoading) {
+    if (lessonId && localUser) {
       fetchLessonAndProgress();
     }
-  }, [lessonId, user, sessionLoading, navigate]);
+  }, [lessonId, localUser, navigate]);
 
   const handleMarkComplete = async () => {
-    if (!user) {
-      showError("You must be logged in to mark a lesson complete.");
+    if (!localUser) {
+      showError("You must be identified to mark a lesson complete.");
       return;
     }
 
@@ -106,12 +104,13 @@ const LessonDetail: React.FC = () => {
         const { error } = await supabase
           .from('student_progress')
           .update({ status: 'completed', completed_at: new Date().toISOString() })
-          .eq('id', existingProgress.id);
+          .eq('id', existingProgress.id)
+          .eq('user_id', localUser.id); // Ensure only current user's progress is updated
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('student_progress')
-          .insert({ user_id: user.id, lesson_id: lessonId!, status: 'completed', completed_at: new Date().toISOString() });
+          .insert({ user_id: localUser.id, lesson_id: lessonId!, status: 'completed', completed_at: new Date().toISOString() });
         if (error) throw error;
       }
 
@@ -120,7 +119,7 @@ const LessonDetail: React.FC = () => {
       const { data: updatedProgress, error: fetchError } = await supabase
         .from('student_progress')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', localUser.id);
       if (fetchError) throw fetchError;
       setStudentProgress(updatedProgress || []);
 
@@ -148,7 +147,7 @@ const LessonDetail: React.FC = () => {
     return div.textContent || div.innerText || '';
   }, [lesson?.content_html]);
 
-  if (loading || sessionLoading) {
+  if (loading) {
     return (
       <Layout>
         <div className="flex h-full">

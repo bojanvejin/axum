@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
-import SessionOverviewCard from "@/components/SessionOverviewCard"; // New component
+import SessionOverviewCard from "@/components/SessionOverviewCard";
 import { CurriculumSession, CurriculumLesson, StudentProgress } from "@/data/curriculum";
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,8 +9,8 @@ import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 import CourseCalendar from '@/components/CourseCalendar';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 
 const backgroundImages = [
   '/images/axum-salon-interior.jpeg',
@@ -26,7 +26,7 @@ const courseObjectives = [
 ];
 
 const Index = () => {
-  const { user, loading: sessionLoading } = useSession(); // Get user from session
+  const localUser = getLocalUser(); // Get local user
   const [sessions, setSessions] = useState<CurriculumSession[]>([]);
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
@@ -34,8 +34,8 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user && !sessionLoading) {
-      navigate('/login'); // Redirect if not logged in
+    if (!localUser) {
+      navigate('/enter-name'); // Redirect if no local user
       return;
     }
 
@@ -55,15 +55,13 @@ const Index = () => {
         if (lessonsError) throw lessonsError;
         setAllLessons(lessonsData || []);
 
-        // Load student progress from Supabase
-        if (user) {
-          const { data: progressData, error: progressError } = await supabase
-            .from('student_progress')
-            .select('*')
-            .eq('user_id', user.id);
-          if (progressError) throw progressError;
-          setStudentProgress(progressData || []);
-        }
+        // Load student progress from Supabase using local user ID
+        const { data: progressData, error: progressError } = await supabase
+          .from('student_progress')
+          .select('*')
+          .eq('user_id', localUser.id); // Use localUser.id
+        if (progressError) throw progressError;
+        setStudentProgress(progressData || []);
 
       } catch (error: any) {
         showError(`Failed to load curriculum: ${error.message}`);
@@ -73,18 +71,18 @@ const Index = () => {
       }
     };
 
-    if (user && !sessionLoading) {
+    if (localUser) {
       fetchData();
     }
-  }, [user, sessionLoading, navigate]);
+  }, [localUser, navigate]);
 
   const totalLessons = allLessons.length;
   const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
   const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
 
   const handleContinueLearning = () => {
-    if (!user) {
-      navigate('/login');
+    if (!localUser) {
+      navigate('/enter-name');
       return;
     }
 
@@ -104,7 +102,7 @@ const Index = () => {
   // September is month 8 (0-indexed)
   const courseStartDate = new Date(2025, 8, 8);
 
-  if (sessionLoading || dataLoading) {
+  if (dataLoading) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center py-8">
@@ -144,7 +142,7 @@ const Index = () => {
           </ul>
         </div>
 
-        {user ? (
+        {localUser ? (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm">
             <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
             <div className="flex items-center gap-4">
@@ -158,10 +156,10 @@ const Index = () => {
         ) : (
           <div className="w-full max-w-3xl mb-12 p-4 border rounded-lg bg-card shadow-sm text-center">
             <p className="text-lg text-muted-foreground mb-4">
-              Please log in to track your progress and access full features.
+              Please enter your name to track your progress and access full features.
             </p>
-            <Button onClick={() => navigate('/login')} className="w-full md:w-auto">
-              Log In
+            <Button onClick={() => navigate('/enter-name')} className="w-full md:w-auto">
+              Enter Name
             </Button>
           </div>
         )}

@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-import { useSession } from '@/components/SessionContextProvider';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +24,10 @@ import QuestionForm from '@/components/admin/QuestionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const QuestionManagement: React.FC = () => {
-  const { user, isAdmin, loading: sessionLoading } = useSession();
+  const localUser = getLocalUser();
+  const navigate = useNavigate();
+  const isAdmin = localUser?.name === "Admin"; // Simple local admin check
+
   const { quizId } = useParams<{ quizId: string }>();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -51,10 +54,16 @@ const QuestionManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!sessionLoading && isAdmin) {
-      fetchQuestions();
+    if (!localUser) {
+      navigate('/enter-name');
+      return;
     }
-  }, [quizId, sessionLoading, isAdmin]);
+    if (isAdmin) {
+      fetchQuestions();
+    } else {
+      navigate('/'); // Redirect non-admins
+    }
+  }, [quizId, localUser, isAdmin, navigate]);
 
   const handleDeleteQuestion = async (questionId: string) => {
     try {
@@ -83,19 +92,12 @@ const QuestionManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (sessionLoading || loading || !quizId) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+  if (!localUser || !isAdmin) {
+    return null; // Handled by useEffect redirect
   }
 
-  if (!user || !isAdmin) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
+  if (loading || !quizId) {
+    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
   }
 
   return (

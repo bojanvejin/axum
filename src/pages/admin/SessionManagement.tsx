@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ListChecks, ArrowLeft } from 'lucide-react';
-import { useSession } from '@/components/SessionContextProvider';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,11 +20,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import SessionForm from '@/components/admin/SessionForm'; // New SessionForm
+import SessionForm from '@/components/admin/SessionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const SessionManagement: React.FC = () => {
-  const { user, isAdmin, loading: sessionLoading } = useSession();
+  const localUser = getLocalUser();
+  const navigate = useNavigate();
+  const isAdmin = localUser?.name === "Admin"; // Simple local admin check
+
   const [sessions, setSessions] = useState<CurriculumSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -49,10 +52,16 @@ const SessionManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!sessionLoading && isAdmin) {
-      fetchSessions();
+    if (!localUser) {
+      navigate('/enter-name');
+      return;
     }
-  }, [sessionLoading, isAdmin]);
+    if (isAdmin) {
+      fetchSessions();
+    } else {
+      navigate('/'); // Redirect non-admins
+    }
+  }, [localUser, isAdmin, navigate]);
 
   const handleDeleteSession = async (sessionId: string) => {
     try {
@@ -86,23 +95,15 @@ const SessionManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (sessionLoading || loading) {
+  if (!localUser || !isAdmin) {
+    return null; // Handled by useEffect redirect
+  }
+
+  if (loading) {
     return (
       <Layout>
         <div className="text-center py-8">
           <h2 className="text-2xl font-bold">Loading sessions...</h2>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!user || !isAdmin) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
         </div>
       </Layout>
     );

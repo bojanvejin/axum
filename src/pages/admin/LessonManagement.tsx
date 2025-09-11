@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-import { useSession } from '@/components/SessionContextProvider';
+import { getLocalUser } from '@/utils/localUser'; // Import local user utility
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,15 +24,19 @@ import LessonForm from '@/components/admin/LessonForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const LessonManagement: React.FC = () => {
-  const { user, isAdmin, loading: sessionLoading } = useSession();
-  const { sessionId } = useParams<{ sessionId: string }>(); // Changed from phaseId, moduleId
+  const localUser = getLocalUser();
+  const navigate = useNavigate();
+  const isAdmin = localUser?.name === "Admin"; // Simple local admin check
+
+  const { sessionId } = useParams<{ sessionId: string }>();
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
-  const [sessionTitle, setSessionTitle] = useState<string>(''); // Changed from moduleTitle
+  const [sessionTitle, setSessionTitle] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<CurriculumLesson | null>(null);
 
   const fetchLessons = async () => {
+    if (!sessionId) return;
     setLoading(true);
     try {
       const { data: sessionData, error: sessionError } = await supabase
@@ -46,7 +50,7 @@ const LessonManagement: React.FC = () => {
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
-        .eq('session_id', sessionId) // Changed from module_id
+        .eq('session_id', sessionId)
         .order('order_index', { ascending: true });
       if (error) throw error;
       setLessons(data || []);
@@ -58,10 +62,16 @@ const LessonManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!sessionLoading && isAdmin && sessionId) {
-      fetchLessons();
+    if (!localUser) {
+      navigate('/enter-name');
+      return;
     }
-  }, [sessionId, sessionLoading, isAdmin]);
+    if (isAdmin && sessionId) {
+      fetchLessons();
+    } else if (!isAdmin) {
+      navigate('/'); // Redirect non-admins
+    }
+  }, [sessionId, localUser, isAdmin, navigate]);
 
   const handleDeleteLesson = async (lessonId: string) => {
     try {
@@ -90,19 +100,12 @@ const LessonManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (sessionLoading || loading || !sessionId) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+  if (!localUser || !isAdmin) {
+    return null; // Handled by useEffect redirect
   }
 
-  if (!user || !isAdmin) {
-    return (
-      <Layout>
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-        </div>
-      </Layout>
-    );
+  if (loading || !sessionId) {
+    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
   }
 
   return (
@@ -110,7 +113,7 @@ const LessonManagement: React.FC = () => {
       <div className="container mx-auto p-4">
         <div className="flex items-center mb-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link to={`/admin/curriculum/sessions`}> {/* Link back to session management */}
+            <Link to={`/admin/curriculum/sessions`}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

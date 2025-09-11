@@ -2,10 +2,9 @@ import React from 'react';
 import AxumLogo from './AxumLogo';
 import ThemeToggle from './ThemeToggle';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSession } from '@/components/SessionContextProvider'; // Import useSession
+import { getLocalUser, clearLocalUser } from '@/utils/localUser'; // Import local user utilities
 import { Button } from '@/components/ui/button';
 import { LogOut, UserCog } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 
 interface LayoutProps {
@@ -13,25 +12,23 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { session, loading, isAdmin } = useSession();
+  const localUser = getLocalUser();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      showSuccess('Logged out successfully!');
-      navigate('/login');
-    } catch (error: any) {
-      showError(`Failed to log out: ${error.message}`);
-      console.error('Logout error:', error);
-    }
+  // Simple local check: user is admin if their name is "Admin"
+  const isAdmin = localUser?.name === "Admin";
+
+  const handleLogout = () => {
+    clearLocalUser();
+    showSuccess('Logged out successfully!');
+    navigate('/enter-name');
   };
 
-  if (loading) {
+  if (!localUser) {
+    // This case should ideally be handled by UserCheck in App.tsx, but as a fallback
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <p>Loading user session...</p>
+        <p>Redirecting to name input...</p>
       </div>
     );
   }
@@ -43,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <AxumLogo />
         </Link>
         <div className="flex items-center gap-4">
-          {session && isAdmin && (
+          {localUser && isAdmin && (
             <Link to="/admin">
               <Button variant="ghost" size="sm">
                 <UserCog className="mr-2 h-4 w-4" /> Admin Dashboard
@@ -51,9 +48,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Link>
           )}
           <ThemeToggle />
-          {session && (
+          {localUser && (
             <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" /> Logout
+              <LogOut className="mr-2 h-4 w-4" /> Logout ({localUser.name})
             </Button>
           )}
         </div>
