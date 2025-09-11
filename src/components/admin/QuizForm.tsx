@@ -39,7 +39,7 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz, onSuccess }) => {
       if (error) {
         showError('Failed to load lessons.');
       } else {
-        setLessons(data || []); // Data matches LessonOption[]
+        setLessons(data as LessonOption[] || []); // Explicitly cast data to LessonOption[]
       }
     };
     fetchLessons();

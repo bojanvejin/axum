@@ -70,7 +70,8 @@ export interface QuizQuestion {
 
 export interface QuizAttempt {
   id: string;
-  user_id: string; // Added user_id
+  user_id: string;
+  quiz_id: string; // Added quiz_id
   score: number;
   answers: Record<string, string>;
   submitted_at: string;

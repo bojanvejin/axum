@@ -17,18 +17,17 @@ import {
 } from '@/components/ui/form';
 import { showError, showSuccess } from '@/utils/toast';
 
-// Define the schema for the form's input values (which are strings for array-like fields)
-const formSchema = z.object({
+// Define the schema for the raw form input values (all as strings for text inputs)
+const formInputSchema = z.object({
   session_number: z.coerce.number().min(1, { message: 'Session number must be at least 1.' }),
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().optional(),
-  // These fields are input as strings, then transformed to arrays for the database
-  topics: z.string().optional().transform(val => val ? val.split('\n').map(s => s.trim()).filter(s => s.length > 0) : []),
-  assignments: z.string().optional().transform(val => val ? val.split('\n').map(s => s.trim()).filter(s => s.length > 0) : []),
-  covers_days: z.string().optional().transform(val => val ? val.split(',').map(Number).filter(n => !isNaN(n) && n > 0) : []),
+  topics: z.string().optional(), // Raw string input
+  assignments: z.string().optional(), // Raw string input
+  covers_days: z.string().optional(), // Raw string input
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormInputValues = z.infer<typeof formInputSchema>;
 
 interface SessionFormProps {
   session?: CurriculumSession | null;
@@ -36,8 +35,8 @@ interface SessionFormProps {
 }
 
 const SessionForm: React.FC<SessionFormProps> = ({ session, onSuccess }) => {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<FormInputValues>({
+    resolver: zodResolver(formInputSchema),
     defaultValues: {
       session_number: session?.session_number || 1,
       title: session?.title || '',
@@ -72,16 +71,16 @@ const SessionForm: React.FC<SessionFormProps> = ({ session, onSuccess }) => {
     }
   }, [session, form]);
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: FormInputValues) => {
     try {
-      // The values are already transformed by the schema's .transform()
+      // Manually transform string values to arrays for the Supabase payload
       const payload = {
         session_number: values.session_number,
         title: values.title,
         description: values.description,
-        topics: values.topics, // This will be string[] due to transform
-        assignments: values.assignments, // This will be string[] due to transform
-        covers_days: values.covers_days, // This will be number[] due to transform
+        topics: values.topics ? values.topics.split('\n').map(s => s.trim()).filter(s => s.length > 0) : [],
+        assignments: values.assignments ? values.assignments.split('\n').map(s => s.trim()).filter(s => s.length > 0) : [],
+        covers_days: values.covers_days ? values.covers_days.split(',').map(Number).filter(n => !isNaN(n) && n > 0) : [],
       };
 
       if (session) {
@@ -182,8 +181,8 @@ const SessionForm: React.FC<SessionFormProps> = ({ session, onSuccess }) => {
             <FormItem>
               <FormLabel>Covers Days (comma-separated numbers)</FormLabel>
               <FormControl>
-                {/* Ensure the value passed to Input is a string */}
-                <Input placeholder="e.g., 1,2,3" {...field} value={field.value as string} />
+                {/* field.value is now correctly a string */}
+                <Input placeholder="e.g., 1,2,3" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
