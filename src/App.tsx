@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import CompleteProfile from "./pages/CompleteProfile"; // Import new CompleteProfile page
 import PhaseDetail from "./pages/PhaseDetail";
 import ModuleDetail from "./pages/ModuleDetail";
 import LessonDetail from "./pages/LessonDetail";
@@ -18,7 +19,7 @@ import QuestionManagement from "./pages/admin/QuestionManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import { ThemeProvider } from "next-themes";
 import { SessionContextProvider } from "./components/SessionContextProvider";
-import { LanguageProvider } from "./contexts/LanguageContext"; // Import LanguageProvider
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 const queryClient = new QueryClient();
 
@@ -29,11 +30,12 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <LanguageProvider> {/* Wrap with LanguageProvider */}
+          <LanguageProvider>
             <SessionContextProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/complete-profile" element={<CompleteProfile />} /> {/* New route */}
                 <Route path="/phases/:phaseId" element={<PhaseDetail />} />
                 <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
                 <Route path="/lessons/:lessonId" element={<LessonDetail />} />

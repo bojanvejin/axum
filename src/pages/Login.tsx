@@ -1,14 +1,14 @@
 import React from 'react';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AxumLogo from '@/components/AxumLogo';
 import { Toaster } from '@/components/ui/sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const { t } = useLanguage();
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -19,16 +19,27 @@ const Login: React.FC = () => {
             {t('welcome_title')}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground text-center">
-            {t('login_removed_message')}
+            {t('login_prompt_message')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="mb-4 text-muted-foreground">
-            {t('login_removed_explanation')}
-          </p>
-          <Button onClick={() => navigate('/')} className="w-full">
-            {t('return_to_home')}
-          </Button>
+        <CardContent>
+          <Auth
+            supabaseClient={supabase}
+            providers={[]}
+            appearance={{
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: 'hsl(var(--primary))',
+                    brandAccent: 'hsl(var(--primary-foreground))',
+                  },
+                },
+              },
+            }}
+            theme="dark" // Using dark theme for Auth UI to match app's dark mode
+            magicLink
+          />
         </CardContent>
       </Card>
       <Toaster />
