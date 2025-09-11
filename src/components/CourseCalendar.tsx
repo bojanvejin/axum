@@ -1,15 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays, isSameDay, parseISO } from 'date-fns';
+import { format, addDays, isSameDay } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { CurriculumModule } from '@/data/curriculum';
+import { CurriculumModule, CurriculumLesson, CurriculumPhase } from '@/data/curriculum';
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Extend CurriculumModule to include phase title for display
+interface ModuleWithPhaseTitle extends CurriculumModule {
+  phases: Pick<CurriculumPhase, 'title'>;
+}
 
 interface CourseCalendarProps {
   startDate: Date; // The actual start date of the course (e.g., the first class Monday)
@@ -17,54 +22,79 @@ interface CourseCalendarProps {
 
 const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [modulesForSelectedDate, setModulesForSelectedDate] = useState<CurriculumModule[]>([]);
-  const [classDaysMap, setClassDaysMap] = useState<Map<string, CurriculumModule[]>>(new Map()); // Map date string to modules
+  const [modulesForSelectedDate, setModulesForSelectedDate] = useState<ModuleWithPhaseTitle[]>([]);
+  // Map to store unique module IDs for each class day (for highlighting)
+  const [classDaysModuleIdsMap, setClassDaysModuleIdsMap] = useState<Map<string, Set<string>>>(new Map());
+  // Map to store actual module data for each class day (for display)
+  const [classDaysModulesDataMap, setClassDaysModulesDataMap] = useState<Map<string, ModuleWithPhaseTitle[]>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAndGenerateCourseDates = async () => {
       setLoading(true);
       try {
-        const { data: modulesData, error } = await supabase
-          .from('modules')
-          .select('id, phase_id, title, description, course_week, order_index') // Added order_index
-          .order('order_index', { ascending: true });
+        // Fetch all lessons along with their module and phase details
+        const { data: lessonsData, error } = await supabase
+          .from('lessons')
+          .select('id, title, week_number, day_number, modules(id, phase_id, title, description, order_index, course_week, phases(title))')
+          .order('week_number', { ascending: true })
+          .order('day_number', { ascending: true });
 
         if (error) throw error;
 
-        const daysMap = new Map<string, CurriculumModule[]>();
-        
-        modulesData?.forEach(module => {
-          if (module.course_week !== undefined && module.course_week !== null) {
-            // Calculate the class day: every other Monday, starting from startDate
-            // Week 1 module is on startDate (Monday)
-            // Week 2 module is on startDate + 7 days (next Monday)
-            // Week 3 module is on startDate + 14 days (Monday after next)
-            // ... and so on.
-            // The user mentioned "every other monday", but the courseOutline has 6 weeks.
-            // Let's assume "every other Monday" means the *start* of each course week is a Monday.
-            // If the actual class schedule is "every other Monday" for the *entire course*,
-            // then the `course_week` would need to map to a different `addDays` calculation.
-            // For now, I'll map `course_week` 1 to `startDate`, `course_week` 2 to `startDate + 7 days`, etc.
-            const classDay = addDays(startDate, (module.course_week - 1) * 7);
+        const newClassDaysModuleIdsMap = new Map<string, Set<string>>();
+        const newClassDaysModulesDataMap = new Map<string, ModuleWithPhaseTitle[]>();
+
+        lessonsData?.forEach(lesson => {
+          if (lesson.week_number !== undefined && lesson.week_number !== null &&
+              lesson.day_number !== undefined && lesson.day_number !== null &&
+              lesson.modules) {
+            
+            const module = lesson.modules as ModuleWithPhaseTitle; // Cast to our extended type
+            
+            // Calculate the actual calendar date for this lesson
+            // Assuming week_number 1 starts on startDate, day_number 1 is the first day of that week.
+            // We need to adjust for 0-indexed days if startDate is a Monday (day 0 of the week).
+            // Let's assume startDate is the first day (Day 1) of Week 1.
+            const daysToAdd = (lesson.week_number - 1) * 7 + (lesson.day_number - 1);
+            const classDay = addDays(startDate, daysToAdd);
             const dateString = format(classDay, 'yyyy-MM-dd');
-            if (!daysMap.has(dateString)) {
-              daysMap.set(dateString, []);
+
+            // For highlighting
+            if (!newClassDaysModuleIdsMap.has(dateString)) {
+              newClassDaysModuleIdsMap.set(dateString, new Set());
             }
-            daysMap.get(dateString)?.push(module);
+            newClassDaysModuleIdsMap.get(dateString)?.add(module.id);
+
+            // For displaying module details
+            if (!newClassDaysModulesDataMap.has(dateString)) {
+              newClassDaysModulesDataMap.set(dateString, []);
+            }
+            const modulesForThisDay = newClassDaysModulesDataMap.get(dateString);
+            // Add module only if it's not already added for this day
+            if (modulesForThisDay && !modulesForThisDay.some(m => m.id === module.id)) {
+              modulesForThisDay.push(module);
+            }
           }
         });
-        setClassDaysMap(daysMap);
 
-        // If a date was already selected, update its modules
+        // Sort modules within each day by order_index
+        newClassDaysModulesDataMap.forEach(modules => {
+          modules.sort((a, b) => a.order_index - b.order_index);
+        });
+
+        setClassDaysModuleIdsMap(newClassDaysModuleIdsMap);
+        setClassDaysModulesDataMap(newClassDaysModulesDataMap);
+
+        // If a date was already selected, update its modules based on the new data
         if (selectedDate) {
           const dateString = format(selectedDate, 'yyyy-MM-dd');
-          setModulesForSelectedDate(daysMap.get(dateString) || []);
+          setModulesForSelectedDate(newClassDaysModulesDataMap.get(dateString) || []);
         }
 
       } catch (err: any) {
-        showError(`Failed to load course modules: ${err.message}`);
-        console.error('Error fetching modules for calendar:', err);
+        showError(`Failed to load course schedule: ${err.message}`);
+        console.error('Error fetching lessons for calendar:', err);
       } finally {
         setLoading(false);
       }
@@ -77,7 +107,7 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
     setSelectedDate(date);
     if (date) {
       const dateString = format(date, 'yyyy-MM-dd');
-      setModulesForSelectedDate(classDaysMap.get(dateString) || []);
+      setModulesForSelectedDate(classDaysModulesDataMap.get(dateString) || []);
     } else {
       setModulesForSelectedDate([]);
     }
@@ -86,7 +116,7 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
   const modifiers = {
     classDays: (date: Date) => {
       const dateString = format(date, 'yyyy-MM-dd');
-      return classDaysMap.has(dateString);
+      return classDaysModuleIdsMap.has(dateString);
     },
   };
 
