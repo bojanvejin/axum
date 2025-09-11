@@ -27,7 +27,7 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
       try {
         const { data: modulesData, error } = await supabase
           .from('modules')
-          .select('id, phase_id, title, description, course_week') // Select course_week
+          .select('id, phase_id, title, description, course_week, order_index') // Added order_index
           .order('order_index', { ascending: true });
 
         if (error) throw error;
@@ -43,8 +43,6 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
             // ... and so on.
             // The user mentioned "every other monday", but the courseOutline has 6 weeks.
             // Let's assume "every other Monday" means the *start* of each course week is a Monday.
-            // If the course is taught every other Monday, then week 1 is Monday, week 2 is 2 weeks after, etc.
-            // Given the courseOutline has 6 consecutive weeks, I'll assume each week's module starts on a Monday.
             // If the actual class schedule is "every other Monday" for the *entire course*,
             // then the `course_week` would need to map to a different `addDays` calculation.
             // For now, I'll map `course_week` 1 to `startDate`, `course_week` 2 to `startDate + 7 days`, etc.
