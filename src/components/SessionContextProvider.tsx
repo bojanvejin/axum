@@ -17,16 +17,21 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("SessionContextProvider: Setting up auth state listener.");
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      console.log("SessionContextProvider: Auth state changed. Current user:", currentUser);
       setUser(currentUser);
       setLoading(false);
     }, (error) => {
-      console.error("Firebase Auth Error:", error);
+      console.error("SessionContextProvider: Firebase Auth Error:", error);
       showError("Authentication error. Please try again.");
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log("SessionContextProvider: Cleaning up auth state listener.");
+      unsubscribe();
+    };
   }, []);
 
   return (

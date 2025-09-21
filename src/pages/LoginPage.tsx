@@ -22,27 +22,33 @@ const LoginPage: React.FC = () => {
 
   // Redirect if already logged in
   React.useEffect(() => {
+    console.log("LoginPage: User state changed. Current user:", user);
     if (user) {
+      console.log("LoginPage: User logged in, redirecting to /");
       navigate('/');
     }
   }, [user, navigate]);
 
   const handleAuth = async () => {
     setLoading(true);
+    console.log(`LoginPage: Attempting ${isRegistering ? 'registration' : 'login'} for email: ${email}`);
     try {
       if (isRegistering) {
         await createUserWithEmailAndPassword(auth, email, password);
         showSuccess('Registration successful! You are now logged in.');
+        console.log("LoginPage: Registration successful.");
       } else {
         await signInWithEmailAndPassword(auth, email, password);
         showSuccess('Login successful!');
+        console.log("LoginPage: Login successful.");
       }
-      navigate('/');
+      // The useEffect will handle navigation after auth state changes
     } catch (error: any) {
-      console.error('Firebase Auth Error:', error);
+      console.error('LoginPage: Firebase Auth Error during attempt:', error);
       showError(`Authentication failed: ${error.message}`);
     } finally {
       setLoading(false);
+      console.log("LoginPage: Authentication attempt finished.");
     }
   };
 
