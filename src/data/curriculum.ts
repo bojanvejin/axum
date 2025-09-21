@@ -27,13 +27,14 @@ export interface CurriculumLesson {
 }
 
 export interface StudentProgress {
-  id: string;
-  user_id: string;
+  id?: string; // Firestore document ID
+  user_id: string; // Firebase Auth UID
   lesson_id: string;
-  completed_at: string | null;
+  completed_at: string | null; // ISO string
   status: 'started' | 'completed' | 'submitted_for_review';
   practical_submission_url?: string;
   grade?: string;
+  created_at: string; // ISO string
 }
 
 export interface Quiz {
@@ -41,6 +42,7 @@ export interface Quiz {
   lesson_id?: string | null;
   title: string;
   description: string;
+  created_at: string; // ISO string
 }
 
 export interface QuizQuestion {
@@ -50,12 +52,14 @@ export interface QuizQuestion {
   question_type: 'mcq';
   options: string[];
   correct_answer: string;
+  created_at: string; // ISO string
 }
 
-// New interface for local quiz attempts
 export interface QuizAttempt {
-  id: string;
+  id?: string; // Firestore document ID
+  user_id: string; // Firebase Auth UID
+  quiz_id: string;
   score: number;
   answers: Record<string, string>;
-  submitted_at: string;
+  submitted_at: string; // ISO string
 }

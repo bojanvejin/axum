@@ -3,15 +3,15 @@ import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
 import CurriculumPhaseOverviewCard from "@/components/CurriculumPhaseOverviewCard";
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from "@/data/curriculum";
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Firestore imports
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { getLocalStudentProgress, setLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
-import CourseCalendar from '@/components/CourseCalendar'; // New import
+import CourseCalendar from '@/components/CourseCalendar';
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 
 const backgroundImages = [
   '/images/axum-salon-interior.jpeg',
@@ -24,35 +24,31 @@ const Index = () => {
   const [allLessons, setAllLessons] = useState<CurriculumLesson[]>([]);
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [localUser, setLocalUser] = useState<{ id: string; name: string } | null>(null); // State for local user
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   useEffect(() => {
-    const user = getLocalUser();
-    if (!user) {
-      navigate('/enter-name'); // Redirect if no user name is set
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
       return;
     }
-    setLocalUser(user);
 
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        const { data: phasesData, error: phasesError } = await supabase
-          .from('phases')
-          .select('*')
-          .order('order_index', { ascending: true });
-        if (phasesError) throw phasesError;
-        setPhases(phasesData || []);
+        // Fetch Phases
+        const phasesCollection = collection(db, 'phases');
+        const phasesSnapshot = await getDocs(query(phasesCollection, orderBy('order_index')));
+        const phasesData = phasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumPhase[];
+        setPhases(phasesData);
 
-        const { data: modulesData, error: modulesError } = await supabase
-          .from('modules')
-          .select('*')
-          .order('order_index', { ascending: true });
-        if (modulesError) throw modulesError;
+        // Fetch Modules
+        const modulesCollection = collection(db, 'modules');
+        const modulesSnapshot = await getDocs(query(modulesCollection, orderBy('order_index')));
+        const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumModule[];
 
         const organizedModules: Record<string, CurriculumModule[]> = {};
-        modulesData?.forEach(module => {
+        modulesData.forEach(module => {
           if (!organizedModules[module.phase_id]) {
             organizedModules[module.phase_id] = [];
           }
@@ -60,19 +56,17 @@ const Index = () => {
         });
         setModulesByPhase(organizedModules);
 
-        const { data: lessonsData, error: lessonsError } = await supabase
-          .from('lessons')
-          .select('*');
-        if (lessonsError) throw lessonsError;
-        setAllLessons(lessonsData || []);
+        // Fetch Lessons
+        const lessonsCollection = collection(db, 'lessons');
+        const lessonsSnapshot = await getDocs(lessonsCollection);
+        const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
+        setAllLessons(lessonsData);
 
-        // Load student progress from local storage
-        if (user) {
-          setStudentProgress(getLocalStudentProgress(user.id));
-        }
+        // Fetch Student Progress (will be from Firestore later)
+        // For now, it will be empty as localProgress is removed.
+        setStudentProgress([]);
 
-      } catch (error: any)
-      {
+      } catch (error: any) {
         showError(`Failed to load curriculum: ${error.message}`);
         console.error('Error fetching curriculum data:', error);
       } finally {
@@ -80,22 +74,18 @@ const Index = () => {
       }
     };
 
-    if (user) { // Only fetch data if a local user is present
+    if (user) { // Only fetch data if a user is logged in
       fetchData();
     }
-  }, [navigate]); // Depend on navigate to ensure redirect works
-
-  // The following variables are no longer used for display but are kept if handleContinueLearning is re-introduced
-  // const totalLessons = allLessons.length;
-  // const completedLessonsCount = studentProgress.filter(p => p.status === 'completed').length;
-  // const overallProgress = totalLessons > 0 ? (completedLessonsCount / totalLessons) * 100 : 0;
+  }, [user, authLoading, navigate]);
 
   const handleContinueLearning = () => {
-    if (!localUser) {
-      navigate('/enter-name');
+    if (!user) {
+      navigate('/login');
       return;
     }
 
+    // This logic will need to be updated once student progress is in Firestore
     const completedLessonIds = new Set(studentProgress.filter(p => p.status === 'completed').map(p => p.lesson_id));
     const firstIncompleteLesson = [...allLessons]
       .sort((a, b) => a.order_index - b.order_index)
@@ -108,9 +98,24 @@ const Index = () => {
     }
   };
 
-  // Calculate the course start date: last Monday from today (Sept 11, 2025)
-  // September is month 8 (0-indexed)
-  const courseStartDate = new Date(2025, 8, 8); 
+  const courseStartDate = new Date(2025, 8, 8);
+
+  if (authLoading || dataLoading) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center py-8">
+          <Skeleton className="h-12 w-3/4 mb-2" />
+          <Skeleton className="h-6 w-1/2 mb-8" />
+          <Skeleton className="h-8 w-1/4 mb-6 self-start w-full max-w-6xl mx-auto" />
+          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(2)].map((_, i) => (
+              <Skeleton key={i} className="h-64 w-full" />
+            ))}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -126,13 +131,7 @@ const Index = () => {
         <CourseCalendar startDate={courseStartDate} />
 
         <h2 className="text-3xl font-bold mb-6 mt-8 self-start w-full max-w-6xl mx-auto">Curriculum Phases</h2>
-        {dataLoading ? (
-          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[...Array(2)].map((_, i) => (
-              <Skeleton key={i} className="h-64 w-full" />
-            ))}
-          </div>
-        ) : phases.length === 0 ? (
+        {phases.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No curriculum phases found.</p>
         ) : (
           <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2">
@@ -142,7 +141,7 @@ const Index = () => {
                 phase={phase}
                 modules={modulesByPhase[phase.id] || []}
                 allLessons={allLessons}
-                studentProgress={studentProgress}
+                studentProgress={studentProgress} // This will be empty until Firestore progress is implemented
                 backgroundImage={backgroundImages[index % backgroundImages.length]}
               />
             ))}

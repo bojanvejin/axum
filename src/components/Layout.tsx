@@ -1,23 +1,53 @@
 import React from 'react';
 import AxumLogo from './AxumLogo';
 import ThemeToggle from './ThemeToggle';
-import { Link } from 'react-router-dom';
-// useUserRole is no longer needed as we are removing Supabase auth
+import { Link, useNavigate } from 'react-router-dom';
+import { useSession } from '@/components/SessionContextProvider'; // New import
+import { Button } from '@/components/ui/button';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/integrations/firebase/client';
+import { showError, showSuccess } from '@/utils/toast';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  // role and loading are no longer needed
-  // const { role, loading } = useUserRole(); 
+  const { user, loading } = useSession(); // Use Firebase session
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      showSuccess('Logged out successfully!');
+      navigate('/login');
+    } catch (error: any) {
+      console.error('Firebase Logout Error:', error);
+      showError(`Logout failed: ${error.message}`);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="flex items-center justify-between p-4 border-b border-border">
-        <AxumLogo />
+        <Link to="/">
+          <AxumLogo />
+        </Link>
         <div className="flex items-center gap-4">
-          {/* Admin Dashboard link removed as roles are no longer managed via Supabase auth */}
+          {!loading && (
+            user ? (
+              <>
+                <Link to="/admin">
+                  <Button variant="ghost">Admin Dashboard</Button>
+                </Link>
+                <Button variant="outline" onClick={handleLogout}>Logout</Button>
+              </>
+            ) : (
+              <Link to="/login">
+                <Button variant="outline">Login</Button>
+              </Link>
+            )
+          )}
           <ThemeToggle />
         </div>
       </header>

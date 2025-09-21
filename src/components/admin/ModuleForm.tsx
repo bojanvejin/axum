@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore'; // Firestore imports
 import { CurriculumModule } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +22,7 @@ const formSchema = z.object({
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().optional(),
   order_index: z.coerce.number().min(0, { message: 'Order index cannot be negative.' }),
-  phase_id: z.string().uuid({ message: 'Invalid Phase ID.' }), // Hidden field, but required
+  phase_id: z.string().min(1, { message: 'Phase ID is required.' }), // Hidden field, but required
 });
 
 interface ModuleFormProps {
@@ -63,20 +64,12 @@ const ModuleForm: React.FC<ModuleFormProps> = ({ phaseId, module, onSuccess }) =
     try {
       if (module) {
         // Update existing module
-        const { error } = await supabase
-          .from('modules')
-          .update(values)
-          .eq('id', module.id);
-
-        if (error) throw error;
+        const moduleDocRef = doc(db, 'modules', module.id);
+        await updateDoc(moduleDocRef, values);
         showSuccess('Module updated successfully!');
       } else {
         // Insert new module
-        const { error } = await supabase
-          .from('modules')
-          .insert(values);
-
-        if (error) throw error;
+        await addDoc(collection(db, 'modules'), values);
         showSuccess('Module added successfully!');
       }
       onSuccess();

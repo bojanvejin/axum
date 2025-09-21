@@ -4,11 +4,12 @@ import { CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Circle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 
 interface LessonNavigationSidebarProps {
   lessons: CurriculumLesson[];
   currentLessonId: string;
-  studentProgress: StudentProgress[]; // Now passed directly
+  studentProgress: StudentProgress[];
 }
 
 const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({
@@ -17,6 +18,7 @@ const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({
   studentProgress,
 }) => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
+  const { user } = useSession(); // Get user from Firebase session
 
   const isLessonCompleted = (lessonId: string) => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
@@ -37,11 +39,11 @@ const LessonNavigationSidebar: React.FC<LessonNavigationSidebarProps> = ({
                 : "text-muted-foreground",
             )}
           >
-            {isLessonCompleted(lesson.id) ? (
+            {user && (isLessonCompleted(lesson.id) ? (
               <CheckCircle className="text-green-500" size={16} />
             ) : (
               <Circle className="text-muted-foreground" size={16} />
-            )}
+            ))}
             {lesson.title}
           </Link>
         ))}

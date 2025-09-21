@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, query, where, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc as getFirestoreDoc } from 'firebase/firestore'; // Firestore imports
 import { Quiz, QuizQuestion } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,8 @@ import QuestionForm from '@/components/admin/QuestionForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const QuestionManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const navigate = useNavigate();
   const { quizId } = useParams<{ quizId: string }>();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -33,16 +35,27 @@ const QuestionManagement: React.FC = () => {
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
 
   const fetchQuestions = async () => {
-    if (!quizId) return;
+    if (!quizId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const { data: quizData, error: quizError } = await supabase.from('quizzes').select('*').eq('id', quizId).single();
-      if (quizError) throw quizError;
-      setQuiz(quizData);
+      // Fetch quiz details
+      const quizDocRef = doc(db, 'quizzes', quizId);
+      const quizDocSnap = await getFirestoreDoc(quizDocRef);
+      if (quizDocSnap.exists()) {
+        setQuiz({ id: quizDocSnap.id, ...quizDocSnap.data() } as Quiz);
+      } else {
+        setQuiz(null);
+      }
 
-      const { data, error } = await supabase.from('quiz_questions').select('*').eq('quiz_id', quizId).order('created_at');
-      if (error) throw error;
-      setQuestions(data || []);
+      // Fetch questions for the quiz
+      const questionsCollectionRef = collection(db, 'quiz_questions');
+      const questionsQuery = query(questionsCollectionRef, where('quiz_id', '==', quizId), orderBy('created_at'));
+      const questionsSnapshot = await getDocs(questionsQuery);
+      const questionsData = questionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as QuizQuestion[];
+      setQuestions(questionsData);
     } catch (error: any) {
       showError(`Failed to load questions: ${error.message}`);
     } finally {
@@ -51,15 +64,18 @@ const QuestionManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin') { // Modified condition
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
+      return;
+    }
+    if (user && quizId) { // Only fetch if user is logged in and quizId is available
       fetchQuestions();
-    // }
-  }, [quizId]); // Removed role, roleLoading from dependencies
+    }
+  }, [user, authLoading, navigate, quizId]);
 
   const handleDeleteQuestion = async (questionId: string) => {
     try {
-      const { error } = await supabase.from('quiz_questions').delete().eq('id', questionId);
-      if (error) throw error;
+      await deleteDoc(doc(db, 'quiz_questions', questionId));
       showSuccess('Question deleted successfully!');
       fetchQuestions();
     } catch (error: any) {
@@ -83,23 +99,26 @@ const QuestionManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading || !quizId) { // Modified condition
-  if (!quizId) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+  if (authLoading || loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <Skeleton className="h-12 w-1/2 mb-8" />
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user) {
+    return null; // Will be redirected by useEffect
+  }
+
+  if (!quizId) {
+    return <Layout><div className="text-center py-8"><p>Quiz ID missing.</p></div></Layout>;
+  }
 
   return (
     <Layout>
@@ -128,11 +147,7 @@ const QuestionManagement: React.FC = () => {
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
-          </div>
-        ) : questions.length === 0 ? (
+        {questions.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No questions found. Click "Add New Question" to get started!</p>
         ) : (
           <div className="space-y-4">

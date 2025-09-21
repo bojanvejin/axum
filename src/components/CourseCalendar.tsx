@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, query, orderBy, getDocs } from 'firebase/firestore'; // Firestore imports
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
 import { CurriculumPhase, CurriculumModule } from '@/data/curriculum';
-import { Skeleton } from '@/components/ui/skeleton'; // Added import for Skeleton
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CourseCalendarProps {
   startDate: Date; // The actual start date of the course (e.g., the first class Monday)
@@ -25,17 +26,15 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
     const fetchCurriculumAndGenerateSchedule = async () => {
       setLoading(true);
       try {
-        const { data: phasesData, error: phasesError } = await supabase
-          .from('phases')
-          .select('*')
-          .order('order_index', { ascending: true });
-        if (phasesError) throw phasesError;
+        // Fetch phases
+        const phasesCollectionRef = collection(db, 'phases');
+        const phasesSnapshot = await getDocs(query(phasesCollectionRef, orderBy('order_index')));
+        const phasesData = phasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumPhase[];
 
-        const { data: modulesData, error: modulesError } = await supabase
-          .from('modules')
-          .select('*')
-          .order('order_index', { ascending: true });
-        if (modulesError) throw modulesError;
+        // Fetch modules
+        const modulesCollectionRef = collection(db, 'modules');
+        const modulesSnapshot = await getDocs(query(modulesCollectionRef, orderBy('order_index')));
+        const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumModule[];
 
         const phases: CurriculumPhase[] = phasesData || [];
         const modules: CurriculumModule[] = modulesData || [];
@@ -45,7 +44,7 @@ const CourseCalendar: React.FC<CourseCalendarProps> = ({ startDate }) => {
 
         phases.forEach(phase => {
           const modulesInPhase = modules.filter(module => module.phase_id === phase.id);
-          
+
           // Ensure currentClassDate is a Monday
           while (currentClassDate.getDay() !== 1) { // 1 = Monday
             currentClassDate = addDays(currentClassDate, 1);

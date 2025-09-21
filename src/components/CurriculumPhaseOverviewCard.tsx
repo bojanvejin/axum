@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 
 interface CurriculumPhaseOverviewCardProps {
   phase: CurriculumPhase;
@@ -14,10 +14,10 @@ interface CurriculumPhaseOverviewCardProps {
 }
 
 const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = ({ phase, modules, allLessons, studentProgress, backgroundImage }) => {
-  const localUser = getLocalUser(); // Get local user
+  const { user } = useSession(); // Get user from Firebase session
 
   const getPhaseProgress = () => {
-    const lessonsInPhase = allLessons.filter(lesson => 
+    const lessonsInPhase = allLessons.filter(lesson =>
       modules.some(module => module.id === lesson.module_id)
     );
     const completedLessonsInPhase = studentProgress.filter(
@@ -35,7 +35,7 @@ const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = 
 
   return (
     <Link to={`/phases/${phase.id}`} className="block group relative rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 md:col-span-1 h-64">
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       />
@@ -46,7 +46,7 @@ const CurriculumPhaseOverviewCard: React.FC<CurriculumPhaseOverviewCardProps> = 
           <CardDescription className="text-gray-300 mt-1 line-clamp-2">{phase.description}</CardDescription>
           <p className="text-sm text-gray-400 mt-2">Duration: {phase.weeks} Weeks</p>
         </div>
-        {localUser && ( // Conditionally render progress if local user exists
+        {user && ( // Conditionally render progress if user is logged in
           <div className="mt-4">
             <div className="flex justify-between items-center text-sm mb-1">
               <span>Progress</span>

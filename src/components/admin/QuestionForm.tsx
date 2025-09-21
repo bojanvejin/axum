@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore'; // Firestore imports
 import { QuizQuestion } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,7 @@ const formSchema = z.object({
   question_type: z.literal('mcq'),
   options: z.array(z.object({ value: z.string().min(1, 'Option cannot be empty.') })).min(2, 'Must have at least two options.'),
   correct_answer: z.string().min(1, 'A correct answer must be selected.'),
-  quiz_id: z.string().uuid(),
+  quiz_id: z.string().min(1, 'Quiz ID is required.'),
 }).refine(data => data.options.map(opt => opt.value).includes(data.correct_answer), {
   message: "Correct answer must be one of the options.",
   path: ["correct_answer"],
@@ -74,12 +75,11 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess
       };
 
       if (question) {
-        const { error } = await supabase.from('quiz_questions').update(payload).eq('id', question.id);
-        if (error) throw error;
+        const questionDocRef = doc(db, 'quiz_questions', question.id);
+        await updateDoc(questionDocRef, payload);
         showSuccess('Question updated successfully!');
       } else {
-        const { error } = await supabase.from('quiz_questions').insert(payload);
-        if (error) throw error;
+        await addDoc(collection(db, 'quiz_questions'), payload);
         showSuccess('Question added successfully!');
       }
       onSuccess();
@@ -96,7 +96,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ quizId, question, onSuccess
         <FormField control={form.control} name="question_text" render={({ field }) => (
           <FormItem><FormLabel>Question Text</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
         )} />
-        
+
         <div>
           <FormLabel>Options</FormLabel>
           <div className="space-y-2 mt-2">

@@ -1,77 +1,76 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore'; // Firestore imports
 import { CurriculumModule, CurriculumLesson, StudentProgress } from '@/data/curriculum';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-// useUserRole is no longer needed
-import { CheckCircle, Circle, Settings, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Circle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { getLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 
 const ModuleDetail: React.FC = () => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
   const [module, setModule] = useState<CurriculumModule | null>(null);
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
-  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
+  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]); // This will be empty for now
   const [loading, setLoading] = useState(true);
-  const localUser = getLocalUser(); // Get local user
   const navigate = useNavigate();
-  // role and roleLoading are no longer needed
-  // const { role, loading: roleLoading } = useUserRole();
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   useEffect(() => {
-    if (!localUser) {
-      navigate('/enter-name'); // Redirect if no local user
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
       return;
     }
 
     const fetchModuleAndLessons = async () => {
+      if (!moduleId) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        const { data: moduleData, error: moduleError } = await supabase
-          .from('modules')
-          .select('*')
-          .eq('id', moduleId)
-          .single();
+        // Fetch module data
+        const moduleDocRef = doc(db, 'modules', moduleId);
+        const moduleDocSnap = await getDoc(moduleDocRef);
 
-        if (moduleError) throw moduleError;
-        setModule(moduleData);
+        if (!moduleDocSnap.exists()) {
+          throw new Error('Module not found');
+        }
+        setModule({ id: moduleDocSnap.id, ...moduleDocSnap.data() } as CurriculumModule);
 
-        const { data: lessonsData, error: lessonsError } = await supabase
-          .from('lessons')
-          .select('*')
-          .eq('module_id', moduleId)
-          .order('order_index', { ascending: true });
-
-        if (lessonsError) throw lessonsError;
+        // Fetch lessons for the module
+        const lessonsCollectionRef = collection(db, 'lessons');
+        const lessonsQuery = query(lessonsCollectionRef, where('module_id', '==', moduleId), orderBy('order_index'));
+        const lessonsSnapshot = await getDocs(lessonsQuery);
+        const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
         setLessons(lessonsData);
 
-        // Load student progress from local storage
-        if (localUser) {
-          setStudentProgress(getLocalStudentProgress(localUser.id));
-        }
+        // Student progress will be fetched from Firestore later
+        setStudentProgress([]);
 
       } catch (error: any) {
         showError(`Failed to load module details: ${error.message}`);
+        console.error('Error fetching module or lessons:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (moduleId && localUser) { // Only fetch data if a local user is present
+    if (user && moduleId) { // Only fetch data if a user is logged in and moduleId is available
       fetchModuleAndLessons();
     }
-  }, [moduleId, localUser, navigate]);
+  }, [moduleId, user, authLoading, navigate]);
 
   const isLessonCompleted = (lessonId: string) => {
+    // This logic will need to be updated once student progress is in Firestore
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
   };
 
-  if (loading) { // Removed roleLoading from condition
+  if (authLoading || loading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -108,14 +107,6 @@ const ModuleDetail: React.FC = () => {
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{module.title}</h1>
           </div>
-          {/* Admin link removed as roles are no longer managed via Supabase auth */}
-          {/* {role === 'admin' && (
-            <Link to={`/admin/curriculum/phases/${phaseId}/modules/${moduleId}/lessons`}>
-              <Button variant="outline" size="sm">
-                <Settings className="mr-2 h-4 w-4" /> Manage Lessons
-              </Button>
-            </Link>
-          )} */}
         </div>
         <p className="text-lg text-muted-foreground mt-2 mb-8">{module.description}</p>
 
@@ -126,7 +117,7 @@ const ModuleDetail: React.FC = () => {
               <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-xl">{lesson.title}</CardTitle>
-                  {localUser && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
+                  {user && (isLessonCompleted(lesson.id) ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-muted-foreground" size={20} />)}
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-muted-foreground text-sm">{lesson.objectives}</p>

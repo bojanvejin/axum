@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, query, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'; // Firestore imports
 import { Quiz } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ListChecks } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,8 @@ import QuizForm from '@/components/admin/QuizForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const QuizManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -33,13 +35,10 @@ const QuizManagement: React.FC = () => {
   const fetchQuizzes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('quizzes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setQuizzes(data || []);
+      const quizzesCollectionRef = collection(db, 'quizzes');
+      const quizzesSnapshot = await getDocs(query(quizzesCollectionRef, orderBy('created_at', 'desc')));
+      const quizzesData = quizzesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Quiz[];
+      setQuizzes(quizzesData);
     } catch (error: any) {
       showError(`Failed to load quizzes: ${error.message}`);
     } finally {
@@ -48,15 +47,18 @@ const QuizManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin') { // Modified condition
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
+      return;
+    }
+    if (user) { // Only fetch if user is logged in
       fetchQuizzes();
-    // }
-  }, []); // Removed role, roleLoading from dependencies
+    }
+  }, [user, authLoading, navigate]);
 
   const handleDeleteQuiz = async (quizId: string) => {
     try {
-      const { error } = await supabase.from('quizzes').delete().eq('id', quizId);
-      if (error) throw error;
+      await deleteDoc(doc(db, 'quizzes', quizId));
       showSuccess('Quiz deleted successfully!');
       fetchQuizzes();
     } catch (error: any) {
@@ -80,22 +82,22 @@ const QuizManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading) {
-  //   return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
-  // }
+  if (authLoading || loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <Skeleton className="h-12 w-1/2 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user) {
+    return null; // Will be redirected by useEffect
+  }
 
   return (
     <Layout>
@@ -117,11 +119,7 @@ const QuizManagement: React.FC = () => {
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
-          </div>
-        ) : quizzes.length === 0 ? (
+        {quizzes.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No quizzes found. Click "Add New Quiz" to get started!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

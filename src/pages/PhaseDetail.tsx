@@ -1,44 +1,53 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore'; // Firestore imports
 import { CurriculumPhase, CurriculumModule } from '@/data/curriculum';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from '@/utils/toast';
-// useUserRole is no longer needed
 import { Button } from '@/components/ui/button';
-import { Settings, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 
 const PhaseDetail: React.FC = () => {
   const { phaseId } = useParams<{ phaseId: string }>();
   const [phase, setPhase] = useState<CurriculumPhase | null>(null);
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [loading, setLoading] = useState(true);
-  // role and roleLoading are no longer needed
-  // const { role, loading: roleLoading } = useUserRole();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
+      return;
+    }
+
     const fetchPhaseAndModules = async () => {
+      if (!phaseId) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        const { data: phaseData, error: phaseError } = await supabase
-          .from('phases')
-          .select('*')
-          .eq('id', phaseId)
-          .single();
+        // Fetch phase data
+        const phaseDocRef = doc(db, 'phases', phaseId);
+        const phaseDocSnap = await getDoc(phaseDocRef);
 
-        if (phaseError) throw phaseError;
-        setPhase(phaseData);
+        if (!phaseDocSnap.exists()) {
+          throw new Error('Phase not found');
+        }
+        setPhase({ id: phaseDocSnap.id, ...phaseDocSnap.data() } as CurriculumPhase);
 
-        const { data: modulesData, error: modulesError } = await supabase
-          .from('modules')
-          .select('*')
-          .eq('phase_id', phaseId)
-          .order('order_index', { ascending: true });
-
-        if (modulesError) throw modulesError;
+        // Fetch modules for the phase
+        const modulesCollectionRef = collection(db, 'modules');
+        const modulesQuery = query(modulesCollectionRef, where('phase_id', '==', phaseId), orderBy('order_index'));
+        const modulesSnapshot = await getDocs(modulesQuery);
+        const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumModule[];
         setModules(modulesData);
+
       } catch (error: any) {
         showError(`Failed to load phase details: ${error.message}`);
         console.error('Error fetching phase or modules:', error);
@@ -47,12 +56,12 @@ const PhaseDetail: React.FC = () => {
       }
     };
 
-    if (phaseId) {
+    if (user && phaseId) { // Only fetch data if a user is logged in and phaseId is available
       fetchPhaseAndModules();
     }
-  }, [phaseId]);
+  }, [phaseId, user, authLoading, navigate]);
 
-  if (loading) { // Removed roleLoading from condition
+  if (authLoading || loading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -85,20 +94,12 @@ const PhaseDetail: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <Button variant="ghost" size="icon" asChild>
-              <Link to="/"> {/* Back button to main menu */}
+              <Link to="/">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
             <h1 className="text-3xl md:text-4xl font-bold ml-2">{phase.title}</h1>
           </div>
-          {/* Admin link removed as roles are no longer managed via Supabase auth */}
-          {/* {role === 'admin' && (
-            <Link to={`/admin/curriculum/phases/${phase.id}/modules`}>
-              <Button variant="outline" size="sm">
-                <Settings className="mr-2 h-4 w-4" /> Manage Modules
-              </Button>
-            </Link>
-          )} */}
         </div>
         <p className="text-lg text-muted-foreground mb-8">{phase.description}</p>
 

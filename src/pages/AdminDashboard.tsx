@@ -1,16 +1,38 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Layout from '@/components/Layout';
-// useUserRole is no longer needed
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
+import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminDashboard: React.FC = () => {
-  // role and loading are no longer needed
-  // const { role, loading } = useUserRole();
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const navigate = useNavigate();
 
-  // Since we removed Supabase auth, there's no concept of 'admin' role.
-  // For now, we'll assume anyone who navigates here can see it,
-  // but in a real application, you'd implement a different authorization mechanism.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
+    }
+    // In a real application, you would also check for an 'admin' role here.
+    // For now, any logged-in user can access the admin dashboard.
+  }, [user, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <Skeleton className="h-12 w-1/2 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
+    return null; // Will be redirected by useEffect
+  }
 
   return (
     <Layout>
@@ -39,7 +61,6 @@ const AdminDashboard: React.FC = () => {
               <Link to="/admin/curriculum/quizzes" className="text-blue-500 hover:underline mt-4 block">Go to Quiz Management</Link>
             </CardContent>
           </Card>
-          {/* User Management card removed */}
           <Card>
             <CardHeader>
               <CardTitle>View Reports</CardTitle>

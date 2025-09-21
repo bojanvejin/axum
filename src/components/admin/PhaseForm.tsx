@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore'; // Firestore imports
 import { CurriculumPhase } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,20 +63,12 @@ const PhaseForm: React.FC<PhaseFormProps> = ({ phase, onSuccess }) => {
     try {
       if (phase) {
         // Update existing phase
-        const { error } = await supabase
-          .from('phases')
-          .update(values)
-          .eq('id', phase.id);
-
-        if (error) throw error;
+        const phaseDocRef = doc(db, 'phases', phase.id);
+        await updateDoc(phaseDocRef, values);
         showSuccess('Phase updated successfully!');
       } else {
         // Insert new phase
-        const { error } = await supabase
-          .from('phases')
-          .insert(values);
-
-        if (error) throw error;
+        await addDoc(collection(db, 'phases'), values);
         showSuccess('Phase added successfully!');
       }
       onSuccess();

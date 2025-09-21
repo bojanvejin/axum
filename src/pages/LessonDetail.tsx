@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { doc, getDoc, collection, query, where, orderBy, getDocs, setDoc, updateDoc } from 'firebase/firestore'; // Firestore imports
 import { CurriculumLesson, StudentProgress, CurriculumModule, CurriculumPhase } from '@/data/curriculum';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
@@ -10,8 +11,7 @@ import LessonNavigationSidebar from '@/components/LessonNavigationSidebar';
 import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { getLocalStudentProgress, setLocalStudentProgress } from '@/utils/localProgress'; // Import local progress utility
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -23,60 +23,75 @@ const LessonDetail: React.FC = () => {
   const [currentModule, setCurrentModule] = useState<CurriculumModule | null>(null);
   const [currentPhase, setCurrentPhase] = useState<CurriculumPhase | null>(null);
   const [nextLesson, setNextLesson] = useState<CurriculumLesson | null>(null);
-  const localUser = getLocalUser(); // Get local user
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   useEffect(() => {
-    if (!localUser) {
-      navigate('/enter-name'); // Redirect if no local user
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
       return;
     }
 
     const fetchLessonAndProgress = async () => {
+      if (!lessonId || !user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        // Fetch current lesson details and its module/phase
-        const { data: lessonData, error: lessonError } = await supabase
-          .from('lessons')
-          .select('*, modules(id, title, phase_id, phases(id, title))') // Select module and phase details
-          .eq('id', lessonId)
-          .single();
+        // Fetch current lesson details
+        const lessonDocRef = doc(db, 'lessons', lessonId);
+        const lessonDocSnap = await getDoc(lessonDocRef);
 
-        if (lessonError) throw lessonError;
+        if (!lessonDocSnap.exists()) {
+          throw new Error('Lesson not found');
+        }
+        const lessonData = { id: lessonDocSnap.id, ...lessonDocSnap.data() } as CurriculumLesson;
         setLesson(lessonData);
 
-        const module = lessonData?.modules as CurriculumModule & { phases: CurriculumPhase };
-        if (module) {
-          setCurrentModule(module);
-          setCurrentPhase(module.phases);
+        // Fetch module and phase details
+        if (lessonData.module_id) {
+          const moduleDocRef = doc(db, 'modules', lessonData.module_id);
+          const moduleDocSnap = await getDoc(moduleDocRef);
+          if (moduleDocSnap.exists()) {
+            const moduleData = { id: moduleDocSnap.id, ...moduleDocSnap.data() } as CurriculumModule;
+            setCurrentModule(moduleData);
 
-          // Fetch all lessons for the current module (for sidebar navigation and next lesson)
-          const { data: lessonsInModule, error: moduleLessonsError } = await supabase
-            .from('lessons')
-            .select('*')
-            .eq('module_id', module.id)
-            .order('order_index', { ascending: true });
-          if (moduleLessonsError) throw moduleLessonsError;
-          setModuleLessons(lessonsInModule || []);
+            if (moduleData.phase_id) {
+              const phaseDocRef = doc(db, 'phases', moduleData.phase_id);
+              const phaseDocSnap = await getDoc(phaseDocRef);
+              if (phaseDocSnap.exists()) {
+                setCurrentPhase({ id: phaseDocSnap.id, ...phaseDocSnap.data() } as CurriculumPhase);
+              }
+            }
 
-          // Determine next lesson
-          const currentIndex = lessonsInModule?.findIndex(l => l.id === lessonId);
-          if (currentIndex !== undefined && lessonsInModule && currentIndex < lessonsInModule.length - 1) {
-            setNextLesson(lessonsInModule[currentIndex + 1]);
-          } else {
-            setNextLesson(null); // No next lesson
+            // Fetch all lessons for the current module (for sidebar navigation and next lesson)
+            const lessonsInModuleCollectionRef = collection(db, 'lessons');
+            const lessonsInModuleQuery = query(lessonsInModuleCollectionRef, where('module_id', '==', moduleData.id), orderBy('order_index'));
+            const lessonsInModuleSnapshot = await getDocs(lessonsInModuleQuery);
+            const lessonsInModuleData = lessonsInModuleSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
+            setModuleLessons(lessonsInModuleData);
+
+            // Determine next lesson
+            const currentIndex = lessonsInModuleData.findIndex(l => l.id === lessonId);
+            if (currentIndex !== undefined && currentIndex < lessonsInModuleData.length - 1) {
+              setNextLesson(lessonsInModuleData[currentIndex + 1]);
+            } else {
+              setNextLesson(null); // No next lesson
+            }
           }
         } else {
           setModuleLessons([]);
           setNextLesson(null);
         }
 
-        // Load student progress from local storage
-        if (localUser) {
-          const progressData = getLocalStudentProgress(localUser.id);
-          setStudentProgress(progressData);
-          setIsCompleted(progressData.some(p => p.lesson_id === lessonId && p.status === 'completed') || false);
-        }
+        // Fetch student progress for the current user
+        const progressCollectionRef = collection(db, 'student_progress');
+        const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid), where('lesson_id', '==', lessonId));
+        const progressSnapshot = await getDocs(progressQuery);
+        const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
+        setStudentProgress(userProgress);
+        setIsCompleted(userProgress.some(p => p.status === 'completed'));
 
       } catch (error: any) {
         showError(`Failed to load lesson details: ${error.message}`);
@@ -86,38 +101,43 @@ const LessonDetail: React.FC = () => {
       }
     };
 
-    if (lessonId && localUser) { // Only fetch data if a local user is present
+    if (user && lessonId) { // Only fetch data if a user is logged in and lessonId is available
       fetchLessonAndProgress();
     }
-  }, [lessonId, localUser, navigate]);
+  }, [lessonId, user, authLoading, navigate]);
 
   const handleMarkComplete = async () => {
-    if (!localUser) {
-      showError("User not identified. Please refresh and enter your name.");
+    if (!user || !lessonId) {
+      showError("User not identified or lesson ID missing.");
       return;
     }
 
     setLoading(true);
     try {
-      const currentProgress = getLocalStudentProgress(localUser.id);
-      const existingProgressIndex = currentProgress.findIndex(p => p.lesson_id === lessonId);
+      const progressDocRef = doc(db, 'student_progress', `${user.uid}_${lessonId}`); // Unique ID for progress
+      const progressDocSnap = await getDoc(progressDocRef);
 
-      let updatedProgress: StudentProgress[];
-      if (existingProgressIndex > -1) {
-        updatedProgress = currentProgress.map((p, index) =>
-          index === existingProgressIndex ? { ...p, status: 'completed', completed_at: new Date().toISOString() } : p
-        );
+      if (progressDocSnap.exists()) {
+        await updateDoc(progressDocRef, {
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+        });
       } else {
-        updatedProgress = [
-          ...currentProgress,
-          { id: crypto.randomUUID(), user_id: localUser.id, lesson_id: lessonId!, completed_at: new Date().toISOString(), status: 'completed' }
-        ];
+        await setDoc(progressDocRef, {
+          user_id: user.uid,
+          lesson_id: lessonId,
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        });
       }
-      setLocalStudentProgress(localUser.id, updatedProgress); // Save to local storage
 
       setIsCompleted(true);
-      setStudentProgress(updatedProgress);
       showSuccess("Lesson marked as complete!");
+      // Re-fetch progress to update state
+      const updatedProgressSnapshot = await getDocs(query(collection(db, 'student_progress'), where('user_id', '==', user.uid), where('lesson_id', '==', lessonId)));
+      setStudentProgress(updatedProgressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[]);
+
     } catch (error: any) {
       showError(`Failed to mark lesson complete: ${error.message}`);
       console.error('Error marking lesson complete:', error);
@@ -141,7 +161,7 @@ const LessonDetail: React.FC = () => {
     return div.textContent || div.innerText || '';
   }, [lesson?.content_html]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <Layout>
         <div className="flex h-full">

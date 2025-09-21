@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, query, where, orderBy, getDocs, addDoc } from 'firebase/firestore'; // Firestore imports
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { getLocalUser } from '@/utils/localUser'; // Import local user utility
-import { getLocalQuizAttempts, addLocalQuizAttempt } from '@/utils/localProgress'; // Import local quiz attempts utility
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 
 interface QuizQuestion {
   id: string;
@@ -18,10 +18,12 @@ interface QuizQuestion {
 }
 
 interface QuizAttempt {
-  id: string;
+  id?: string; // Firestore will generate this
+  user_id: string;
+  quiz_id: string;
   score: number;
   answers: Record<string, string>;
-  submitted_at: string; // Add submitted_at for consistency
+  submitted_at: string;
 }
 
 interface QuizComponentProps {
@@ -40,7 +42,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingResultsOf, setViewingResultsOf] = useState<QuizAttempt | null>(null);
-  const localUser = getLocalUser(); // Get local user
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   const bestAttempt = attempts.reduce((max, current) => (current.score > max.score ? current : max), { id: '', score: -1, answers: {}, submitted_at: '' });
   const hasPassed = bestAttempt.score >= PASSING_SCORE;
@@ -49,25 +51,27 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
 
   useEffect(() => {
     const fetchQuizData = async () => {
-      if (!quizId || !localUser) {
+      if (!quizId || !user) {
         setLoading(false);
         return;
       }
       setLoading(true);
       try {
-        const { data: questionsData, error: questionsError } = await supabase
-          .from('quiz_questions')
-          .select('*')
-          .eq('quiz_id', quizId)
-          .order('created_at', { ascending: true });
-        if (questionsError) throw questionsError;
-        setQuestions(questionsData || []);
+        // Fetch questions
+        const questionsCollectionRef = collection(db, 'quiz_questions');
+        const questionsQuery = query(questionsCollectionRef, where('quiz_id', '==', quizId), orderBy('created_at'));
+        const questionsSnapshot = await getDocs(questionsQuery);
+        const questionsData = questionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as QuizQuestion[];
+        setQuestions(questionsData);
 
-        // Load quiz attempts from local storage
-        const loadedAttempts = getLocalQuizAttempts(localUser.id, quizId);
+        // Fetch quiz attempts for the current user and quiz
+        const attemptsCollectionRef = collection(db, 'quiz_attempts');
+        const attemptsQuery = query(attemptsCollectionRef, where('user_id', '==', user.uid), where('quiz_id', '==', quizId), orderBy('submitted_at'));
+        const attemptsSnapshot = await getDocs(attemptsQuery);
+        const loadedAttempts = attemptsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as QuizAttempt[];
         setAttempts(loadedAttempts);
 
-        const latestAttempt = loadedAttempts[loadedAttempts.length - 1]; // Get the latest attempt
+        const latestAttempt = loadedAttempts[loadedAttempts.length - 1];
         const best = loadedAttempts.reduce((max, current) => (current.score > (max?.score ?? -1) ? current : max), null);
         const passed = best && best.score >= PASSING_SCORE;
 
@@ -84,20 +88,20 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
       }
     };
 
-    if (localUser) { // Only fetch data if a local user is present
+    if (!authLoading && user) { // Only fetch data if user is logged in
       fetchQuizData();
-    } else {
-      setLoading(false);
+    } else if (!authLoading && !user) {
+      setLoading(false); // If not logged in, stop loading
     }
-  }, [quizId, localUser]);
+  }, [quizId, user, authLoading]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmitQuiz = async () => {
-    if (!localUser) {
-      showError("User not identified. Please refresh and enter your name.");
+    if (!user) {
+      showError("You must be logged in to submit a quiz.");
       return;
     }
     setIsSubmitting(true);
@@ -112,21 +116,23 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     const calculatedScore = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
 
     try {
-      const newAttempt: QuizAttempt = {
-        id: crypto.randomUUID(), // Generate a unique ID for the attempt
+      const newAttemptData: Omit<QuizAttempt, 'id'> = {
+        user_id: user.uid,
+        quiz_id: quizId,
         score: calculatedScore,
         answers: userAnswers,
         submitted_at: new Date().toISOString(),
       };
-      
-      addLocalQuizAttempt(localUser.id, quizId, newAttempt); // Save to local storage
-      
+
+      const docRef = await addDoc(collection(db, 'quiz_attempts'), newAttemptData);
+      const newAttempt: QuizAttempt = { id: docRef.id, ...newAttemptData };
+
       showSuccess(`Attempt ${attemptsMade + 1} submitted! Your score: ${calculatedScore.toFixed(0)}%`);
-      
+
       const updatedAttempts = [...attempts, newAttempt];
       setAttempts(updatedAttempts);
       setViewingResultsOf(newAttempt);
-      
+
       onQuizAttempted?.(calculatedScore, questions.length);
     } catch (error: any) {
       showError(`Failed to submit quiz: ${error.message}`);
@@ -140,7 +146,7 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     setViewingResultsOf(null);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-full" />
@@ -149,8 +155,8 @@ const QuizComponent: React.FC<QuizComponentProps> = ({ quizId, lessonId, onQuizA
     );
   }
 
-  if (!localUser) {
-    return <p className="text-muted-foreground">Please enter your name to take the quiz.</p>;
+  if (!user) {
+    return <p className="text-muted-foreground">Please log in to take the quiz.</p>;
   }
 
   if (questions.length === 0) {

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, addDoc, updateDoc, doc, getDocs, query, orderBy } from 'firebase/firestore'; // Firestore imports
 import { CurriculumLesson } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +19,8 @@ const formSchema = z.object({
   video_url: z.string().url().optional().or(z.literal('')),
   resources_url: z.string().url().optional().or(z.literal('')),
   order_index: z.coerce.number().min(0),
-  module_id: z.string().uuid(),
-  quiz_id: z.string().uuid().nullable().optional(),
+  module_id: z.string().min(1, 'Module ID is required.'),
+  quiz_id: z.string().nullable().optional(),
 });
 
 interface LessonFormProps {
@@ -51,11 +52,14 @@ const LessonForm: React.FC<LessonFormProps> = ({ moduleId, lesson, onSuccess }) 
 
   useEffect(() => {
     const fetchQuizzes = async () => {
-      const { data, error } = await supabase.from('quizzes').select('id, title');
-      if (error) {
+      try {
+        const quizzesCollectionRef = collection(db, 'quizzes');
+        const quizzesSnapshot = await getDocs(query(quizzesCollectionRef, orderBy('title')));
+        const quizzesData = quizzesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Quiz[];
+        setQuizzes(quizzesData);
+      } catch (error: any) {
         showError('Failed to load quizzes.');
-      } else {
-        setQuizzes(data || []);
+        console.error('Error fetching quizzes:', error);
       }
     };
     fetchQuizzes();
@@ -82,12 +86,11 @@ const LessonForm: React.FC<LessonFormProps> = ({ moduleId, lesson, onSuccess }) 
     try {
       const payload = { ...values, quiz_id: values.quiz_id || null };
       if (lesson) {
-        const { error } = await supabase.from('lessons').update(payload).eq('id', lesson.id);
-        if (error) throw error;
+        const lessonDocRef = doc(db, 'lessons', lesson.id);
+        await updateDoc(lessonDocRef, payload);
         showSuccess('Lesson updated successfully!');
       } else {
-        const { error } = await supabase.from('lessons').insert(payload);
-        if (error) throw error;
+        await addDoc(collection(db, 'lessons'), payload);
         showSuccess('Lesson added successfully!');
       }
       onSuccess();

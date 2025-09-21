@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, query, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'; // Firestore imports
 import { CurriculumPhase } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,8 @@ import PhaseForm from '@/components/admin/PhaseForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const PhaseManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const navigate = useNavigate();
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -33,13 +35,10 @@ const PhaseManagement: React.FC = () => {
   const fetchPhases = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('phases')
-        .select('*')
-        .order('order_index', { ascending: true });
-
-      if (error) throw error;
-      setPhases(data || []);
+      const phasesCollectionRef = collection(db, 'phases');
+      const phasesSnapshot = await getDocs(query(phasesCollectionRef, orderBy('order_index')));
+      const phasesData = phasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumPhase[];
+      setPhases(phasesData);
     } catch (error: any) {
       showError(`Failed to load phases: ${error.message}`);
       console.error('Error fetching phases:', error);
@@ -49,19 +48,18 @@ const PhaseManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin') { // Modified condition
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
+      return;
+    }
+    if (user) { // Only fetch if user is logged in
       fetchPhases();
-    // }
-  }, []); // Removed role, roleLoading from dependencies
+    }
+  }, [user, authLoading, navigate]);
 
   const handleDeletePhase = async (phaseId: string) => {
     try {
-      const { error } = await supabase
-        .from('phases')
-        .delete()
-        .eq('id', phaseId);
-
-      if (error) throw error;
+      await deleteDoc(doc(db, 'phases', phaseId));
       showSuccess('Phase deleted successfully!');
       fetchPhases(); // Refresh the list
     } catch (error: any) {
@@ -86,29 +84,24 @@ const PhaseManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading) {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold">Loading user role...</h2>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (authLoading || loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <Skeleton className="h-12 w-1/2 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full" />
+            ))}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user) {
+    return null; // Will be redirected by useEffect
+  }
 
   return (
     <Layout>
@@ -130,13 +123,7 @@ const PhaseManagement: React.FC = () => {
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-48 w-full" />
-            ))}
-          </div>
-        ) : phases.length === 0 ? (
+        {phases.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No phases found. Click "Add New Phase" to get started!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

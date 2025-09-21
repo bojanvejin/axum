@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore'; // Firestore imports
 import { Quiz } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,12 +40,11 @@ const QuizForm: React.FC<QuizFormProps> = ({ quiz, onSuccess }) => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (quiz) {
-        const { error } = await supabase.from('quizzes').update(values).eq('id', quiz.id);
-        if (error) throw error;
+        const quizDocRef = doc(db, 'quizzes', quiz.id);
+        await updateDoc(quizDocRef, values);
         showSuccess('Quiz updated successfully!');
       } else {
-        const { error } = await supabase.from('quizzes').insert(values);
-        if (error) throw error;
+        await addDoc(collection(db, 'quizzes'), values);
         showSuccess('Quiz added successfully!');
       }
       onSuccess();

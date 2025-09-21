@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, query, where, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc as getFirestoreDoc } from 'firebase/firestore'; // Firestore imports
 import { CurriculumLesson } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,8 @@ import LessonForm from '@/components/admin/LessonForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const LessonManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const navigate = useNavigate();
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
   const [moduleTitle, setModuleTitle] = useState<string>('');
@@ -33,23 +35,27 @@ const LessonManagement: React.FC = () => {
   const [editingLesson, setEditingLesson] = useState<CurriculumLesson | null>(null);
 
   const fetchLessons = async () => {
+    if (!moduleId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const { data: moduleData, error: moduleError } = await supabase
-        .from('modules')
-        .select('title')
-        .eq('id', moduleId)
-        .single();
-      if (moduleError) throw moduleError;
-      setModuleTitle(moduleData?.title || 'Unknown Module');
+      // Fetch module title
+      const moduleDocRef = doc(db, 'modules', moduleId);
+      const moduleDocSnap = await getFirestoreDoc(moduleDocRef);
+      if (moduleDocSnap.exists()) {
+        setModuleTitle(moduleDocSnap.data().title || 'Unknown Module');
+      } else {
+        setModuleTitle('Unknown Module');
+      }
 
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('module_id', moduleId)
-        .order('order_index', { ascending: true });
-      if (error) throw error;
-      setLessons(data || []);
+      // Fetch lessons for the module
+      const lessonsCollectionRef = collection(db, 'lessons');
+      const lessonsQuery = query(lessonsCollectionRef, where('module_id', '==', moduleId), orderBy('order_index'));
+      const lessonsSnapshot = await getDocs(lessonsQuery);
+      const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
+      setLessons(lessonsData);
     } catch (error: any) {
       showError(`Failed to load lessons: ${error.message}`);
     } finally {
@@ -58,17 +64,18 @@ const LessonManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin' && moduleId) { // Modified condition
-      if (moduleId) { // Only fetch if moduleId is available
-        fetchLessons();
-      }
-    // }
-  }, [moduleId]); // Removed role, roleLoading from dependencies
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
+      return;
+    }
+    if (user && moduleId) { // Only fetch if user is logged in and moduleId is available
+      fetchLessons();
+    }
+  }, [user, authLoading, navigate, moduleId]);
 
   const handleDeleteLesson = async (lessonId: string) => {
     try {
-      const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
-      if (error) throw error;
+      await deleteDoc(doc(db, 'lessons', lessonId));
       showSuccess('Lesson deleted successfully!');
       fetchLessons();
     } catch (error: any) {
@@ -92,23 +99,26 @@ const LessonManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading || !moduleId) { // Modified condition
-  if (!moduleId) {
-    return <Layout><div className="text-center py-8"><p>Loading...</p></div></Layout>;
+  if (authLoading || loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <Skeleton className="h-12 w-1/2 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user) {
+    return null; // Will be redirected by useEffect
+  }
+
+  if (!moduleId) {
+    return <Layout><div className="text-center py-8"><p>Module ID missing.</p></div></Layout>;
+  }
 
   return (
     <Layout>
@@ -137,11 +147,7 @@ const LessonManagement: React.FC = () => {
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
-          </div>
-        ) : lessons.length === 0 ? (
+        {lessons.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No lessons found. Click "Add New Lesson" to get started!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

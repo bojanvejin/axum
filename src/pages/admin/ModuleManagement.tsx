@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client'; // Import Firebase db
+import { collection, query, where, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'; // Firestore imports
 import { CurriculumModule } from '@/data/curriculum';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
-// import { useUserRole } from '@/hooks/useUserRole'; // Removed
+import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,8 @@ import ModuleForm from '@/components/admin/ModuleForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const ModuleManagement: React.FC = () => {
-  // const { role, loading: roleLoading } = useUserRole(); // Removed
+  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const navigate = useNavigate();
   const { phaseId } = useParams<{ phaseId: string }>();
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [phaseTitle, setPhaseTitle] = useState<string>('');
@@ -33,27 +35,27 @@ const ModuleManagement: React.FC = () => {
   const [editingModule, setEditingModule] = useState<CurriculumModule | null>(null);
 
   const fetchModules = async () => {
+    if (!phaseId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       // Fetch phase title
-      const { data: phaseData, error: phaseError } = await supabase
-        .from('phases')
-        .select('title')
-        .eq('id', phaseId)
-        .single();
-
-      if (phaseError) throw phaseError;
-      setPhaseTitle(phaseData?.title || 'Unknown Phase');
+      const phaseDocRef = doc(db, 'phases', phaseId);
+      const phaseDocSnap = await getDoc(phaseDocRef);
+      if (phaseDocSnap.exists()) {
+        setPhaseTitle(phaseDocSnap.data().title || 'Unknown Phase');
+      } else {
+        setPhaseTitle('Unknown Phase');
+      }
 
       // Fetch modules for the phase
-      const { data, error } = await supabase
-        .from('modules')
-        .select('*')
-        .eq('phase_id', phaseId)
-        .order('order_index', { ascending: true });
-
-      if (error) throw error;
-      setModules(data || []);
+      const modulesCollectionRef = collection(db, 'modules');
+      const modulesQuery = query(modulesCollectionRef, where('phase_id', '==', phaseId), orderBy('order_index'));
+      const modulesSnapshot = await getDocs(modulesQuery);
+      const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumModule[];
+      setModules(modulesData);
     } catch (error: any) {
       showError(`Failed to load modules: ${error.message}`);
       console.error('Error fetching modules:', error);
@@ -63,21 +65,18 @@ const ModuleManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    // if (!roleLoading && role === 'admin' && phaseId) { // Modified condition
-      if (phaseId) { // Only fetch if phaseId is available
-        fetchModules();
-      }
-    // }
-  }, [phaseId]); // Removed role, roleLoading from dependencies
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if no user is logged in
+      return;
+    }
+    if (user && phaseId) { // Only fetch if user is logged in and phaseId is available
+      fetchModules();
+    }
+  }, [user, authLoading, navigate, phaseId]);
 
   const handleDeleteModule = async (moduleId: string) => {
     try {
-      const { error } = await supabase
-        .from('modules')
-        .delete()
-        .eq('id', moduleId);
-
-      if (error) throw error;
+      await deleteDoc(doc(db, 'modules', moduleId));
       showSuccess('Module deleted successfully!');
       fetchModules(); // Refresh the list
     } catch (error: any) {
@@ -102,29 +101,24 @@ const ModuleManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Removed roleLoading check
-  // if (roleLoading) {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold">Loading user role...</h2>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (authLoading || loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <Skeleton className="h-12 w-1/2 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full" />
+            ))}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
-  // Removed role !== 'admin' check
-  // if (role !== 'admin') {
-  //   return (
-  //     <Layout>
-  //       <div className="text-center py-8">
-  //         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-  //         <p className="text-muted-foreground mb-6">You do not have permission to view this page.</p>
-  //         <Link to="/" className="text-blue-500 hover:underline">Return to Home</Link>
-  //       </div>
-  //     </Layout>
-  //   );
-  // }
+  if (!user) {
+    return null; // Will be redirected by useEffect
+  }
 
   if (!phaseId) {
     return (
@@ -164,13 +158,7 @@ const ModuleManagement: React.FC = () => {
           </Dialog>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-48 w-full" />
-            ))}
-          </div>
-        ) : modules.length === 0 ? (
+        {modules.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No modules found for this phase. Click "Add New Module" to get started!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
