@@ -1,18 +1,58 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 10, 21);
+    // Allow authenticated users to read phases, modules, and lessons
+    match /phases/{phaseId} {
+      allow read: if request.auth != null;
+    }
+
+    match /modules/{moduleId} {
+      allow read: if request.auth != null;
+    }
+
+    match /lessons/{lessonId} {
+      allow read: if request.auth != null;
+    }
+
+    // Allow authenticated users to manage their own student progress
+    match /student_progress/{progressId} {
+      allow read, create, update: if request.auth != null && request.auth.uid == resource.data.user_id;
+    }
+
+    // Allow authenticated users to manage their own quiz attempts
+    match /quiz_attempts/{attemptId} {
+      allow read, create, update: if request.auth != null && request.auth.uid == resource.data.user_id;
+    }
+
+    // Allow authenticated users to read quizzes and quiz questions
+    match /quizzes/{quizId} {
+      allow read: if request.auth != null;
+    }
+
+    match /quiz_questions/{questionId} {
+      allow read: if request.auth != null;
+    }
+
+    // Admin rules (for management pages) - for now, any authenticated user can write
+    // In a real app, you'd add a role check here (e.g., request.auth.token.admin == true)
+    match /phases/{phaseId} {
+      allow write: if request.auth != null;
+    }
+
+    match /modules/{moduleId} {
+      allow write: if request.auth != null;
+    }
+
+    match /lessons/{lessonId} {
+      allow write: if request.auth != null;
+    }
+
+    match /quizzes/{quizId} {
+      allow write: if request.auth != null;
+    }
+
+    match /quiz_questions/{questionId} {
+      allow write: if request.auth != null;
     }
   }
 }
