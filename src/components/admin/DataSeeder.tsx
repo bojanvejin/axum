@@ -10,33 +10,33 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Import all markdown attachments
-import CourseOverviewContent from 'DYAD_ATTACHMENT_5';
-import HistoryContent from 'DYAD_ATTACHMENT_1';
-import ToolsTechniquesContent from 'DYAD_ATTACHMENT_4';
-import CleanlinessHygieneContent from 'DYAD_ATTACHMENT_3';
-import SafetyFirstAidContent from 'DYAD_ATTACHMENT_2';
-import HairFollicleContent from 'DYAD_ATTACHMENT_10';
-import LineCuttingContent from 'DYAD_ATTACHMENT_9';
-import PrecisionCuttingContent from 'DYAD_ATTACHMENT_6';
-import CombiningLinePrecisionContent from 'DYAD_ATTACHMENT_8';
-import ReviewFeedbackContent from 'DYAD_ATTACHMENT_7';
-import AdvancedLineCuttingContent from 'DYAD_ATTACHMENT_14';
-import AdvancedPrecisionCuttingContent from 'DYAD_ATTACHMENT_11';
-import CombiningAdvancedContent from 'DYAD_ATTACHMENT_13';
-import ReviewFeedbackIntermediateContent from 'DYAD_ATTACHMENT_12';
-import IntroToDesignContent from 'DYAD_ATTACHMENT_19';
-import DesignsWithLineCuttingContent from 'DYAD_ATTACHMENT_18';
-import DesignsWithPrecisionCuttingContent from 'DYAD_ATTACHMENT_17';
-import CombiningDesignsContent from 'DYAD_ATTACHMENT_15';
-import ReviewFeedbackDesignContent from 'DYAD_ATTACHMENT_16';
-import AdvancedDesignContent from 'DYAD_ATTACHMENT_20';
-import PracticalApplicationContent from 'DYAD_ATTACHMENT_22';
-import ReviewFeedbackCraftContent from 'DYAD_ATTACHMENT_21';
-import FinalProjectPlanningContent from 'DYAD_ATTACHMENT_26';
-import FinalProjectExecutionContent from 'DYAD_ATTACHMENT_23';
-import ReviewFeedbackFinalProjectContent from 'DYAD_ATTACHMENT_25';
-import GraduationCeremonyContent from 'DYAD_ATTACHMENT_24';
+// Import all markdown attachments as raw strings
+import CourseOverviewContent from '@/content/01_Course_Overview_and_Introduction.md?raw';
+import HistoryContent from '@/content/02_History_of_Line_Cutting_and_Precision_Cutting.md?raw';
+import ToolsTechniquesContent from '@/content/03_Tools_and_Techniques.md?raw';
+import CleanlinessHygieneContent from '@/content/04_Cleanliness_and_Hygiene.md?raw';
+import SafetyFirstAidContent from '@/content/05_Safety_and_First_Aid.md?raw';
+import HairFollicleContent from '@/content/01_Understanding_the_Hair_Follicle.md?raw';
+import LineCuttingContent from '@/content/02_Line_Cutting_Techniques.md?raw';
+import PrecisionCuttingContent from '@/content/03_Precision_Cutting_Techniques.md?raw';
+import CombiningLinePrecisionContent from '@/content/04_Combining_Line_and_Precision_Cutting.md?raw';
+import ReviewFeedbackContent from '@/content/05_Review_and_Feedback.md?raw';
+import AdvancedLineCuttingContent from '@/content/01_Advanced_Line_Cutting_Techniques.md?raw';
+import AdvancedPrecisionCuttingContent from '@/content/02_Advanced_Precision_Cutting_Techniques.md?raw';
+import CombiningAdvancedContent from '@/content/03_Combining_Advanced_Techniques.md?raw';
+import ReviewFeedbackIntermediateContent from '@/content/04_Review_and_Feedback_Intermediate.md?raw';
+import IntroToDesignContent from '@/content/01_Introduction_to_Design.md?raw';
+import DesignsWithLineCuttingContent from '@/content/02_Creating_Designs_with_Line_Cutting.md?raw';
+import DesignsWithPrecisionCuttingContent from '@/content/03_Creating_Designs_with_Precision_Cutting.md?raw';
+import CombiningDesignsContent from '@/content/04_Combining_Designs_Line_and_Precision.md?raw';
+import ReviewFeedbackDesignContent from '@/content/05_Review_and_Feedback_Design.md?raw';
+import AdvancedDesignContent from '@/content/01_Advanced_Design_Techniques.md?raw';
+import PracticalApplicationContent from '@/content/02_Practical_Application.md?raw';
+import ReviewFeedbackCraftContent from '@/content/03_Review_and_Feedback_Craft.md?raw';
+import FinalProjectPlanningContent from '@/content/01_Final_Project_Planning.md?raw';
+import FinalProjectExecutionContent from '@/content/02_Final_Project_Execution.md?raw';
+import ReviewFeedbackFinalProjectContent from '@/content/03_Review_and_Feedback_Final_Project.md?raw';
+import GraduationCeremonyContent from '@/content/04_Graduation_Ceremony.md?raw';
 
 // Map attachment IDs to their imported content
 const attachmentContentMap: Record<string, string> = {
