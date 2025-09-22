@@ -22,7 +22,7 @@ export const seedPhases: CurriculumPhase[] = [
   },
   {
     id: phase1Id,
-    title: "Week 1 — Intro to Line / Precision Cutting",
+    title: "Intro to Line / Precision Cutting",
     description: "Learn the foundational concepts and initial techniques for line and precision cutting.",
     weeks: 1,
     order_index: 1,
