@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAdminRole } from '@/hooks/useAdminRole';
+import { CurriculumLesson } from '@/data/curriculum';
 
 // Import all markdown attachments as raw strings
 import CourseOverviewContent from '@/content/01_Course_Overview_and_Introduction.md?raw';
@@ -106,8 +107,12 @@ const DataSeeder: React.FC = () => {
       for (const { name, data } of collectionsToSeed) {
         for (const item of data) {
           let dataToWrite = { ...item };
-          if (name === 'lessons' && attachmentContentMap[item.content_html]) {
-            dataToWrite.content_html = attachmentContentMap[item.content_html];
+          if (name === 'lessons') {
+            const lessonItem = item as CurriculumLesson;
+            const contentKey = lessonItem.content_html;
+            if (contentKey && attachmentContentMap[contentKey]) {
+              (dataToWrite as CurriculumLesson).content_html = attachmentContentMap[contentKey];
+            }
           }
           const docRef = doc(db, name, item.id);
           batch.set(docRef, dataToWrite); // This will create or overwrite
