@@ -154,14 +154,22 @@ const DataSeeder: React.FC = () => {
   const ADMIN_USER_EMAIL = 'elmntmail@gmail.com';
 
   const handleMakeAdmin = async () => {
-    if (!user || user.uid !== ADMIN_USER_UID) {
+    if (!user) {
+      showError("You must be logged in to perform this action.");
+      return;
+    }
+    // The client-side bypass in useAdminRole handles the admin check for this specific user.
+    // We still ensure the logged-in user is the intended admin for this action.
+    if (user.uid !== ADMIN_USER_UID) {
       showError("You are not authorized to perform this action.");
       return;
     }
+
     setLoading(true);
     try {
       const profileDocRef = doc(db, 'profiles', ADMIN_USER_UID);
-      await updateDoc(profileDocRef, { role: 'admin' });
+      // Use setDoc with merge: true to create or update the document
+      await setDoc(profileDocRef, { role: 'admin' }, { merge: true });
       showSuccess(`${ADMIN_USER_EMAIL} is now an admin!`);
     } catch (error: any) {
       showError(`Failed to make ${ADMIN_USER_EMAIL} an admin: ${error.message}`);
