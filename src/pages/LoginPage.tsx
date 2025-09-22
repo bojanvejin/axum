@@ -9,7 +9,7 @@ import AxumLogo from '@/components/AxumLogo';
 import { showError, showSuccess } from '@/utils/toast';
 import { auth, db } from '@/integrations/firebase/client'; // Import db
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore'; // Import setDoc
+import { doc, setDoc, getDoc } from 'firebase/firestore'; // Import setDoc and getDoc
 import { useSession } from '@/components/SessionContextProvider';
 import { Label } from '@/components/ui/label';
 
@@ -54,9 +54,23 @@ const LoginPage: React.FC = () => {
       } else {
         // Check for hardcoded admin login
         if (email === HARDCODED_ADMIN_EMAIL && password === HARDCODED_ADMIN_PASSWORD) {
-          await signInWithEmailAndPassword(auth, HARDCODED_ADMIN_EMAIL, HARDCODED_ADMIN_PASSWORD);
+          const userCredential = await signInWithEmailAndPassword(auth, HARDCODED_ADMIN_EMAIL, HARDCODED_ADMIN_PASSWORD);
           showSuccess('Admin login successful!');
           console.log("LoginPage: Hardcoded admin login successful.");
+
+          // Ensure admin profile exists with correct role
+          const adminProfileRef = doc(db, 'profiles', userCredential.user.uid);
+          const adminProfileSnap = await getDoc(adminProfileRef);
+          if (!adminProfileSnap.exists() || adminProfileSnap.data().role !== 'admin') {
+            await setDoc(adminProfileRef, {
+              id: userCredential.user.uid,
+              role: 'admin',
+              first_name: 'Super',
+              last_name: 'Admin',
+              updated_at: new Date().toISOString(),
+            }, { merge: true });
+            console.log("LoginPage: Ensured admin profile exists with role 'admin'.");
+          }
         } else {
           await signInWithEmailAndPassword(auth, email, password);
           showSuccess('Login successful!');
