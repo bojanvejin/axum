@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, writeBatch, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { showError, showSuccess } from '@/utils/toast';
@@ -9,18 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '@/components/SessionContextProvider';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
-import { Loader2, Database, AlertTriangle } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Loader2, Database } from 'lucide-react';
 
 const SeedDatabase: React.FC = () => {
   const { user, loading: authLoading } = useSession();
@@ -39,83 +28,174 @@ const SeedDatabase: React.FC = () => {
     }
   }, [user, authLoading, isAdmin, loadingAdminRole, navigate]);
 
-  const deleteCollection = async (collectionName: string, batch: any) => {
-    const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(collectionRef);
-    if (snapshot.empty) {
-      setSeedStatus(`No existing ${collectionName} to delete.`);
-      return;
-    }
-    setSeedStatus(`Deleting existing ${collectionName}...`);
-    snapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-  };
-
-  const handleResetAndSeedDatabase = async () => {
+  const handleSmartSeedDatabase = async () => {
     if (!user || !isAdmin) {
       showError('You must be logged in as an admin to seed the database.');
       return;
     }
 
     setIsSeeding(true);
-    setSeedStatus('Starting database reset and seeding...');
-    let batch = writeBatch(db);
+    setSeedStatus('Starting smart database seeding...');
+    const batch = writeBatch(db);
 
     try {
-      // Step 1: Delete all existing curriculum data
-      setSeedStatus('Deleting all existing curriculum data...');
-      await deleteCollection('lessons', batch);
-      await deleteCollection('quiz_questions', batch);
-      await deleteCollection('quizzes', batch);
-      await deleteCollection('modules', batch);
-      await deleteCollection('phases', batch);
-      
-      // Commit the deletion batch
-      await batch.commit();
-      setSeedStatus('Existing curriculum data deleted. Starting re-seeding...');
-      
-      // Start a new batch for seeding
-      batch = writeBatch(db);
+      // Helper to check if a value is "empty" for content fields
+      const isEmptyContent = (value: any) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
 
-      // Step 2: Seed new data
-      setSeedStatus('Seeding phases...');
+      // --- Seed Phases ---
+      setSeedStatus('Processing phases...');
       for (const phase of seedPhases) {
         const docRef = doc(collection(db, 'phases'), phase.id);
-        batch.set(docRef, phase); // No merge needed after deletion
+        const existingDoc = await getDoc(docRef);
+        if (existingDoc.exists()) {
+          const existingData = existingDoc.data();
+          const updatePayload: { [key: string]: any } = {};
+          
+          // Always update structural fields
+          updatePayload.title = phase.title;
+          updatePayload.weeks = phase.weeks;
+          updatePayload.order_index = phase.order_index;
+
+          // Conditionally update content fields (description)
+          if (isEmptyContent(existingData.description)) {
+            updatePayload.description = phase.description;
+          } else if (existingData.description !== phase.description) {
+            // If existing description is different and not empty, log a warning or decide policy
+            console.warn(`Phase ${phase.id} description differs from seed and was not empty. Keeping existing. Seed: "${phase.description}", Existing: "${existingData.description}"`);
+          }
+          batch.update(docRef, updatePayload);
+        } else {
+          batch.set(docRef, phase);
+        }
       }
 
-      setSeedStatus('Seeding modules...');
+      // --- Seed Modules ---
+      setSeedStatus('Processing modules...');
       for (const module of seedModules) {
         const docRef = doc(collection(db, 'modules'), module.id);
-        batch.set(docRef, module);
+        const existingDoc = await getDoc(docRef);
+        if (existingDoc.exists()) {
+          const existingData = existingDoc.data();
+          const updatePayload: { [key: string]: any } = {};
+
+          // Always update structural fields
+          updatePayload.phase_id = module.phase_id;
+          updatePayload.title = module.title;
+          updatePayload.order_index = module.order_index;
+
+          // Conditionally update content fields (description)
+          if (isEmptyContent(existingData.description)) {
+            updatePayload.description = module.description;
+          } else if (existingData.description !== module.description) {
+            console.warn(`Module ${module.id} description differs from seed and was not empty. Keeping existing. Seed: "${module.description}", Existing: "${existingData.description}"`);
+          }
+          batch.update(docRef, updatePayload);
+        } else {
+          batch.set(docRef, module);
+        }
       }
 
-      setSeedStatus('Seeding quizzes...');
+      // --- Seed Quizzes ---
+      setSeedStatus('Processing quizzes...');
       for (const quiz of seedQuizzes) {
         const docRef = doc(collection(db, 'quizzes'), quiz.id);
-        batch.set(docRef, quiz);
+        const existingDoc = await getDoc(docRef);
+        if (existingDoc.exists()) {
+          const existingData = existingDoc.data();
+          const updatePayload: { [key: string]: any } = {};
+
+          // Always update structural fields
+          updatePayload.title = quiz.title;
+          updatePayload.created_at = quiz.created_at; // Assuming created_at is part of the seed's canonical state
+
+          // Conditionally update content fields (description)
+          if (isEmptyContent(existingData.description)) {
+            updatePayload.description = quiz.description;
+          } else if (existingData.description !== quiz.description) {
+            console.warn(`Quiz ${quiz.id} description differs from seed and was not empty. Keeping existing. Seed: "${quiz.description}", Existing: "${existingData.description}"`);
+          }
+          batch.update(docRef, updatePayload);
+        } else {
+          batch.set(docRef, quiz);
+        }
       }
 
-      setSeedStatus('Seeding quiz questions...');
+      // --- Seed Quiz Questions ---
+      setSeedStatus('Processing quiz questions...');
       for (const question of seedQuizQuestions) {
         const docRef = doc(collection(db, 'quiz_questions'), question.id);
-        batch.set(docRef, question);
+        const existingDoc = await getDoc(docRef);
+        if (existingDoc.exists()) {
+          const existingData = existingDoc.data();
+          const updatePayload: { [key: string]: any } = {};
+
+          // Always update structural/core fields
+          updatePayload.quiz_id = question.quiz_id;
+          updatePayload.question_text = question.question_text;
+          updatePayload.question_type = question.question_type;
+          updatePayload.options = question.options; // Options are part of the question structure
+          updatePayload.correct_answer = question.correct_answer;
+          updatePayload.created_at = question.created_at;
+
+          // No specific content fields to conditionally update for questions, as all are core.
+          batch.update(docRef, updatePayload);
+        } else {
+          batch.set(docRef, question);
+        }
       }
 
-      setSeedStatus('Seeding lessons...');
+      // --- Seed Lessons ---
+      setSeedStatus('Processing lessons...');
       for (const lesson of seedLessons) {
         const docRef = doc(collection(db, 'lessons'), lesson.id);
-        batch.set(docRef, lesson);
+        const existingDoc = await getDoc(docRef);
+        if (existingDoc.exists()) {
+          const existingData = existingDoc.data();
+          const updatePayload: { [key: string]: any } = {};
+
+          // Always update structural fields
+          updatePayload.module_id = lesson.module_id;
+          updatePayload.title = lesson.title;
+          updatePayload.order_index = lesson.order_index;
+          updatePayload.quiz_id = lesson.quiz_id; // Quiz ID is structural
+
+          // Conditionally update content fields
+          if (isEmptyContent(existingData.objectives)) {
+            updatePayload.objectives = lesson.objectives;
+          } else if (existingData.objectives !== lesson.objectives) {
+            console.warn(`Lesson ${lesson.id} objectives differ from seed and was not empty. Keeping existing. Seed: "${lesson.objectives}", Existing: "${existingData.objectives}"`);
+          }
+
+          if (isEmptyContent(existingData.content_html)) {
+            updatePayload.content_html = lesson.content_html;
+          } else if (existingData.content_html !== lesson.content_html) {
+            console.warn(`Lesson ${lesson.id} content_html differs from seed and was not empty. Keeping existing. Seed: "${lesson.content_html.substring(0, 50)}...", Existing: "${existingData.content_html.substring(0, 50)}..."`);
+          }
+
+          if (isEmptyContent(existingData.video_url)) {
+            updatePayload.video_url = lesson.video_url || null;
+          } else if (existingData.video_url !== lesson.video_url) {
+            console.warn(`Lesson ${lesson.id} video_url differs from seed and was not empty. Keeping existing. Seed: "${lesson.video_url}", Existing: "${existingData.video_url}"`);
+          }
+
+          if (isEmptyContent(existingData.resources_url)) {
+            updatePayload.resources_url = lesson.resources_url || null;
+          } else if (existingData.resources_url !== lesson.resources_url) {
+            console.warn(`Lesson ${lesson.id} resources_url differs from seed and was not empty. Keeping existing. Seed: "${lesson.resources_url}", Existing: "${existingData.resources_url}"`);
+          }
+          batch.update(docRef, updatePayload);
+        } else {
+          batch.set(docRef, lesson);
+        }
       }
 
       await batch.commit();
-      showSuccess('Database reset and seeded successfully!');
-      setSeedStatus('Database reset and seeding complete!');
+      showSuccess('Database smart-seeded successfully! Existing content was preserved where detected.');
+      setSeedStatus('Smart seeding complete! Check console for warnings about preserved content.');
     } catch (error: any) {
-      showError(`Failed to reset and seed database: ${error.message}`);
-      setSeedStatus(`Error during reset and seeding: ${error.message}`);
-      console.error('Error resetting and seeding database:', error);
+      showError(`Failed to smart-seed database: ${error.message}`);
+      setSeedStatus(`Error during smart seeding: ${error.message}`);
+      console.error('Error smart-seeding database:', error);
     } finally {
       setIsSeeding(false);
     }
@@ -139,56 +219,41 @@ const SeedDatabase: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8">Seed Database</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-8">Seed Database (Smart Upsert)</h1>
         <Card className="max-w-lg mx-auto">
           <CardHeader>
-            <CardTitle>Reset and Populate Curriculum Data</CardTitle>
+            <CardTitle>Populate Curriculum Data (Smart Upsert)</CardTitle>
             <CardDescription>
-              <span className="font-bold text-red-500 flex items-center gap-1 mb-2">
-                <AlertTriangle className="h-4 w-4" /> WARNING: This action is irreversible!
-              </span>
-              This will first **delete ALL existing data** in the 'phases', 'modules', 'lessons', 'quizzes', and 'quiz_questions' collections in your Firebase Firestore.
-              Then, it will upload the curriculum data from your local seed files. This ensures a clean and consistent curriculum structure.
+              This action will upload curriculum data from your local seed files to Firebase Firestore.
+              <br /><br />
+              **Important:**
+              <ul>
+                <li>Existing items will be **updated** based on their ID.</li>
+                <li>For content fields (like lesson descriptions, HTML content, video/resource URLs), if a value already exists in Firebase, **it will be preserved** and NOT overwritten by the seed data.</li>
+                <li>If a content field is empty in Firebase, it will be populated from the seed data.</li>
+                <li>Structural fields (like titles, order, parent IDs) will always be updated from the seed.</li>
+              </ul>
+              This approach prevents accidental overwrites of manual edits while ensuring new content and structural changes from the seed files are applied.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  disabled={isSeeding}
-                  className="w-full"
-                >
-                  {isSeeding ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Resetting & Seeding...
-                    </>
-                  ) : (
-                    <>
-                      <Database className="mr-2 h-4 w-4" />
-                      Reset & Seed Database Now
-                    </>
-                  )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-red-600 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" /> Are you absolutely sure?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will **permanently delete all curriculum data** (phases, modules, lessons, quizzes, and quiz questions) from your Firebase Firestore and then re-populate it with the local seed data.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetAndSeedDatabase}>
-                    Continue & Reset
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              onClick={handleSmartSeedDatabase}
+              disabled={isSeeding}
+              className="w-full"
+            >
+              {isSeeding ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Smart Seeding...
+                </>
+              ) : (
+                <>
+                  <Database className="mr-2 h-4 w-4" />
+                  Smart Seed Database Now
+                </>
+              )}
+            </Button>
             {seedStatus && <p className="text-sm text-muted-foreground text-center">{seedStatus}</p>}
           </CardContent>
         </Card>
