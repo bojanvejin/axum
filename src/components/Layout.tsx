@@ -2,18 +2,20 @@ import React from 'react';
 import AxumLogo from './AxumLogo';
 import ThemeToggle from './ThemeToggle';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSession } from '@/components/SessionContextProvider'; // New import
+import { useSession } from '@/components/SessionContextProvider';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/integrations/firebase/client';
 import { showError, showSuccess } from '@/utils/toast';
+import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, loading } = useSession(); // Use Firebase session
+  const { user, loading: loadingUser } = useSession();
+  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -34,12 +36,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <AxumLogo />
         </Link>
         <div className="flex items-center gap-4">
-          {!loading && (
+          {!loadingUser && !loadingAdminRole && (
             user ? (
               <>
-                <Link to="/admin">
-                  <Button variant="ghost">Admin Dashboard</Button>
-                </Link>
+                {isAdmin && ( // Conditionally render Admin Dashboard link
+                  <Link to="/admin">
+                    <Button variant="ghost">Admin Dashboard</Button>
+                  </Link>
+                )}
                 <Button variant="outline" onClick={handleLogout}>Logout</Button>
               </>
             ) : (

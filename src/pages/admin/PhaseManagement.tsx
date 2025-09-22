@@ -10,6 +10,7 @@ import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
+import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 const PhaseManagement: React.FC = () => {
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
   const navigate = useNavigate();
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,14 +50,16 @@ const PhaseManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
-      return;
+    if (!authLoading && !loadingAdminRole) {
+      if (!user) {
+        navigate('/login'); // Redirect if no user is logged in
+      } else if (!isAdmin) {
+        navigate('/'); // Redirect if user is not an admin
+      } else {
+        fetchPhases(); // Only fetch if user is logged in and is an admin
+      }
     }
-    if (user) { // Only fetch if user is logged in
-      fetchPhases();
-    }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, isAdmin, loadingAdminRole, navigate]);
 
   const handleDeletePhase = async (phaseId: string) => {
     try {
@@ -84,7 +88,7 @@ const PhaseManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loadingAdminRole || loading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -99,7 +103,7 @@ const PhaseManagement: React.FC = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return null; // Will be redirected by useEffect
   }
 

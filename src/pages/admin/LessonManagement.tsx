@@ -10,6 +10,7 @@ import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
+import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 const LessonManagement: React.FC = () => {
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
   const navigate = useNavigate();
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
@@ -64,14 +66,16 @@ const LessonManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
-      return;
+    if (!authLoading && !loadingAdminRole) {
+      if (!user) {
+        navigate('/login'); // Redirect if no user is logged in
+      } else if (!isAdmin) {
+        navigate('/'); // Redirect if user is not an admin
+      } else if (moduleId) {
+        fetchLessons(); // Only fetch if user is logged in, is an admin, and moduleId is available
+      }
     }
-    if (user && moduleId) { // Only fetch if user is logged in and moduleId is available
-      fetchLessons();
-    }
-  }, [user, authLoading, navigate, moduleId]);
+  }, [user, authLoading, isAdmin, loadingAdminRole, navigate, moduleId]);
 
   const handleDeleteLesson = async (lessonId: string) => {
     try {
@@ -99,7 +103,7 @@ const LessonManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loadingAdminRole || loading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -112,7 +116,7 @@ const LessonManagement: React.FC = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return null; // Will be redirected by useEffect
   }
 

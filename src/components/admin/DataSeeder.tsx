@@ -9,6 +9,7 @@ import { useSession } from '@/components/SessionContextProvider';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 
 // Import all markdown attachments as raw strings
 import CourseOverviewContent from '@/content/01_Course_Overview_and_Introduction.md?raw';
@@ -73,12 +74,17 @@ const DataSeeder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSession();
+  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
 
   React.useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login');
+    if (!authLoading && !loadingAdminRole) {
+      if (!user) {
+        navigate('/login');
+      } else if (!isAdmin) {
+        navigate('/');
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, isAdmin, loadingAdminRole, navigate]);
 
   const handleSeedData = async () => {
     if (!user) {
@@ -143,7 +149,7 @@ const DataSeeder: React.FC = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || loadingAdminRole) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -154,7 +160,7 @@ const DataSeeder: React.FC = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return null; // Redirect handled by useEffect
   }
 

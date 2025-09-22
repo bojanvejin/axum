@@ -4,20 +4,25 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSession } from '@/components/SessionContextProvider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 
 const AdminDashboard: React.FC = () => {
   const { user, loading: authLoading } = useSession();
+  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login');
+    if (!authLoading && !loadingAdminRole) {
+      if (!user) {
+        navigate('/login');
+      } else if (!isAdmin) {
+        // If user is logged in but not an admin, redirect to home
+        navigate('/');
+      }
     }
-    // In a real application, you would also check for an 'admin' role here.
-    // For now, any logged-in user can access the admin dashboard.
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, isAdmin, loadingAdminRole, navigate]);
 
-  if (authLoading) {
+  if (authLoading || loadingAdminRole) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -30,8 +35,8 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  if (!user) {
-    return null;
+  if (!user || !isAdmin) {
+    return null; // Redirect handled by useEffect
   }
 
   return (

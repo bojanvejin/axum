@@ -10,6 +10,7 @@ import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
+import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 const ModuleManagement: React.FC = () => {
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
   const navigate = useNavigate();
   const { phaseId } = useParams<{ phaseId: string }>();
   const [modules, setModules] = useState<CurriculumModule[]>([]);
@@ -65,14 +67,16 @@ const ModuleManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
-      return;
+    if (!authLoading && !loadingAdminRole) {
+      if (!user) {
+        navigate('/login'); // Redirect if no user is logged in
+      } else if (!isAdmin) {
+        navigate('/'); // Redirect if user is not an admin
+      } else if (phaseId) {
+        fetchModules(); // Only fetch if user is logged in, is an admin, and phaseId is available
+      }
     }
-    if (user && phaseId) { // Only fetch if user is logged in and phaseId is available
-      fetchModules();
-    }
-  }, [user, authLoading, navigate, phaseId]);
+  }, [user, authLoading, isAdmin, loadingAdminRole, navigate, phaseId]);
 
   const handleDeleteModule = async (moduleId: string) => {
     try {
@@ -101,7 +105,7 @@ const ModuleManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loadingAdminRole || loading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">
@@ -116,7 +120,7 @@ const ModuleManagement: React.FC = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return null; // Will be redirected by useEffect
   }
 
@@ -168,8 +172,8 @@ const ModuleManagement: React.FC = () => {
                   <CardTitle>{module.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                  <p className="text-sm text-muted-foreground mb-4">{module.description}</p>
-                  <p className="text-xs text-muted-foreground">Order: {module.order_index}</p>
+                  <CardDescription>{module.description}</CardDescription>
+                  <p className="text-xs text-muted-foreground mt-2">Order: {module.order_index}</p>
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditForm(module)}>
