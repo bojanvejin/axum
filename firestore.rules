@@ -2,11 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Profiles collection - TEMPORARY PUBLIC READ FOR DEBUGGING
-    // WARNING: This is not secure for production.
+    // Profiles collection
+    // Users can read, create, update, and delete their own profile document.
+    // The document ID for a profile must match the user's UID.
     match /profiles/{userId} {
-      allow read: if true; // Temporarily allow public read access
-      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Curriculum collections (phases, modules, lessons, quizzes, quiz_questions)

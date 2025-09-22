@@ -9,6 +9,9 @@ interface AdminRoleHook {
   loadingAdminRole: boolean;
 }
 
+// TEMPORARY: Hardcoded admin email for development bypass
+const HARDCODED_ADMIN_EMAIL = 'elmntmail@gmail.com';
+
 export const useAdminRole = (): AdminRoleHook => {
   const { user, loading: loadingUser } = useSession();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -17,13 +20,18 @@ export const useAdminRole = (): AdminRoleHook => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (loadingUser) {
-        // Still loading user session, wait for it
         return;
       }
 
       if (!user) {
-        // No user logged in, definitely not an admin
         setIsAdmin(false);
+        setLoadingAdminRole(false);
+        return;
+      }
+
+      // TEMPORARY BYPASS: If the user is the hardcoded admin, grant admin status immediately
+      if (user.email === HARDCODED_ADMIN_EMAIL) {
+        setIsAdmin(true);
         setLoadingAdminRole(false);
         return;
       }
@@ -36,7 +44,6 @@ export const useAdminRole = (): AdminRoleHook => {
           const profileData = profileDocSnap.data();
           setIsAdmin(profileData.role === 'admin');
         } else {
-          // Profile not found, default to not admin
           setIsAdmin(false);
         }
       } catch (error: any) {

@@ -13,6 +13,10 @@ import { doc, setDoc } from 'firebase/firestore'; // Import setDoc
 import { useSession } from '@/components/SessionContextProvider';
 import { Label } from '@/components/ui/label';
 
+// TEMPORARY: Hardcoded admin credentials for development bypass
+const HARDCODED_ADMIN_EMAIL = 'elmntmail@gmail.com';
+const HARDCODED_ADMIN_PASSWORD = 'Barber99!!';
+
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,9 +52,16 @@ const LoginPage: React.FC = () => {
         showSuccess('Registration successful! You are now logged in.');
         console.log("LoginPage: Registration successful and profile created.");
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        showSuccess('Login successful!');
-        console.log("LoginPage: Login successful.");
+        // Check for hardcoded admin login
+        if (email === HARDCODED_ADMIN_EMAIL && password === HARDCODED_ADMIN_PASSWORD) {
+          await signInWithEmailAndPassword(auth, HARDCODED_ADMIN_EMAIL, HARDCODED_ADMIN_PASSWORD);
+          showSuccess('Admin login successful!');
+          console.log("LoginPage: Hardcoded admin login successful.");
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+          showSuccess('Login successful!');
+          console.log("LoginPage: Regular login successful.");
+        }
       }
       // The useEffect will handle navigation after auth state changes
     } catch (error: any) {
