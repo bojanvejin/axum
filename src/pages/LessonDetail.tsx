@@ -12,6 +12,8 @@ import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
+import { marked } from 'marked'; // Import marked
+import DOMPurify from 'dompurify'; // Import DOMPurify
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -154,10 +156,21 @@ const LessonDetail: React.FC = () => {
     }
   };
 
+  const lessonHtmlContent = useMemo(() => {
+    if (!lesson?.content_html) return '<p>No content available for this lesson yet.</p>';
+    // Convert markdown to HTML
+    const rawHtml = marked.parse(lesson.content_html);
+    // Sanitize the HTML to prevent XSS attacks
+    return DOMPurify.sanitize(rawHtml);
+  }, [lesson?.content_html]);
+
   const lessonText = useMemo(() => {
     if (!lesson?.content_html || typeof window === 'undefined') return '';
+    // Use marked to convert markdown to HTML, then create a temporary div to extract plain text
+    const rawHtml = marked.parse(lesson.content_html);
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml);
     const div = document.createElement('div');
-    div.innerHTML = lesson.content_html;
+    div.innerHTML = sanitizedHtml;
     return div.textContent || div.innerText || '';
   }, [lesson?.content_html]);
 
@@ -212,7 +225,7 @@ const LessonDetail: React.FC = () => {
             <TextToSpeechButton textToSpeak={lessonText} />
           </div>
 
-          <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lesson.content_html || '<p>No content available for this lesson yet.</p>' }} />
+          <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lessonHtmlContent }} />
 
           {lesson.video_url && (
             <div className="mb-8">
