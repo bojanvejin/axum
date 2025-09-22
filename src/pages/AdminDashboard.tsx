@@ -2,16 +2,16 @@ import React, { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSession } from '@/components/SessionContextProvider'; // New import for session
+import { useSession } from '@/components/SessionContextProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminDashboard: React.FC = () => {
-  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const { user, loading: authLoading } = useSession();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
+      navigate('/login');
     }
     // In a real application, you would also check for an 'admin' role here.
     // For now, any logged-in user can access the admin dashboard.
@@ -31,7 +31,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   if (!user) {
-    return null; // Will be redirected by useEffect
+    return null;
   }
 
   return (
@@ -68,6 +68,16 @@ const AdminDashboard: React.FC = () => {
             <CardContent>
               <p className="text-muted-foreground text-sm">Access student progress and quiz performance reports.</p>
               <Link to="#" className="text-blue-500 hover:underline mt-4 block">Go to Reports</Link>
+            </CardContent>
+          </Card>
+          {/* New Card for Data Seeder */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Seed Sample Data</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">Populate your database with sample curriculum data for testing.</p>
+              <Link to="/admin/seed-data" className="text-blue-500 hover:underline mt-4 block">Go to Data Seeder</Link>
             </CardContent>
           </Card>
         </div>

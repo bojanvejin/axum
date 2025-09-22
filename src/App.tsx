@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/LoginPage"; // Renamed from NameInputPage
+import LoginPage from "./pages/LoginPage";
 import PhaseDetail from "./pages/PhaseDetail";
 import ModuleDetail from "./pages/ModuleDetail";
 import LessonDetail from "./pages/LessonDetail";
@@ -15,8 +15,9 @@ import ModuleManagement from "./pages/admin/ModuleManagement";
 import LessonManagement from "./pages/admin/LessonManagement";
 import QuizManagement from "./pages/admin/QuizManagement";
 import QuestionManagement from "./pages/admin/QuestionManagement";
+import DataSeeder from "./components/admin/DataSeeder"; // New import
 import { ThemeProvider } from "next-themes";
-import { SessionContextProvider } from "@/components/SessionContextProvider"; // New import
+import { SessionContextProvider } from "@/components/SessionContextProvider";
 
 const queryClient = new QueryClient();
 
@@ -27,10 +28,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SessionContextProvider> {/* Wrap with Firebase Session Context */}
+          <SessionContextProvider>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginPage />} /> {/* Updated route for login */}
+              <Route path="/login" element={<LoginPage />} />
               <Route path="/phases/:phaseId" element={<PhaseDetail />} />
               <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
               <Route path="/lessons/:lessonId" element={<LessonDetail />} />
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/admin/curriculum/phases/:phaseId/modules/:moduleId/lessons" element={<LessonManagement />} />
               <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
               <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
+              <Route path="/admin/seed-data" element={<DataSeeder />} /> {/* New route */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
