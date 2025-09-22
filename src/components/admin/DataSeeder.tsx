@@ -40,6 +40,17 @@ import FinalProjectExecutionContent from '@/content/02_Final_Project_Execution.m
 import ReviewFeedbackFinalProjectContent from '@/content/03_Review_and_Feedback_Final_Project.md?raw';
 import GraduationCeremonyContent from '@/content/04_Graduation_Ceremony.md?raw';
 
+// New imports for Appendix markdown files
+import AppendixAToolEncyclopediaContent from '@/content/Appendix_A_Tool_Encyclopedia.md?raw';
+import AppendixBSanitationContent from '@/content/Appendix_B_Sanitation_Disinfection_Regulations.md?raw';
+import AppendixCHairScalpScienceContent from '@/content/Appendix_C_Hair_Scalp_Science_Atlas.md?raw';
+import AppendixDFirstAidContent from '@/content/Appendix_D_First_Aid_Blood_Spill_Protocol.md?raw';
+import AppendixEConsultationContent from '@/content/Appendix_E_Consultation_Scripts_Client_Experience.md?raw';
+import AppendixFGeometryContent from '@/content/Appendix_F_Geometry_Symmetry_Fade_Blueprint.md?raw';
+import AppendixGErgonomicsContent from '@/content/Appendix_G_Ergonomics_Injury_Prevention_Workstation_Setup.md?raw';
+import AppendixHAssessmentContent from '@/content/Appendix_H_Assessment_Rubrics_Checklists.md?raw';
+
+
 // Map attachment IDs to their imported content
 const attachmentContentMap: Record<string, string> = {
   'DYAD_ATTACHMENT_5': CourseOverviewContent,
@@ -68,6 +79,15 @@ const attachmentContentMap: Record<string, string> = {
   'DYAD_ATTACHMENT_23': FinalProjectExecutionContent,
   'DYAD_ATTACHMENT_25': ReviewFeedbackFinalProjectContent,
   'DYAD_ATTACHMENT_24': GraduationCeremonyContent,
+  // New mappings for Appendix markdown files
+  'DYAD_ATTACHMENT_27': AppendixAToolEncyclopediaContent,
+  'DYAD_ATTACHMENT_28': AppendixBSanitationContent,
+  'DYAD_ATTACHMENT_29': AppendixCHairScalpScienceContent,
+  'DYAD_ATTACHMENT_30': AppendixDFirstAidContent,
+  'DYAD_ATTACHMENT_31': AppendixEConsultationContent,
+  'DYAD_ATTACHMENT_32': AppendixFGeometryContent,
+  'DYAD_ATTACHMENT_33': AppendixGErgonomicsContent,
+  'DYAD_ATTACHMENT_34': AppendixHAssessmentContent,
 };
 
 // Helper to extract the main title from a markdown string
