@@ -274,7 +274,7 @@ In class: Perform a mock “incident response drill”.
 - **"Identifying Hair Types & Textures for Barbers" (12 min)**: A practical guide on how to assess a client's hair type and texture, and its implications for cutting.
 
 ### Reflection Prompt
-Consider a client with very curly, dense hair versus a client with fine, straight hair. How would your approach to sectioning, tension, and tool choice differ significantly for each, based on your understanding of their hair follicles and structure?
+Consider a client with very curly, dense hair versus a client with fine, straight hair. How would your approach to sectioning, tension, and tool choice differ significantly for each, based on your understanding of their hair follicles and structure? What challenges do you anticipate, and how would you address them?
 
 ## 🏫 In-Class Learning
 - **Lecture/Discussion**:
@@ -504,7 +504,7 @@ Reflect on your progress this week. What was the most challenging technique you 
 
 ## ✍️ Assignment / Practice
 - **At Home**:
-    -   **Personalized Practice Plan**: Based on the feedback received from the instructor and your own self-assessment, create a detailed practice plan for the upcoming week (Week 3). This plan should specifically target 2-3 areas identified for improvement, outlining specific drills or exercises you will perform.
+    -   **Personalized Practice Plan**: Based on the feedback received from the instructor and your own self-assessment, create a detailed practice plan for the upcoming week (Week 3). This plan should specifically target 2-3 areas identified for improvement, outlining concrete drills or exercises you will perform.
     -   **Research Corrective Techniques**: For one specific area where you struggled, research online or in your textbook for corrective techniques or alternative approaches.
 - **In Class**:
     -   **Active Participation**: Engage actively in the feedback sessions, asking clarifying questions and demonstrating a receptive attitude towards constructive criticism.
