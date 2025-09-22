@@ -12,8 +12,10 @@ import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
-import { marked } from 'marked'; // Import marked
+import { Marked } from 'marked'; // Import Marked class
 import DOMPurify from 'dompurify'; // Import DOMPurify
+
+const marked = new Marked(); // Create an instance of Marked
 
 const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
