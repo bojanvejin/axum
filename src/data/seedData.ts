@@ -106,6 +106,49 @@ export const seedModules: CurriculumModule[] = [
   { id: module6_1Id, phase_id: phase6Id, title: "Week 6 Lessons", description: "Final project preparation, execution, and graduation.", order_index: 0 },
 ];
 
+// --- Quizzes ---
+const week2ReviewQuizId = generateId();
+
+export const seedQuizzes: Quiz[] = [
+  {
+    id: week2ReviewQuizId,
+    title: "Week 2 Review Quiz",
+    description: "A quick check on your understanding of Week 2's core concepts.",
+    created_at: new Date().toISOString(),
+  },
+];
+
+// --- Quiz Questions ---
+export const seedQuizQuestions: QuizQuestion[] = [
+  {
+    id: generateId(),
+    quiz_id: week2ReviewQuizId,
+    question_text: "Which part of the hair follicle is responsible for hair growth?",
+    question_type: 'mcq',
+    options: ["Hair Shaft", "Dermal Papilla", "Sebaceous Gland", "Arrector Pili Muscle"],
+    correct_answer: "Dermal Papilla",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: generateId(),
+    quiz_id: week2ReviewQuizId,
+    question_text: "What is the primary goal of line cutting techniques?",
+    question_type: 'mcq',
+    options: ["To create soft, blended layers", "To establish sharp, defined outlines", "To add volume to the hair", "To remove bulk from the interior"],
+    correct_answer: "To establish sharp, defined outlines",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: generateId(),
+    quiz_id: week2ReviewQuizId,
+    question_text: "When combining line and precision cutting, what is crucial for a seamless result?",
+    question_type: 'mcq',
+    options: ["Using only one type of clipper", "Ignoring the client's head shape", "Smooth blending and transition", "Cutting against the grain exclusively"],
+    correct_answer: "Smooth blending and transition",
+    created_at: new Date().toISOString(),
+  },
+];
+
 // --- Lessons ---
 export const seedLessons: CurriculumLesson[] = [
   // Appendices Lessons (using titles as content as no specific markdown files provided)
@@ -116,7 +159,7 @@ export const seedLessons: CurriculumLesson[] = [
   { id: generateId(), module_id: moduleAppendicesEId, title: "Consultation Scripts & Client Experience", objectives: "Develop strong consultation skills and enhance client satisfaction.", content_html: "<h3>Appendix E: Consultation Scripts & Client Experience</h3><p>Learn effective communication strategies, consultation scripts, and techniques to build rapport and provide an exceptional client experience.</p>", order_index: 0, quiz_id: null },
   { id: generateId(), module_id: moduleAppendicesFId, title: "Geometry, Symmetry & Fade Blueprint", objectives: "Apply geometric principles to achieve balanced and symmetrical haircuts.", content_html: "<h3>Appendix F: Geometry, Symmetry & Fade Blueprint</h3><p>Understand the mathematical principles behind perfect haircuts, including head shape analysis, sectioning for symmetry, and constructing flawless fades.</p>", order_index: 0, quiz_id: null },
   { id: generateId(), module_id: moduleAppendicesGId, title: "Ergonomics, Injury Prevention & Workstation Setup", objectives: "Optimize your workstation for health and efficiency.", content_html: "<h3>Appendix G: Ergonomics, Injury Prevention & Workstation Setup</h3><p>Discover ergonomic best practices to prevent common barbering injuries. Learn how to set up your workstation for maximum efficiency and comfort.</p>", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesHId, title: "Assessment Rubrics & Checklists", objectives: "Utilize rubrics and checklists for self-assessment and skill improvement.", content_html: "<h3>Appendix H: Assessment Rubrics & Checklists</h3><p>This appendix provides various rubrics and checklists to help you evaluate your own work and track your progress throughout the academy.</p>", order_index: 0, quiz_id: null },
+  { id: generateId(), module_id: moduleAppendicesHId, title: "Appendix H: Assessment Rubrics & Checklists", objectives: "Utilize rubrics and checklists for self-assessment and skill improvement.", content_html: "<h3>Appendix H: Assessment Rubrics & Checklists</h3><p>This appendix provides various rubrics and checklists to help you evaluate your own work and track your progress throughout the academy.</p>", order_index: 0, quiz_id: null },
 
   // Week 1 Lessons
   { id: generateId(), module_id: module1_1Id, title: "01 Course Overview and Introduction", objectives: "Understand the course structure and learning objectives.", content_html: "DYAD_ATTACHMENT_5", order_index: 0, quiz_id: null },
@@ -130,7 +173,7 @@ export const seedLessons: CurriculumLesson[] = [
   { id: generateId(), module_id: module2_1Id, title: "02 Line Cutting Techniques", objectives: "Master fundamental line cutting methods.", content_html: "DYAD_ATTACHMENT_9", order_index: 1, quiz_id: null },
   { id: generateId(), module_id: module2_1Id, title: "03 Precision Cutting Techniques", objectives: "Execute precise cutting methods for various styles.", content_html: "DYAD_ATTACHMENT_6", order_index: 2, quiz_id: null },
   { id: generateId(), module_id: module2_1Id, title: "04 Combining Line and Precision Cutting", objectives: "Integrate line and precision cutting for seamless results.", content_html: "DYAD_ATTACHMENT_8", order_index: 3, quiz_id: null },
-  { id: generateId(), module_id: module2_1Id, title: "05 Review and Feedback", objectives: "Evaluate basic cutting skills and receive constructive feedback.", content_html: "DYAD_ATTACHMENT_7", order_index: 4, quiz_id: null },
+  { id: generateId(), module_id: module2_1Id, title: "05 Review and Feedback", objectives: "Evaluate basic cutting skills and receive constructive feedback.", content_html: "DYAD_ATTACHMENT_7", order_index: 4, quiz_id: week2ReviewQuizId }, // Linked to the new quiz
 
   // Week 3 Lessons
   { id: generateId(), module_id: module3_1Id, title: "01 Advanced Line Cutting Techniques", objectives: "Learn advanced techniques for creating sharp lines and edges.", content_html: "DYAD_ATTACHMENT_14", order_index: 0, quiz_id: null },
@@ -156,7 +199,3 @@ export const seedLessons: CurriculumLesson[] = [
   { id: generateId(), module_id: module6_1Id, title: "03 Review and Feedback (Final Project)", objectives: "Present and receive feedback on the completed final project.", content_html: "DYAD_ATTACHMENT_25", order_index: 2, quiz_id: null },
   { id: generateId(), module_id: module6_1Id, title: "04 Graduation Ceremony", objectives: "Celebrate the successful completion of the Axum Barber Academy.", content_html: "DYAD_ATTACHMENT_24", order_index: 3, quiz_id: null },
 ];
-
-// --- Quizzes and Quiz Questions (empty for now, can be added later) ---
-export const seedQuizzes: Quiz[] = [];
-export const seedQuizQuestions: QuizQuestion[] = [];
