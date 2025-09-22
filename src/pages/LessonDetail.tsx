@@ -12,7 +12,7 @@ import QuizComponent from '@/components/QuizComponent';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TextToSpeechButton from '@/components/TextToSpeechButton';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
-import { marked } from 'marked'; // Import marked
+import { parseSync } from 'marked'; // Import parseSync from marked
 import DOMPurify from 'dompurify'; // Import DOMPurify
 
 const LessonDetail: React.FC = () => {
@@ -158,7 +158,7 @@ const LessonDetail: React.FC = () => {
   const lessonHtmlContent = useMemo(() => {
     if (!lesson?.content_html) return '<p>No content available for this lesson yet.</p>';
     // Convert markdown to HTML
-    const rawHtml = marked.parseSync(lesson.content_html);
+    const rawHtml = parseSync(lesson.content_html);
     // Sanitize the HTML to prevent XSS attacks
     return DOMPurify.sanitize(rawHtml);
   }, [lesson?.content_html]);
@@ -166,7 +166,7 @@ const LessonDetail: React.FC = () => {
   const lessonText = useMemo(() => {
     if (!lesson?.content_html || typeof window === 'undefined') return '';
     // Use marked to convert markdown to HTML, then create a temporary div to extract plain text
-    const rawHtml = marked.parseSync(lesson.content_html);
+    const rawHtml = parseSync(lesson.content_html);
     const sanitizedHtml = DOMPurify.sanitize(rawHtml);
     const div = document.createElement('div');
     div.innerHTML = sanitizedHtml;
