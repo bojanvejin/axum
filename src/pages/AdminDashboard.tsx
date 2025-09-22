@@ -4,11 +4,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSession } from '@/components/SessionContextProvider';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAdminRole } from '@/hooks/useAdminRole'; // New import
+import { useAdminRole } from '@/hooks/useAdminRole';
 
 const AdminDashboard: React.FC = () => {
   const { user, loading: authLoading } = useSession();
-  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
+  const { isAdmin, loadingAdminRole } = useAdminRole();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,6 +73,15 @@ const AdminDashboard: React.FC = () => {
             <CardContent>
               <p className="text-muted-foreground text-sm">Access student progress and quiz performance reports.</p>
               <Link to="/admin/analytics" className="text-blue-500 hover:underline mt-4 block">Go to Analytics</Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Seed Database</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">Populate the database with initial curriculum data from local files.</p>
+              <Link to="/admin/seed-database" className="text-blue-500 hover:underline mt-4 block">Go to Seed Database</Link>
             </CardContent>
           </Card>
         </div>
