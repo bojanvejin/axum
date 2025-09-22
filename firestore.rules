@@ -3,64 +3,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is the hardcoded super admin
+    // Super admin UID for elmntmail@gmail.com
     function isSuperAdmin() {
-      // UID for elmntmail@gmail.com
       return request.auth.uid == 'xHj1ryfvHnNuCOcUTibcKfjT9x82';
     }
 
-    // Helper function to check for admin role by looking at the user's profile
-    function isAdmin() {
-      return isSuperAdmin() || (
-        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin'
-      );
+    // Checks if a user has an 'admin' role in their profile
+    function hasAdminRole() {
+      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     // Profiles: Users can manage their own profile. Admins can manage any.
     match /profiles/{userId} {
-      allow read, update: if request.auth.uid == userId || isAdmin();
+      allow read, update: if request.auth.uid == userId || isSuperAdmin() || hasAdminRole();
       allow create: if request.auth.uid == userId;
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin() || hasAdminRole();
     }
 
     // Curriculum Data is public to read, but only admins can modify it.
-    match /phases/{phaseId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
+    // The super admin check is now direct to avoid circular dependencies during seeding.
+    match /phases/{phaseId}   { allow read: if true; allow write: if isSuperAdmin() || hasAdminRole(); }
+    match /modules/{moduleId} { allow read: if true; allow write: if isSuperAdmin() || hasAdminRole(); }
+    match /lessons/{lessonId} { allow read: if true; allow write: if isSuperAdmin() || hasAdminRole(); }
+    match /quizzes/{quizId}   { allow read: if true; allow write: if isSuperAdmin() || hasAdminRole(); }
+    match /quiz_questions/{questionId} { allow read: if true; allow write: if isSuperAdmin() || hasAdminRole(); }
 
-    match /modules/{moduleId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /lessons/{lessonId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /quizzes/{quizId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /quiz_questions/{questionId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
 
     // Student-specific data can only be accessed by the student themselves or an admin.
     match /student_progress/{progressId} {
-      allow read: if request.auth.uid == resource.data.user_id || isAdmin();
+      allow read: if request.auth.uid == resource.data.user_id || isSuperAdmin() || hasAdminRole();
       allow create, update: if request.auth.uid == request.resource.data.user_id;
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin() || hasAdminRole();
     }
 
     match /quiz_attempts/{attemptId} {
-        allow read: if request.auth.uid == resource.data.user_id || isAdmin();
+        allow read: if request.auth.uid == resource.data.user_id || isSuperAdmin() || hasAdminRole();
         allow create: if request.auth.uid == request.resource.data.user_id;
-        allow update, delete: if isAdmin();
+        allow update, delete: if isSuperAdmin() || hasAdminRole();
     }
   }
 }
