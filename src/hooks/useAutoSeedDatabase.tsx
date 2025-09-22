@@ -6,7 +6,8 @@ import { showError, showSuccess } from '@/utils/toast';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
 import { useAdminRole } from './useAdminRole';
 
-const AUTO_SEED_KEY = 'axum_db_seeded_v1'; // Version key to prevent re-seeding on every load
+// Define the current version of your seed data. Increment this when seed data changes.
+const CURRENT_SEED_VERSION = 2; // Increased version to trigger update for Week 2 lessons
 
 export const useAutoSeedDatabase = () => {
   const { user, loading: authLoading } = useSession();
@@ -30,50 +31,43 @@ export const useAutoSeedDatabase = () => {
         return;
       }
 
-      // Check if seeding has already been performed for this version
-      const hasSeeded = localStorage.getItem(AUTO_SEED_KEY);
-      if (hasSeeded === 'true') {
-        console.log('useAutoSeedDatabase: Auto-seeding skipped: Database already seeded for this version.');
-        setSeedAttempted(true);
-        return;
-      }
-
       setIsSeeding(true);
       console.log('useAutoSeedDatabase: Attempting automatic database seeding...');
       const batch = writeBatch(db);
 
       try {
-        // Check if the 'phases' collection is empty as a proxy for overall curriculum data
-        const phasesCollectionRef = collection(db, 'phases');
-        const phasesSnapshot = await getDocs(phasesCollectionRef);
+        const appSettingsRef = doc(db, 'app_settings', 'seed_version');
+        const appSettingsSnap = await getDoc(appSettingsRef);
+        const currentDbSeedVersion = appSettingsSnap.exists() ? appSettingsSnap.data().version : 0;
 
-        if (phasesSnapshot.empty) {
-          console.log('useAutoSeedDatabase: Phases collection is empty. Proceeding with seeding...');
+        if (currentDbSeedVersion < CURRENT_SEED_VERSION) {
+          console.log(`useAutoSeedDatabase: Database seed version (${currentDbSeedVersion}) is older than current version (${CURRENT_SEED_VERSION}). Proceeding with seeding...`);
 
-          // Add all seed items using their 'id' as the Firebase document ID
+          // Add/update all seed items using their 'id' as the Firebase document ID
           seedPhases.forEach(item => {
-            batch.set(doc(db, 'phases', item.id), item);
+            batch.set(doc(db, 'phases', item.id), item, { merge: true });
           });
           seedModules.forEach(item => {
-            batch.set(doc(db, 'modules', item.id), item);
+            batch.set(doc(db, 'modules', item.id), item, { merge: true });
           });
           seedQuizzes.forEach(item => {
-            batch.set(doc(db, 'quizzes', item.id), item);
+            batch.set(doc(db, 'quizzes', item.id), item, { merge: true });
           });
           seedQuizQuestions.forEach(item => {
-            batch.set(doc(db, 'quiz_questions', item.id), item);
+            batch.set(doc(db, 'quiz_questions', item.id), item, { merge: true });
           });
           seedLessons.forEach(item => {
-            batch.set(doc(db, 'lessons', item.id), item);
+            batch.set(doc(db, 'lessons', item.id), item, { merge: true });
           });
 
+          // Update the seed version in Firestore
+          batch.set(appSettingsRef, { version: CURRENT_SEED_VERSION }, { merge: true });
+
           await batch.commit();
-          localStorage.setItem(AUTO_SEED_KEY, 'true'); // Mark as seeded
-          showSuccess('Curriculum data automatically seeded!');
+          showSuccess('Curriculum data automatically updated to the latest version!');
           console.log('useAutoSeedDatabase: Automatic database seeding complete!');
         } else {
-          console.log('useAutoSeedDatabase: Phases collection is not empty. Auto-seeding skipped.');
-          localStorage.setItem(AUTO_SEED_KEY, 'true'); // Mark as seeded even if not empty, to prevent re-check
+          console.log(`useAutoSeedDatabase: Database seed version (${currentDbSeedVersion}) is up to date. Auto-seeding skipped.`);
         }
       } catch (error: any) {
         showError(`Automatic seeding failed: ${error.message}`);
