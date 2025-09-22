@@ -2,37 +2,46 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Profiles collection
-    // Users can read, create, update, and delete their own profile document.
-    // The document ID for a profile must match the user's UID.
+    // Helper function to check if the authenticated user has an 'admin' role
+    function isAdmin() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Profiles collection:
+    // - Authenticated users can read their own profile.
+    // - Authenticated users can create their own profile (e.g., on first login/signup).
+    // - Authenticated users can update their own profile.
+    // - Admins can read and update all profiles.
+    // - Only admins can delete profiles.
     match /profiles/{userId} {
-      allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
     }
 
-    // Curriculum collections (phases, modules, lessons, quizzes, quiz_questions)
-    // Public read access for all curriculum content.
-    // Only users with 'admin' role can create, update, or delete these documents.
-    match /{collection=phases|modules|lessons|quizzes|quiz_questions}/{docId} {
-      allow read: if true; // Public read access for curriculum content
-
-      // Admin write access: check if the authenticated user's profile role is 'admin'
-      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    // Curriculum content collections (phases, modules, lessons, quizzes, quiz_questions):
+    // - Public read access for everyone.
+    // - Only admins can create, update, or delete these documents.
+    match /{collection=phases|modules|lessons|quizzes|quiz_questions}/{document} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Student Progress collection
-    // Users can read, create, and update their own student progress.
-    // The 'user_id' field in the document must match the authenticated user's UID.
+    // Student progress collection:
+    // - Authenticated users can read, create, and update their own progress.
+    // - Admins can delete any progress entry.
     match /student_progress/{progressId} {
-      allow read, create, update: if request.auth != null && request.auth.uid == resource.data.user_id;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow read, create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow delete: if isAdmin();
     }
 
-    // Quiz Attempts collection
-    // Users can read, create, and update their own quiz attempts.
-    // The 'user_id' field in the document must match the authenticated user's UID.
+    // Quiz attempts collection:
+    // - Authenticated users can read, create, and update their own quiz attempts.
+    // - Admins can delete any quiz attempt.
     match /quiz_attempts/{attemptId} {
-      allow read, create, update: if request.auth != null && request.auth.uid == resource.data.user_id;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow read, create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow delete: if isAdmin();
     }
   }
 }
