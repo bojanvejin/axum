@@ -52,7 +52,8 @@ service cloud.firestore {
     // - Authenticated users can read, create, and update their own progress.
     // - Admins can delete any progress entry.
     match /student_progress/{progressId} {
-      allow read, create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
       allow delete: if isAdmin();
     }
 
@@ -60,7 +61,8 @@ service cloud.firestore {
     // - Authenticated users can read, create, and update their own quiz attempts.
     // - Admins can delete any quiz attempt.
     match /quiz_attempts/{attemptId} {
-      allow read, create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
       allow delete: if isAdmin();
     }
   }
