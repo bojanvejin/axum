@@ -1,44 +1,52 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write for authenticated users to curriculum data
+    // Allow read access to the 'profiles' collection for authenticated users,
+    // but only for their own profile document (where the document ID matches their UID).
+    match /profiles/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Admins can delete profiles via backend functions if needed, but not directly from client
+    }
+
+    // Allow read access to 'phases', 'modules', 'lessons', 'quizzes', 'quiz_questions' for all authenticated users
+    match /{collectionName} {
+      allow read: if request.auth != null;
+    }
+
+    // Allow create, update, delete for 'phases', 'modules', 'lessons', 'quizzes', 'quiz_questions' only for admins
     match /phases/{phaseId} {
-      allow read, write: if request.auth != null;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /modules/{moduleId} {
-      allow read, write: if request.auth != null;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /lessons/{lessonId} {
-      allow read, write: if request.auth != null;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /quizzes/{quizId} {
-      allow read, write: if request.auth != null;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /quiz_questions/{questionId} {
-      allow read, write: if request.auth != null;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Allow authenticated users to read/write their own student progress
+    // Allow authenticated users to manage their own student progress and quiz attempts
     match /student_progress/{progressId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow update: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow delete: if false; // Prevent direct client-side deletion of progress
     }
 
-    // Allow authenticated users to read/write their own quiz attempts
     match /quiz_attempts/{attemptId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.user_id == request.auth.uid;
-    }
-
-    // Default rule: deny all other reads/writes
-    match /{document=**} {
-      allow read, write: if false;
+      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow update: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow delete: if false; // Prevent direct client-side deletion of attempts
     }
   }
 }
