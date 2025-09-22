@@ -1,52 +1,38 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read access to the 'profiles' collection for authenticated users,
-    // but only for their own profile document (where the document ID matches their UID).
+
+    // Profiles collection
+    // Users can read, create, update, and delete their own profile document.
+    // The document ID for a profile must match the user's UID.
     match /profiles/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if false; // Admins can delete profiles via backend functions if needed, but not directly from client
+      allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Allow read access to 'phases', 'modules', 'lessons', 'quizzes', 'quiz_questions' for all authenticated users
-    match /{collectionName} {
-      allow read: if request.auth != null;
-    }
+    // Curriculum collections (phases, modules, lessons, quizzes, quiz_questions)
+    // Public read access for all curriculum content.
+    // Only users with 'admin' role can create, update, or delete these documents.
+    match /{collection=phases|modules|lessons|quizzes|quiz_questions}/{docId} {
+      allow read: if true; // Public read access for curriculum content
 
-    // Allow create, update, delete for 'phases', 'modules', 'lessons', 'quizzes', 'quiz_questions' only for admins
-    match /phases/{phaseId} {
+      // Admin write access: check if the authenticated user's profile role is 'admin'
       allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    match /modules/{moduleId} {
-      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    match /lessons/{lessonId} {
-      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    match /quizzes/{quizId} {
-      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    match /quiz_questions/{questionId} {
-      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Allow authenticated users to manage their own student progress and quiz attempts
+    // Student Progress collection
+    // Users can read, create, and update their own student progress.
+    // The 'user_id' field in the document must match the authenticated user's UID.
     match /student_progress/{progressId} {
-      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
-      allow update: if request.auth != null && request.auth.uid == resource.data.user_id;
-      allow delete: if false; // Prevent direct client-side deletion of progress
+      allow read, create, update: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.user_id;
     }
 
+    // Quiz Attempts collection
+    // Users can read, create, and update their own quiz attempts.
+    // The 'user_id' field in the document must match the authenticated user's UID.
     match /quiz_attempts/{attemptId} {
-      allow read, create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
-      allow update: if request.auth != null && request.auth.uid == resource.data.user_id;
-      allow delete: if false; // Prevent direct client-side deletion of attempts
+      allow read, create, update: if request.auth != null && request.auth.uid == resource.data.user_id;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.user_id;
     }
   }
 }
