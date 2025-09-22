@@ -16,6 +16,7 @@ import LessonManagement from "./pages/admin/LessonManagement";
 import QuizManagement from "./pages/admin/QuizManagement";
 import QuestionManagement from "./pages/admin/QuestionManagement";
 import DataSeeder from "./components/admin/DataSeeder"; // New import
+import AnalyticsPage from "./pages/admin/Analytics"; // New import
 import { ThemeProvider } from "next-themes";
 import { SessionContextProvider } from "@/components/SessionContextProvider";
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
               <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
               <Route path="/admin/seed-data" element={<DataSeeder />} /> {/* New route */}
+              <Route path="/admin/analytics" element={<AnalyticsPage />} /> {/* New route */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

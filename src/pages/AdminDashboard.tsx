@@ -68,11 +68,11 @@ const AdminDashboard: React.FC = () => {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>View Reports</CardTitle>
+              <CardTitle>Analytics Hub</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-sm">Access student progress and quiz performance reports.</p>
-              <Link to="#" className="text-blue-500 hover:underline mt-4 block">Go to Reports</Link>
+              <Link to="/admin/analytics" className="text-blue-500 hover:underline mt-4 block">Go to Analytics</Link>
             </CardContent>
           </Card>
           {/* New Card for Data Seeder */}
