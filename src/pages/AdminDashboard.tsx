@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSession } from '@/components/SessionContextProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAdminRole } from '@/hooks/useAdminRole';
+import SeedDatabaseButton from '@/components/admin/SeedDatabaseButton'; // New import
 
 const AdminDashboard: React.FC = () => {
   const { user, loading: authLoading } = useSession();
@@ -75,7 +76,15 @@ const AdminDashboard: React.FC = () => {
               <Link to="/admin/analytics" className="text-blue-500 hover:underline mt-4 block">Go to Analytics</Link>
             </CardContent>
           </Card>
-          {/* Removed Seed Database Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Database Tools</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm mb-4">Manually re-seed the entire curriculum database.</p>
+              <SeedDatabaseButton />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </Layout>
