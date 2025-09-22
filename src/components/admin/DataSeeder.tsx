@@ -18,11 +18,15 @@ import HistoryContent from '@/content/02_History_of_Line_Cutting_and_Precision_C
 import ToolsTechniquesContent from '@/content/03_Tools_and_Techniques.md?raw';
 import CleanlinessHygieneContent from '@/content/04_Cleanliness_and_Hygiene.md?raw';
 import SafetyFirstAidContent from '@/content/05_Safety_and_First_Aid.md?raw';
-import HairFollicleContent from '@/content/01_Understanding_the_Hair_Follicle.md?raw';
-import LineCuttingContent from '@/content/02_Line_Cutting_Techniques.md?raw';
-import PrecisionCuttingContent from '@/content/03_Precision_Cutting_Techniques.md?raw';
-import CombiningLinePrecisionContent from '@/content/04_Combining_Line_and_Precision_Cutting.md?raw';
-import ReviewFeedbackContent from '@/content/05_Review_and_Feedback.md?raw';
+
+// Week 2 Content
+import UnderstandingHairFollicleContent from '@/content/01_Understanding_the_Hair_Follicle.md?raw';
+import LineCuttingTechniquesContent from '@/content/02_Line_Cutting_Techniques.md?raw';
+import PrecisionCuttingTechniquesContent from '@/content/03_Precision_Cutting_Techniques.md?raw';
+import CombiningLinePrecisionCuttingContent from '@/content/04_Combining_Line_and_Precision_Cutting.md?raw';
+import ReviewFeedbackWeek2Content from '@/content/05_Review_and_Feedback.md?raw';
+
+
 import AdvancedLineCuttingContent from '@/content/01_Advanced_Line_Cutting_Techniques.md?raw';
 import AdvancedPrecisionCuttingContent from '@/content/02_Advanced_Precision_Cutting_Techniques.md?raw';
 import CombiningAdvancedContent from '@/content/03_Combining_Advanced_Techniques.md?raw';
@@ -53,33 +57,45 @@ import AppendixHAssessmentContent from '@/content/Appendix_H_Assessment_Rubrics_
 
 // Map attachment IDs to their imported content
 const attachmentContentMap: Record<string, string> = {
+  // Week 1
   'DYAD_ATTACHMENT_5': CourseOverviewContent,
-  'DYAD_ATTACHMENT_1': HistoryContent,
+  'DYAD_ATTACHMENT_1': HistoryContent, // This was the old DYAD_ATTACHMENT_1, now it's for Week 2's 02_Line_Cutting_Techniques.md
   'DYAD_ATTACHMENT_4': ToolsTechniquesContent,
   'DYAD_ATTACHMENT_3': CleanlinessHygieneContent,
   'DYAD_ATTACHMENT_2': SafetyFirstAidContent,
-  'DYAD_ATTACHMENT_10': HairFollicleContent,
-  'DYAD_ATTACHMENT_9': LineCuttingContent,
-  'DYAD_ATTACHMENT_6': PrecisionCuttingContent,
-  'DYAD_ATTACHMENT_8': CombiningLinePrecisionContent,
-  'DYAD_ATTACHMENT_7': ReviewFeedbackContent,
+
+  // Week 2
+  'DYAD_ATTACHMENT_2': UnderstandingHairFollicleContent, // This is the new DYAD_ATTACHMENT_2 for Week 2's 01_Understanding_the_Hair_Follicle.md
+  'DYAD_ATTACHMENT_1': LineCuttingTechniquesContent, // This is the new DYAD_ATTACHMENT_1 for Week 2's 02_Line_Cutting_Techniques.md
+  'DYAD_ATTACHMENT_5': PrecisionCuttingTechniquesContent, // This is the new DYAD_ATTACHMENT_5 for Week 2's 03_Precision_Cutting_Techniques.md
+  'DYAD_ATTACHMENT_4': CombiningLinePrecisionCuttingContent, // This is the new DYAD_ATTACHMENT_4 for Week 2's 04_Combining_Line_and_Precision_Cutting.md
+  'DYAD_ATTACHMENT_3': ReviewFeedbackWeek2Content, // This is the new DYAD_ATTACHMENT_3 for Week 2's 05_Review_and_Feedback.md
+
+  // Week 3
   'DYAD_ATTACHMENT_14': AdvancedLineCuttingContent,
   'DYAD_ATTACHMENT_11': AdvancedPrecisionCuttingContent,
   'DYAD_ATTACHMENT_13': CombiningAdvancedContent,
   'DYAD_ATTACHMENT_12': ReviewFeedbackIntermediateContent,
+
+  // Week 4
   'DYAD_ATTACHMENT_19': IntroToDesignContent,
   'DYAD_ATTACHMENT_18': DesignsWithLineCuttingContent,
   'DYAD_ATTACHMENT_17': DesignsWithPrecisionCuttingContent,
   'DYAD_ATTACHMENT_15': CombiningDesignsContent,
   'DYAD_ATTACHMENT_16': ReviewFeedbackDesignContent,
+
+  // Week 5
   'DYAD_ATTACHMENT_20': AdvancedDesignContent,
   'DYAD_ATTACHMENT_22': PracticalApplicationContent,
   'DYAD_ATTACHMENT_21': ReviewFeedbackCraftContent,
+
+  // Week 6
   'DYAD_ATTACHMENT_26': FinalProjectPlanningContent,
   'DYAD_ATTACHMENT_23': FinalProjectExecutionContent,
   'DYAD_ATTACHMENT_25': ReviewFeedbackFinalProjectContent,
   'DYAD_ATTACHMENT_24': GraduationCeremonyContent,
-  // New mappings for Appendix markdown files
+
+  // Appendices
   'DYAD_ATTACHMENT_27': AppendixAToolEncyclopediaContent,
   'DYAD_ATTACHMENT_28': AppendixBSanitationContent,
   'DYAD_ATTACHMENT_29': AppendixCHairScalpScienceContent,

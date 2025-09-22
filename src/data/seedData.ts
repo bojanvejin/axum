@@ -166,11 +166,11 @@ export const seedLessons: CurriculumLesson[] = [
   { id: "e0000000-0000-4000-8000-00000000000c", module_id: module1_1Id, title: "05 Safety and First Aid", objectives: "Implement safety protocols and basic first aid procedures.", content_html: "DYAD_ATTACHMENT_2", order_index: 4, quiz_id: null },
 
   // Week 2 Lessons
-  { id: "e0000000-0000-4000-8000-00000000000d", module_id: module2_1Id, title: "01 Understanding the Hair Follicle", objectives: "Gain knowledge of hair biology and growth cycles.", content_html: "DYAD_ATTACHMENT_10", order_index: 0, quiz_id: null },
-  { id: "e0000000-0000-4000-8000-00000000000e", module_id: module2_1Id, title: "02 Line Cutting Techniques", objectives: "Master fundamental line cutting methods.", content_html: "DYAD_ATTACHMENT_9", order_index: 1, quiz_id: null },
-  { id: "e0000000-0000-4000-8000-00000000000f", module_id: module2_1Id, title: "03 Precision Cutting Techniques", objectives: "Execute precise cutting methods for various styles.", content_html: "DYAD_ATTACHMENT_6", order_index: 2, quiz_id: null },
-  { id: "e0000000-0000-4000-8000-000000000010", module_id: module2_1Id, title: "04 Combining Line and Precision Cutting", objectives: "Integrate line and precision cutting for seamless results.", content_html: "DYAD_ATTACHMENT_8", order_index: 3, quiz_id: null },
-  { id: "e0000000-0000-4000-8000-000000000011", module_id: module2_1Id, title: "05 Review and Feedback", objectives: "Evaluate basic cutting skills and receive constructive feedback.", content_html: "DYAD_ATTACHMENT_7", order_index: 4, quiz_id: week2ReviewQuizId }, // Linked to the new quiz
+  { id: "e0000000-0000-4000-8000-00000000000d", module_id: module2_1Id, title: "01 Understanding the Hair Follicle", objectives: "Gain knowledge of hair biology and growth cycles.", content_html: "DYAD_ATTACHMENT_2", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000000e", module_id: module2_1Id, title: "02 Line Cutting Techniques", objectives: "Master fundamental line cutting methods.", content_html: "DYAD_ATTACHMENT_1", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000000f", module_id: module2_1Id, title: "03 Precision Cutting Techniques", objectives: "Execute precise cutting methods for various styles.", content_html: "DYAD_ATTACHMENT_5", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000010", module_id: module2_1Id, title: "04 Combining Line and Precision Cutting", objectives: "Integrate line and precision cutting for seamless results.", content_html: "DYAD_ATTACHMENT_4", order_index: 3, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000011", module_id: module2_1Id, title: "05 Review and Feedback", objectives: "Evaluate basic cutting skills and receive constructive feedback.", content_html: "DYAD_ATTACHMENT_3", order_index: 4, quiz_id: week2ReviewQuizId }, // Linked to the new quiz
 
   // Week 3 Lessons
   { id: "e0000000-0000-4000-8000-000000000012", module_id: module3_1Id, title: "01 Advanced Line Cutting Techniques", objectives: "Learn advanced techniques for creating sharp lines and edges.", content_html: "DYAD_ATTACHMENT_14", order_index: 0, quiz_id: null },
