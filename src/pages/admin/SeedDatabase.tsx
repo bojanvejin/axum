@@ -10,6 +10,7 @@ import { useSession } from '@/components/SessionContextProvider';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
 import { Loader2, Database } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton'; // Added import for Skeleton
 
 const SeedDatabase: React.FC = () => {
   const { user, loading: authLoading } = useSession();
