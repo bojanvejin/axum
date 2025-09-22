@@ -1,55 +1,54 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Function to check if the user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
+    // Allow public read access for curriculum structure
+    match /phases/{phaseId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Function to get the user's role from their profile
-    function getRole() {
-      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role;
+    match /modules/{moduleId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Allow read access to all curriculum data for authenticated users
-    // Allow full CRUD for admin users
-    match /{collection=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && getRole() == 'admin';
+    match /lessons/{lessonId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Specific rules for the 'profiles' collection
+    match /quizzes/{quizId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /quiz_questions/{questionId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // User profiles - users can read/update their own, admins can read/update all
     match /profiles/{userId} {
-      // Allow users to read their own profile
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      // Allow users to update their own profile
-      allow update: if isAuthenticated() && request.auth.uid == userId;
-      // Allow creation of profiles only by the `handle_new_user` function (via `request.auth.uid` matching `userId`)
-      // This rule is implicitly handled by the `request.auth.uid == userId` for the initial write
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      // Admins can read and update any profile
-      allow read, update: if isAuthenticated() && getRole() == 'admin';
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId; // Allow user to create their own profile on signup
+      // Admin can read/update all profiles
+      allow read, update: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Specific rules for 'student_progress'
+    // Student progress - users can read/write their own
     match /student_progress/{progressId} {
-      // Users can create and update their own progress
-      allow create, update: if isAuthenticated() && request.auth.uid == request.resource.data.user_id;
-      // Users can read their own progress
-      allow read: if isAuthenticated() && request.auth.uid == resource.data.user_id;
-      // Admins can read all student progress
-      allow read: if isAuthenticated() && getRole() == 'admin';
+      allow read, create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow delete: if request.auth != null && request.auth.uid == request.resource.data.user_id; // Allow users to delete their own progress if needed
+      // Admins can read all progress
+      allow read: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Specific rules for 'quiz_attempts'
+    // Quiz attempts - users can read/write their own
     match /quiz_attempts/{attemptId} {
-      // Users can create and update their own quiz attempts
-      allow create, update: if isAuthenticated() && request.auth.uid == request.resource.data.user_id;
-      // Users can read their own quiz attempts
-      allow read: if isAuthenticated() && request.auth.uid == resource.data.user_id;
-      // Admins can read all quiz attempts
-      allow read: if isAuthenticated() && getRole() == 'admin';
+      allow read, create, update: if request.auth != null && request.auth.uid == request.resource.data.user_id;
+      allow delete: if request.auth != null && request.auth.uid == request.resource.data.user_id; // Allow users to delete their own attempts if needed
+      // Admins can read all attempts
+      allow read: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }
