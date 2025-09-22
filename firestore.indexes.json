@@ -1,8 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "modules",
-      "queryScope": "COLLECTION",
+      "collectionId": "modules",
       "fields": [
         { "fieldPath": "phase_id", "mode": "ASCENDING" },
         { "fieldPath": "order_index", "mode": "ASCENDING" }
@@ -18,8 +17,7 @@
       ]
     },
     {
-      "collectionGroup": "student_progress",
-      "queryScope": "COLLECTION",
+      "collectionId": "student_progress",
       "fields": [
         { "fieldPath": "user_id", "mode": "ASCENDING" },
         { "fieldPath": "lesson_id", "mode": "ASCENDING" }
