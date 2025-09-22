@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { PlusCircle, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, BookOpenText } from 'lucide-react';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 import {
@@ -176,6 +176,11 @@ const ModuleManagement: React.FC = () => {
                   <p className="text-xs text-muted-foreground mt-2">Order: {module.order_index}</p>
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/admin/curriculum/phases/${phaseId}/modules/${module.id}/lessons`}>
+                      <BookOpenText className="h-4 w-4 mr-2" /> View Lessons
+                    </Link>
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => openEditForm(module)}>
                     <Edit className="h-4 w-4" />
                   </Button>
