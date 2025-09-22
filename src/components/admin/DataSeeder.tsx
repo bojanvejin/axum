@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, 'react';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, setDoc, writeBatch } from 'firebase/firestore';
+import { writeBatch, doc } from 'firebase/firestore';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,9 +70,17 @@ const attachmentContentMap: Record<string, string> = {
   'DYAD_ATTACHMENT_24': GraduationCeremonyContent,
 };
 
+// Helper to extract the main title from a markdown string
+const extractTitleFromMarkdown = (markdown: string): string | null => {
+  const firstLine = markdown.split('\n')[0];
+  if (firstLine && firstLine.startsWith('# ')) {
+    return firstLine.substring(2).trim();
+  }
+  return null;
+};
 
 const DataSeeder: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = React.useState(false);
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSession();
   const { isAdmin, loadingAdminRole } = useAdminRole();
@@ -111,7 +119,15 @@ const DataSeeder: React.FC = () => {
             const lessonItem = item as CurriculumLesson;
             const contentKey = lessonItem.content_html;
             if (contentKey && attachmentContentMap[contentKey]) {
-              (dataToWrite as CurriculumLesson).content_html = attachmentContentMap[contentKey];
+              const markdownContent = attachmentContentMap[contentKey];
+              // Update content from markdown file
+              (dataToWrite as CurriculumLesson).content_html = markdownContent;
+              
+              // Update title from markdown file
+              const newTitle = extractTitleFromMarkdown(markdownContent);
+              if (newTitle) {
+                (dataToWrite as CurriculumLesson).title = newTitle;
+              }
             }
           }
           const docRef = doc(db, name, item.id);
@@ -129,33 +145,6 @@ const DataSeeder: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // --- Temporary Admin Role Setter ---
-  const ADMIN_USER_UID = 'xHj1ryfvHnNuCOcUTibcKfjT9x82'; // UID for elmntmail@gmail.com
-  const ADMIN_USER_EMAIL = 'elmntmail@gmail.com';
-
-  const handleMakeAdmin = async () => {
-    if (!user) {
-      showError("You must be logged in to perform this action.");
-      return;
-    }
-    if (user.uid !== ADMIN_USER_UID) {
-      showError("You are not authorized to perform this action.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const profileDocRef = doc(db, 'profiles', ADMIN_USER_UID);
-      await setDoc(profileDocRef, { role: 'admin' }, { merge: true });
-      showSuccess(`${ADMIN_USER_EMAIL} is now an admin!`);
-    } catch (error: any) {
-      showError(`Failed to make ${ADMIN_USER_EMAIL} an admin: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-  // --- End Temporary Admin Role Setter ---
 
   if (authLoading || loadingAdminRole) {
     return (
@@ -183,19 +172,6 @@ const DataSeeder: React.FC = () => {
             <p>This action will seed and update the sample curriculum data (phases, modules, lessons, etc.) in your database. It will overwrite existing sample data with the latest version from the code, but will not delete any extra data you have created.</p>
             <Button onClick={handleSeedData} disabled={loading}>
               {loading ? 'Processing...' : 'Seed / Update Sample Data'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Temporary Admin Role Setter Card */}
-        <Card className="max-w-lg mx-auto">
-          <CardHeader>
-            <CardTitle>Temporary: Set Admin Role</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p>Click this button to set the role of <strong>{ADMIN_USER_EMAIL}</strong> to 'admin' in Firestore. This is a one-time action for setup.</p>
-            <Button onClick={handleMakeAdmin} disabled={loading}>
-              {loading ? 'Processing...' : `Make ${ADMIN_USER_EMAIL} Admin`}
             </Button>
           </CardContent>
         </Card>
