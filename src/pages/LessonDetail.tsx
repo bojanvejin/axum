@@ -15,6 +15,7 @@ import { useSession } from '@/components/SessionContextProvider'; // New import 
 import { Marked } from 'marked'; // Import Marked class
 import DOMPurify from 'dompurify'; // Import DOMPurify
 import { parseLessonResources } from '@/utils/lessonContentParser'; // New import
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 const marked = new Marked(); // Create an instance of Marked
 
@@ -287,6 +288,27 @@ const LessonDetail: React.FC = () => {
               <p className="text-muted-foreground">No additional resources available for this lesson.</p>
             )}
           </div>
+
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-2xl font-semibold">Textbook Reference: Milady Standard Barbering</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
+                <iframe
+                  src="https://archive.org/embed/miladysstandardp0000scal_d9n0"
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Please navigate within the embedded viewer to find the relevant chapters or sections.
+              </p>
+            </CardContent>
+          </Card>
 
           {lesson.quiz_id && (
             <div className="mb-8">
