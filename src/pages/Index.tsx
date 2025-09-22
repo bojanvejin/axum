@@ -31,16 +31,9 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSession();
 
+  // Effect for public curriculum data
   useEffect(() => {
-    if (authLoading) {
-      return; // Wait for auth state to resolve
-    }
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    const fetchData = async () => {
+    const fetchPublicData = async () => {
       setDataLoading(true);
       try {
         const phasesCollection = collection(db, 'phases');
@@ -65,22 +58,39 @@ const Index = () => {
         const lessonsSnapshot = await getDocs(lessonsCollection);
         const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
         setAllLessons(lessonsData);
+      } catch (error: any) {
+        showError(`Failed to load curriculum structure: ${error.message}`);
+        console.error('Error fetching public curriculum data:', error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    fetchPublicData();
+  }, []);
 
+  // Effect for user-specific progress data
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchUserProgress = async () => {
+      try {
         const progressCollectionRef = collection(db, 'student_progress');
         const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid));
         const progressSnapshot = await getDocs(progressQuery);
         const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
         setStudentProgress(userProgress);
-
       } catch (error: any) {
-        showError(`Failed to load curriculum: ${error.message}`);
-        console.error('Error fetching curriculum data:', error);
-      } finally {
-        setDataLoading(false);
+        console.error('Could not fetch student progress, this might be due to Firestore rules propagation delay:', error);
+        setStudentProgress([]);
       }
     };
 
-    fetchData();
+    fetchUserProgress();
   }, [user, authLoading, navigate]);
 
   const courseStartDate = new Date(2025, 8, 8);

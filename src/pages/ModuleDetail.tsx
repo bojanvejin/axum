@@ -20,49 +20,26 @@ const ModuleDetail: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
+  // Effect for public module/lesson data
   useEffect(() => {
-    if (authLoading) {
-      return; // Wait for auth state to resolve
-    }
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    const fetchModuleAndLessons = async () => {
+    const fetchPublicData = async () => {
       if (!moduleId) {
         setLoading(false);
         return;
       }
       setLoading(true);
       try {
-        // Fetch module data
         const moduleDocRef = doc(db, 'modules', moduleId);
         const moduleDocSnap = await getDoc(moduleDocRef);
 
-        if (!moduleDocSnap.exists()) {
-          throw new Error('Module not found');
-        }
+        if (!moduleDocSnap.exists()) throw new Error('Module not found');
         setModule({ id: moduleDocSnap.id, ...moduleDocSnap.data() } as CurriculumModule);
 
-        // Fetch lessons for the module
         const lessonsCollectionRef = collection(db, 'lessons');
         const lessonsQuery = query(lessonsCollectionRef, where('module_id', '==', moduleId), orderBy('order_index'));
         const lessonsSnapshot = await getDocs(lessonsQuery);
         const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
         setLessons(lessonsData);
-
-        // Fetch student progress for the current user and lessons in this module
-        const progressCollectionRef = collection(db, 'student_progress');
-        const progressQuery = query(
-          progressCollectionRef,
-          where('user_id', '==', user.uid),
-          where('lesson_id', 'in', lessonsData.map(l => l.id).length > 0 ? lessonsData.map(l => l.id) : ['dummy_id']) // Use 'in' query for multiple lesson IDs
-        );
-        const progressSnapshot = await getDocs(progressQuery);
-        const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
-        setStudentProgress(userProgress);
-
       } catch (error: any) {
         showError(`Failed to load module details: ${error.message}`);
         console.error('Error fetching module or lessons:', error);
@@ -70,17 +47,42 @@ const ModuleDetail: React.FC = () => {
         setLoading(false);
       }
     };
+    fetchPublicData();
+  }, [moduleId]);
 
-    if (moduleId) {
-      fetchModuleAndLessons();
+  // Effect for user-specific progress data
+  useEffect(() => {
+    if (authLoading || lessons.length === 0) return;
+
+    if (!user) {
+      navigate('/login');
+      return;
     }
-  }, [moduleId, user, authLoading, navigate]);
+
+    const fetchUserProgress = async () => {
+      try {
+        const progressCollectionRef = collection(db, 'student_progress');
+        const lessonIds = lessons.map(l => l.id);
+        if (lessonIds.length === 0) return;
+
+        const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid), where('lesson_id', 'in', lessonIds));
+        const progressSnapshot = await getDocs(progressQuery);
+        const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
+        setStudentProgress(userProgress);
+      } catch (error: any) {
+        console.error('Could not fetch student progress for module:', error);
+        setStudentProgress([]);
+      }
+    };
+
+    fetchUserProgress();
+  }, [user, authLoading, lessons, navigate]);
 
   const isLessonCompleted = (lessonId: string) => {
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <Layout>
         <div className="container mx-auto p-4">

@@ -28,33 +28,21 @@ const LessonDetail: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
+  // Effect for public lesson/module/phase data
   useEffect(() => {
-    if (authLoading) {
-      return; // Wait for auth state to resolve
-    }
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    const fetchLessonAndProgress = async () => {
+    const fetchPublicData = async () => {
       if (!lessonId) {
         setLoading(false);
         return;
       }
       setLoading(true);
       try {
-        // Fetch current lesson details
         const lessonDocRef = doc(db, 'lessons', lessonId);
         const lessonDocSnap = await getDoc(lessonDocRef);
-
-        if (!lessonDocSnap.exists()) {
-          throw new Error('Lesson not found');
-        }
+        if (!lessonDocSnap.exists()) throw new Error('Lesson not found');
         const lessonData = { id: lessonDocSnap.id, ...lessonDocSnap.data() } as CurriculumLesson;
         setLesson(lessonData);
 
-        // Fetch module and phase details
         if (lessonData.module_id) {
           const moduleDocRef = doc(db, 'modules', lessonData.module_id);
           const moduleDocSnap = await getDoc(moduleDocRef);
@@ -70,46 +58,54 @@ const LessonDetail: React.FC = () => {
               }
             }
 
-            // Fetch all lessons for the current module (for sidebar navigation and next lesson)
-            const lessonsInModuleCollectionRef = collection(db, 'lessons');
-            const lessonsInModuleQuery = query(lessonsInModuleCollectionRef, where('module_id', '==', moduleData.id), orderBy('order_index'));
+            const lessonsInModuleQuery = query(collection(db, 'lessons'), where('module_id', '==', moduleData.id), orderBy('order_index'));
             const lessonsInModuleSnapshot = await getDocs(lessonsInModuleQuery);
             const lessonsInModuleData = lessonsInModuleSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
             setModuleLessons(lessonsInModuleData);
 
-            // Determine next lesson
             const currentIndex = lessonsInModuleData.findIndex(l => l.id === lessonId);
-            if (currentIndex !== undefined && currentIndex < lessonsInModuleData.length - 1) {
+            if (currentIndex !== -1 && currentIndex < lessonsInModuleData.length - 1) {
               setNextLesson(lessonsInModuleData[currentIndex + 1]);
             } else {
-              setNextLesson(null); // No next lesson
+              setNextLesson(null);
             }
           }
-        } else {
-          setModuleLessons([]);
-          setNextLesson(null);
         }
+      } catch (error: any) {
+        showError(`Failed to load lesson details: ${error.message}`);
+        console.error('Error fetching public lesson data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPublicData();
+  }, [lessonId]);
 
-        // Fetch student progress for the current user
+  // Effect for user-specific progress data
+  useEffect(() => {
+    if (authLoading || !lessonId) return;
+
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchUserProgress = async () => {
+      try {
         const progressCollectionRef = collection(db, 'student_progress');
         const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid), where('lesson_id', '==', lessonId));
         const progressSnapshot = await getDocs(progressQuery);
         const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
         setStudentProgress(userProgress);
         setIsCompleted(userProgress.some(p => p.status === 'completed'));
-
       } catch (error: any) {
-        showError(`Failed to load lesson details: ${error.message}`);
-        console.error('Error fetching lesson or progress:', error);
-      } finally {
-        setLoading(false);
+        console.error('Could not fetch student progress for lesson:', error);
+        setStudentProgress([]);
       }
     };
 
-    if (lessonId) {
-      fetchLessonAndProgress();
-    }
-  }, [lessonId, user, authLoading, navigate]);
+    fetchUserProgress();
+  }, [user, authLoading, lessonId, navigate]);
 
   const handleMarkComplete = async () => {
     if (!user || !lessonId) {
