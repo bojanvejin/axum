@@ -1,4 +1,4 @@
-import React, 'react';
+import React from 'react';
 import { db } from '@/integrations/firebase/client';
 import { writeBatch, doc } from 'firebase/firestore';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
