@@ -160,7 +160,7 @@ const LessonDetail: React.FC = () => {
   const lessonHtmlContent = useMemo(() => {
     if (!lesson?.content_html) return '<p>No content available for this lesson yet.</p>';
     // Convert markdown to HTML
-    const rawHtml = marked.parseSync(lesson.content_html);
+    const rawHtml = marked.parse(lesson.content_html) as string;
     // Sanitize the HTML to prevent XSS attacks
     return DOMPurify.sanitize(rawHtml);
   }, [lesson?.content_html]);
@@ -168,7 +168,7 @@ const LessonDetail: React.FC = () => {
   const lessonText = useMemo(() => {
     if (!lesson?.content_html || typeof window === 'undefined') return '';
     // Use marked to convert markdown to HTML, then create a temporary div to extract plain text
-    const rawHtml = marked.parseSync(lesson.content_html);
+    const rawHtml = marked.parse(lesson.content_html) as string;
     const sanitizedHtml = DOMPurify.sanitize(rawHtml);
     const div = document.createElement('div');
     div.innerHTML = sanitizedHtml;
