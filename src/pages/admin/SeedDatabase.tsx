@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, setDoc, updateDoc, writeBatch, getDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, writeBatch, getDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { showError, showSuccess } from '@/utils/toast';
@@ -29,91 +29,53 @@ const SeedDatabase: React.FC = () => {
     }
   }, [user, authLoading, isAdmin, loadingAdminRole, navigate]);
 
-  // Helper to check if a value is "empty" for content fields
-  const isEmptyContent = (value: any) => {
-    if (value === null || value === undefined) return true;
-    if (typeof value === 'string' && value.trim() === '') return true;
-    if (Array.isArray(value) && value.length === 0) return true;
-    if (typeof value === 'object' && Object.keys(value).length === 0) return true;
-    return false;
-  };
-
-  const handleSmartSeedDatabase = async () => {
+  const handleFullResetAndSeedDatabase = async () => {
     if (!user || !isAdmin) {
       showError('You must be logged in as an admin to seed the database.');
       return;
     }
 
     setIsSeeding(true);
-    setSeedStatus('Starting smart database seeding...');
+    setSeedStatus('Starting full database reset and seeding...');
     const batch = writeBatch(db);
 
     try {
-      // Generic function to handle upsert for a collection
-      const upsertCollection = async (collectionName: string, seedItems: any[]) => {
-        setSeedStatus(`Processing ${collectionName}...`);
+      const collectionsToReset = ['phases', 'modules', 'lessons', 'quizzes', 'quiz_questions'];
+
+      // Step 1: Delete all existing documents in the target collections
+      for (const collectionName of collectionsToReset) {
+        setSeedStatus(`Deleting existing documents in ${collectionName}...`);
         const existingDocsSnapshot = await getDocs(collection(db, collectionName));
-        const existingDocsMap = new Map<string, { docRef: any, data: any }>(); // Map internal_id -> {docRef, data}
-
         existingDocsSnapshot.docs.forEach(docSnap => {
-          const data = docSnap.data();
-          if (data.id) { // Assuming each document has an 'id' field within its data
-            existingDocsMap.set(data.id, { docRef: docSnap.ref, data: data });
-          }
+          batch.delete(docSnap.ref);
         });
+      }
 
-        for (const seedItem of seedItems) {
-          const existing = existingDocsMap.get(seedItem.id);
-
-          if (existing) {
-            // Document exists (matched by internal 'id' field), update it
-            const updatePayload: { [key: string]: any } = {};
-            let hasChanges = false;
-
-            // Compare and update fields
-            for (const key in seedItem) {
-              // Special handling for content fields to preserve manual edits
-              if (['description', 'content_html', 'objectives', 'video_url', 'resources_url'].includes(key)) {
-                // Only update if existing content is empty or different from seed
-                if (isEmptyContent(existing.data[key]) && !isEmptyContent(seedItem[key])) {
-                  updatePayload[key] = seedItem[key];
-                  hasChanges = true;
-                } else if (!isEmptyContent(existing.data[key]) && existing.data[key] !== seedItem[key]) {
-                  console.warn(`${collectionName} ${seedItem.id} field '${key}' differs from seed and was not empty. Keeping existing. Seed: "${String(seedItem[key]).substring(0, 50)}...", Existing: "${String(existing.data[key]).substring(0, 50)}..."`);
-                }
-              } else {
-                // For all other fields (structural), always update if different
-                if (existing.data[key] !== seedItem[key]) {
-                  updatePayload[key] = seedItem[key];
-                  hasChanges = true;
-                }
-              }
-            }
-
-            if (hasChanges) {
-              batch.update(existing.docRef, updatePayload);
-            }
-          } else {
-            // Document does not exist (based on internal 'id' field), create it using seedItem.id as the Firebase document ID
-            const newDocRef = doc(collection(db, collectionName), seedItem.id);
-            batch.set(newDocRef, seedItem);
-          }
-        }
-      };
-
-      await upsertCollection('phases', seedPhases);
-      await upsertCollection('modules', seedModules);
-      await upsertCollection('quizzes', seedQuizzes);
-      await upsertCollection('quiz_questions', seedQuizQuestions);
-      await upsertCollection('lessons', seedLessons);
+      // Step 2: Add all seed items using their 'id' as the Firebase document ID
+      setSeedStatus('Adding new seed data...');
+      seedPhases.forEach(item => {
+        batch.set(doc(db, 'phases', item.id), item);
+      });
+      seedModules.forEach(item => {
+        batch.set(doc(db, 'modules', item.id), item);
+      });
+      seedQuizzes.forEach(item => {
+        batch.set(doc(db, 'quizzes', item.id), item);
+      });
+      seedQuizQuestions.forEach(item => {
+        batch.set(doc(db, 'quiz_questions', item.id), item);
+      });
+      seedLessons.forEach(item => {
+        batch.set(doc(db, 'lessons', item.id), item);
+      });
 
       await batch.commit();
-      showSuccess('Database smart-seeded successfully! Existing content was preserved where detected.');
-      setSeedStatus('Smart seeding complete! Check console for warnings about preserved content.');
+      showSuccess('Database fully reset and re-seeded successfully!');
+      setSeedStatus('Full reset and seeding complete!');
     } catch (error: any) {
-      showError(`Failed to smart-seed database: ${error.message}`);
-      setSeedStatus(`Error during smart seeding: ${error.message}`);
-      console.error('Error smart-seeding database:', error);
+      showError(`Failed to reset and seed database: ${error.message}`);
+      setSeedStatus(`Error during full reset and seeding: ${error.message}`);
+      console.error('Error during full reset and seeding database:', error);
     } finally {
       setIsSeeding(false);
     }
@@ -137,42 +99,42 @@ const SeedDatabase: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8">Seed Database (Smart Upsert)</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-8">Seed Database (Full Reset & Replace)</h1>
         <Card className="max-w-lg mx-auto">
           <CardHeader>
-            <CardTitle>Populate Curriculum Data (Smart Upsert)</CardTitle>
+            <CardTitle>Reset and Populate Curriculum Data</CardTitle>
             <CardDescription>
-              This action will upload curriculum data from your local seed files to Firebase Firestore.
+              This action will perform a **full reset** of your curriculum-related data in Firebase Firestore.
               <br /><br />
               **Important:**
               <ul>
-                <li>Existing items will be **updated** based on their internal `id` field.</li>
-                <li>For content fields (like lesson descriptions, HTML content, video/resource URLs), if a value already exists in Firebase, **it will be preserved** and NOT overwritten by the seed data.</li>
-                <li>If a content field is empty in Firebase, it will be populated from the seed data.</li>
-                <li>Structural fields (like titles, order, parent IDs) will always be updated from the seed.</li>
+                <li>All existing documents in `phases`, `modules`, `lessons`, `quizzes`, and `quiz_questions` collections will be **permanently deleted**.</li>
+                <li>New documents will then be created using the data from your local seed files.</li>
+                <li>This ensures your database is fully synchronized with the seed data, overwriting any previous inconsistencies or manual edits in these specific collections.</li>
               </ul>
-              This approach prevents accidental overwrites of manual edits while ensuring new content and structural changes from the seed files are applied.
+              Use this if you are experiencing issues with inconsistent data or want to ensure all curriculum content is loaded fresh from the seed files.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
-              onClick={handleSmartSeedDatabase}
+              onClick={handleFullResetAndSeedDatabase}
               disabled={isSeeding}
               className="w-full"
+              variant="destructive" // Make it visually distinct and warn the user
             >
               {isSeeding ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Smart Seeding...
+                  Resetting & Seeding...
                 </>
               ) : (
                 <>
                   <Database className="mr-2 h-4 w-4" />
-                  Smart Seed Database Now
+                  Full Reset & Seed Curriculum Now
                 </>
               )}
             </Button>
-            {seedStatus && <p className="text-sm text-muted-foreground text-center">{seedStatus}</p>}
+            {seedStatus && <p className="text-sm text-muted-foreground text-center mt-2">{seedStatus}</p>}
           </CardContent>
         </Card>
       </div>
