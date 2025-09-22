@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, BookOpenText } from 'lucide-react'; // Added BookOpenText icon
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import { useAdminRole } from '@/hooks/useAdminRole'; // New import
 import {
@@ -142,6 +142,11 @@ const PhaseManagement: React.FC = () => {
                   <p className="text-xs text-muted-foreground">Order: {phase.order_index}</p>
                 </CardContent>
                 <div className="p-4 border-t flex justify-end gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/admin/curriculum/phases/${phase.id}/modules`}>
+                      <BookOpenText className="h-4 w-4 mr-2" /> View Modules
+                    </Link>
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => openEditForm(phase)}>
                     <Edit className="h-4 w-4" />
                   </Button>
