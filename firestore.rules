@@ -23,7 +23,27 @@ service cloud.firestore {
     // Curriculum content collections (phases, modules, lessons, quizzes, quiz_questions):
     // - Public read access for everyone.
     // - Only admins can create, update, or delete these documents.
-    match /{collection=phases|modules|lessons|quizzes|quiz_questions}/{document} {
+    match /phases/{phaseId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /modules/{moduleId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /lessons/{lessonId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /quiz_questions/{questionId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
