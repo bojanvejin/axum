@@ -16,6 +16,7 @@ export default defineConfig(() => ({
   },
   base: '/', // Ensure assets are resolved from the root
   optimizeDeps: {
-    exclude: ['react-router-dom'], // Exclude react-router-dom from pre-bundling
+    // Removed 'react-router-dom' from exclude to allow proper pre-bundling
+    exclude: [], 
   },
 }));
