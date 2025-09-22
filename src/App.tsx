@@ -16,11 +16,34 @@ import LessonManagement from "./pages/admin/LessonManagement";
 import QuizManagement from "./pages/admin/QuizManagement";
 import QuestionManagement from "./pages/admin/QuestionManagement";
 import AnalyticsPage from "./pages/admin/Analytics";
-import SeedDatabase from "./pages/admin/SeedDatabase"; // New import
 import { ThemeProvider } from "next-themes";
 import { SessionContextProvider } from "@/components/SessionContextProvider";
+import { useAutoSeedDatabase } from "@/hooks/useAutoSeedDatabase"; // New import
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  useAutoSeedDatabase(); // Initialize auto-seeding on app load
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/phases/:phaseId" element={<PhaseDetail />} />
+      <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
+      <Route path="/lessons/:lessonId" element={<LessonDetail />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/curriculum/phases" element={<PhaseManagement />} />
+      <Route path="/admin/curriculum/phases/:phaseId/modules" element={<ModuleManagement />} />
+      <Route path="/admin/curriculum/phases/:phaseId/modules/:moduleId/lessons" element={<LessonManagement />} />
+      <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
+      <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
+      <Route path="/admin/analytics" element={<AnalyticsPage />} />
+      {/* Removed Seed Database Route */}
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,23 +53,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <SessionContextProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/phases/:phaseId" element={<PhaseDetail />} />
-              <Route path="/phases/:phaseId/modules/:moduleId" element={<ModuleDetail />} />
-              <Route path="/lessons/:lessonId" element={<LessonDetail />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/curriculum/phases" element={<PhaseManagement />} />
-              <Route path="/admin/curriculum/phases/:phaseId/modules" element={<ModuleManagement />} />
-              <Route path="/admin/curriculum/phases/:phaseId/modules/:moduleId/lessons" element={<LessonManagement />} />
-              <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
-              <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
-              <Route path="/admin/analytics" element={<AnalyticsPage />} />
-              <Route path="/admin/seed-database" element={<SeedDatabase />} /> {/* New route */}
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppContent />
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>

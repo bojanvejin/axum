@@ -75,15 +75,7 @@ const AdminDashboard: React.FC = () => {
               <Link to="/admin/analytics" className="text-blue-500 hover:underline mt-4 block">Go to Analytics</Link>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Seed Database</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">Populate the database with initial curriculum data from local files.</p>
-              <Link to="/admin/seed-database" className="text-blue-500 hover:underline mt-4 block">Go to Seed Database</Link>
-            </CardContent>
-          </Card>
+          {/* Removed Seed Database Card */}
         </div>
       </div>
     </Layout>
