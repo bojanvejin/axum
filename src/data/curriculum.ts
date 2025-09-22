@@ -39,7 +39,7 @@ export interface StudentProgress {
 
 export interface Quiz {
   id: string;
-  lesson_id?: string | null;
+  lesson_id?: string | null; // Made optional as it might not always be directly linked to a lesson
   title: string;
   description: string;
   created_at: string; // ISO string
