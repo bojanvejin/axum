@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, setDoc, writeBatch, getDocs, updateDoc } from 'firebase/firestore'; // Added updateDoc
+import { collection, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,53 +94,45 @@ const DataSeeder: React.FC = () => {
     setLoading(true);
     try {
       const batch = writeBatch(db);
+      let itemsAdded = 0;
 
-      // Clear existing data from relevant collections
-      const collectionsToClear = ['phases', 'modules', 'lessons', 'quizzes', 'quiz_questions', 'student_progress', 'quiz_attempts'];
-      for (const colName of collectionsToClear) {
-        const querySnapshot = await getDocs(collection(db, colName));
-        querySnapshot.forEach((doc) => {
-          batch.delete(doc.ref);
-        });
+      // Helper function to process a collection
+      const processCollection = async (collectionName: string, seedData: any[], idField: string = 'id') => {
+        const snap = await getDocs(collection(db, collectionName));
+        const existingIds = new Set(snap.docs.map(doc => doc.id));
+        let newItemsCount = 0;
+
+        for (const item of seedData) {
+          if (!existingIds.has(item[idField])) {
+            let dataToWrite = { ...item };
+            // Special handling for lessons with markdown content
+            if (collectionName === 'lessons' && attachmentContentMap[item.content_html]) {
+              dataToWrite.content_html = attachmentContentMap[item.content_html];
+            }
+            const docRef = doc(db, collectionName, item[idField]);
+            batch.set(docRef, dataToWrite);
+            newItemsCount++;
+          }
+        }
+        return newItemsCount;
+      };
+
+      const newPhases = await processCollection('phases', seedPhases);
+      const newModules = await processCollection('modules', seedModules);
+      const newLessons = await processCollection('lessons', seedLessons);
+      const newQuizzes = await processCollection('quizzes', seedQuizzes);
+      const newQuestions = await processCollection('quiz_questions', seedQuizQuestions);
+
+      itemsAdded = newPhases + newModules + newLessons + newQuizzes + newQuestions;
+
+      if (itemsAdded > 0) {
+        await batch.commit();
+        showSuccess(`Successfully added ${itemsAdded} new curriculum items.`);
+      } else {
+        showSuccess('All sample data already exists. No new data was added.');
       }
-      await batch.commit(); // Commit deletions first to ensure a clean slate
-
-      const newBatch = writeBatch(db);
-
-      // Add Phases
-      for (const phase of seedPhases) {
-        const docRef = doc(db, 'phases', phase.id);
-        newBatch.set(docRef, phase);
-      }
-
-      // Add Modules
-      for (const module of seedModules) {
-        const docRef = doc(db, 'modules', module.id);
-        newBatch.set(docRef, module);
-      }
-
-      // Add Lessons, resolving content from attachments
-      for (const lesson of seedLessons) {
-        const lessonContent = attachmentContentMap[lesson.content_html] || lesson.content_html; // Use mapped content or original if not found (for appendices)
-        const docRef = doc(db, 'lessons', lesson.id);
-        newBatch.set(docRef, { ...lesson, content_html: lessonContent });
-      }
-
-      // Add Quizzes
-      for (const quiz of seedQuizzes) {
-        const docRef = doc(db, 'quizzes', quiz.id);
-        newBatch.set(docRef, quiz);
-      }
-
-      // Add Quiz Questions
-      for (const question of seedQuizQuestions) {
-        const docRef = doc(db, 'quiz_questions', question.id);
-        newBatch.set(docRef, question);
-      }
-
-      await newBatch.commit();
-      showSuccess('Sample curriculum data seeded successfully!');
-      navigate('/admin/curriculum/phases'); // Redirect to phase management after seeding
+      
+      navigate('/admin/curriculum/phases');
     } catch (error: any) {
       showError(`Failed to seed data: ${error.message}`);
       console.error('Error seeding data:', error);
@@ -158,8 +150,6 @@ const DataSeeder: React.FC = () => {
       showError("You must be logged in to perform this action.");
       return;
     }
-    // The client-side bypass in useAdminRole handles the admin check for this specific user.
-    // We still ensure the logged-in user is the intended admin for this action.
     if (user.uid !== ADMIN_USER_UID) {
       showError("You are not authorized to perform this action.");
       return;
@@ -168,12 +158,10 @@ const DataSeeder: React.FC = () => {
     setLoading(true);
     try {
       const profileDocRef = doc(db, 'profiles', ADMIN_USER_UID);
-      // Use setDoc with merge: true to create or update the document
       await setDoc(profileDocRef, { role: 'admin' }, { merge: true });
       showSuccess(`${ADMIN_USER_EMAIL} is now an admin!`);
     } catch (error: any) {
       showError(`Failed to make ${ADMIN_USER_EMAIL} an admin: ${error.message}`);
-      console.error('Error setting admin role:', error);
     } finally {
       setLoading(false);
     }
@@ -203,9 +191,9 @@ const DataSeeder: React.FC = () => {
             <CardTitle>Seed Sample Curriculum Data</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p>This action will add sample phases, modules, lessons, quizzes, and questions to your Firebase Firestore database. It will first clear existing curriculum-related data to ensure a fresh start.</p>
+            <p>This action will add any missing sample curriculum data (phases, modules, lessons, etc.) to your database. It will not overwrite or delete any existing data you have created or modified.</p>
             <Button onClick={handleSeedData} disabled={loading}>
-              {loading ? 'Seeding Data...' : 'Seed Sample Data'}
+              {loading ? 'Seeding Data...' : 'Add Missing Sample Data'}
             </Button>
           </CardContent>
         </Card>
