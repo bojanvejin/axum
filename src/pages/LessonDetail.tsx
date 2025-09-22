@@ -14,6 +14,7 @@ import TextToSpeechButton from '@/components/TextToSpeechButton';
 import { useSession } from '@/components/SessionContextProvider'; // New import for session
 import { Marked } from 'marked'; // Import Marked class
 import DOMPurify from 'dompurify'; // Import DOMPurify
+import { parseLessonResources } from '@/utils/lessonContentParser'; // New import
 
 const marked = new Marked(); // Create an instance of Marked
 
@@ -175,6 +176,13 @@ const LessonDetail: React.FC = () => {
     return div.textContent || div.innerText || '';
   }, [lesson?.content_html]);
 
+  const { videoSuggestion, readingSuggestion } = useMemo(() => {
+    if (!lesson?.content_html) return { videoSuggestion: null, readingSuggestion: null };
+    const rawHtml = marked.parse(lesson.content_html) as string;
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+    return parseLessonResources(sanitizedHtml);
+  }, [lesson?.content_html]);
+
   if (authLoading || loading) {
     return (
       <Layout>
@@ -228,9 +236,9 @@ const LessonDetail: React.FC = () => {
 
           <div className="prose dark:prose-invert max-w-none mb-8" dangerouslySetInnerHTML={{ __html: lessonHtmlContent }} />
 
-          {lesson.video_url && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Video Demonstration</h2>
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Video Resources</h2>
+            {lesson.video_url ? (
               <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
                 <iframe
                   src={lesson.video_url}
@@ -240,17 +248,50 @@ const LessonDetail: React.FC = () => {
                   className="w-full h-full"
                 ></iframe>
               </div>
-            </div>
-          )}
+            ) : videoSuggestion ? (
+              <p className="text-muted-foreground">
+                No direct video link provided. Try searching on YouTube for:{" "}
+                <a
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(videoSuggestion)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  "{videoSuggestion}"
+                </a>
+              </p>
+            ) : (
+              <p className="text-muted-foreground">No video resources available for this lesson.</p>
+            )}
+            {!lesson.video_url && videoSuggestion && (
+              <p className="text-sm text-muted-foreground mt-2">
+                (Note: Direct YouTube embedding requires a YouTube API key, which is not configured in this environment. Providing a search link as an alternative.)
+              </p>
+            )}
+          </div>
 
-          {lesson.resources_url && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Resources</h2>
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Additional Resources</h2>
+            {lesson.resources_url ? (
               <a href={lesson.resources_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                 Download Resources
               </a>
-            </div>
-          )}
+            ) : readingSuggestion ? (
+              <p className="text-muted-foreground">
+                No direct resource link provided. Try searching on Google for:{" "}
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(readingSuggestion)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  "{readingSuggestion}"
+                </a>
+              </p>
+            ) : (
+              <p className="text-muted-foreground">No additional resources available for this lesson.</p>
+            )}
+          </div>
 
           {lesson.quiz_id && (
             <div className="mb-8">
