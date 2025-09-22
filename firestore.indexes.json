@@ -1,17 +1,45 @@
 {
   "indexes": [
     {
-      "collectionId": "modules",
+      "collectionGroup": "lessons",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "phase_id", "mode": "ASCENDING" },
-        { "fieldPath": "order_index", "mode": "ASCENDING" }
+        {
+          "fieldPath": "module_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order_index",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
-      "collectionId": "student_progress",
+      "collectionGroup": "modules",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "user_id", "mode": "ASCENDING" },
-        { "fieldPath": "lesson_id", "mode": "ASCENDING" }
+        {
+          "fieldPath": "phase_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order_index",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "student_progress",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "user_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "lesson_id",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
