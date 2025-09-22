@@ -4,7 +4,7 @@ import BentoGrid from "@/components/BentoGrid";
 import CurriculumPhaseOverviewCard from "@/components/CurriculumPhaseOverviewCard";
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from "@/data/curriculum";
 import { db } from '@/integrations/firebase/client'; // Import Firebase db
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'; // Firestore imports
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore'; // Firestore imports
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError, showSuccess } from '@/utils/toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -62,9 +62,16 @@ const Index = () => {
         const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
         setAllLessons(lessonsData);
 
-        // Fetch Student Progress (will be from Firestore later)
-        // For now, it will be empty as localProgress is removed.
-        setStudentProgress([]);
+        // Fetch Student Progress for the current user
+        if (user) {
+          const progressCollectionRef = collection(db, 'student_progress');
+          const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid));
+          const progressSnapshot = await getDocs(progressQuery);
+          const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
+          setStudentProgress(userProgress);
+        } else {
+          setStudentProgress([]);
+        }
 
       } catch (error: any) {
         showError(`Failed to load curriculum: ${error.message}`);
@@ -85,7 +92,6 @@ const Index = () => {
       return;
     }
 
-    // This logic will need to be updated once student progress is in Firestore
     const completedLessonIds = new Set(studentProgress.filter(p => p.status === 'completed').map(p => p.lesson_id));
     const firstIncompleteLesson = [...allLessons]
       .sort((a, b) => a.order_index - b.order_index)
@@ -141,7 +147,7 @@ const Index = () => {
                 phase={phase}
                 modules={modulesByPhase[phase.id] || []}
                 allLessons={allLessons}
-                studentProgress={studentProgress} // This will be empty until Firestore progress is implemented
+                studentProgress={studentProgress}
                 backgroundImage={backgroundImages[index % backgroundImages.length]}
               />
             ))}

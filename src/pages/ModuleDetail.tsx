@@ -15,7 +15,7 @@ const ModuleDetail: React.FC = () => {
   const { phaseId, moduleId } = useParams<{ phaseId: string; moduleId: string }>();
   const [module, setModule] = useState<CurriculumModule | null>(null);
   const [lessons, setLessons] = useState<CurriculumLesson[]>([]);
-  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]); // This will be empty for now
+  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
@@ -27,7 +27,7 @@ const ModuleDetail: React.FC = () => {
     }
 
     const fetchModuleAndLessons = async () => {
-      if (!moduleId) {
+      if (!moduleId || !user) { // Ensure user is available for progress fetch
         setLoading(false);
         return;
       }
@@ -49,8 +49,16 @@ const ModuleDetail: React.FC = () => {
         const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
         setLessons(lessonsData);
 
-        // Student progress will be fetched from Firestore later
-        setStudentProgress([]);
+        // Fetch student progress for the current user and lessons in this module
+        const progressCollectionRef = collection(db, 'student_progress');
+        const progressQuery = query(
+          progressCollectionRef,
+          where('user_id', '==', user.uid),
+          where('lesson_id', 'in', lessonsData.map(l => l.id).length > 0 ? lessonsData.map(l => l.id) : ['dummy_id']) // Use 'in' query for multiple lesson IDs
+        );
+        const progressSnapshot = await getDocs(progressQuery);
+        const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
+        setStudentProgress(userProgress);
 
       } catch (error: any) {
         showError(`Failed to load module details: ${error.message}`);
@@ -66,7 +74,6 @@ const ModuleDetail: React.FC = () => {
   }, [moduleId, user, authLoading, navigate]);
 
   const isLessonCompleted = (lessonId: string) => {
-    // This logic will need to be updated once student progress is in Firestore
     return studentProgress.some(p => p.lesson_id === lessonId && p.status === 'completed');
   };
 
@@ -77,7 +84,9 @@ const ModuleDetail: React.FC = () => {
           <Skeleton className="h-10 w-3/4 mb-4" />
           <Skeleton className="h-6 w-1/2 mb-8" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full" />
+            ))}
           </div>
         </div>
       </Layout>
