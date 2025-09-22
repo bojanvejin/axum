@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AxumLogo from '@/components/AxumLogo';
 import { showError, showSuccess } from '@/utils/toast';
-import { auth } from '@/integrations/firebase/client';
+import { auth, db } from '@/integrations/firebase/client'; // Import db
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore'; // Import setDoc
 import { useSession } from '@/components/SessionContextProvider';
 import { Label } from '@/components/ui/label';
 
@@ -34,9 +35,18 @@ const LoginPage: React.FC = () => {
     console.log(`LoginPage: Attempting ${isRegistering ? 'registration' : 'login'} for email: ${email}`);
     try {
       if (isRegistering) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Create a profile document for the new user
+        await setDoc(doc(db, 'profiles', userCredential.user.uid), {
+          id: userCredential.user.uid,
+          first_name: null,
+          last_name: null,
+          role: 'user', // Default role
+          avatar_url: null,
+          updated_at: new Date().toISOString(),
+        });
         showSuccess('Registration successful! You are now logged in.');
-        console.log("LoginPage: Registration successful.");
+        console.log("LoginPage: Registration successful and profile created.");
       } else {
         await signInWithEmailAndPassword(auth, email, password);
         showSuccess('Login successful!');
