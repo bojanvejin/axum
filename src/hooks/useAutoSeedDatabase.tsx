@@ -16,12 +16,16 @@ export const useAutoSeedDatabase = () => {
 
   useEffect(() => {
     const performAutoSeed = async () => {
+      console.log("useAutoSeedDatabase: performAutoSeed invoked. States: authLoading=", authLoading, "loadingAdminRole=", loadingAdminRole, "isSeeding=", isSeeding, "seedAttempted=", seedAttempted);
+
       if (authLoading || loadingAdminRole || isSeeding || seedAttempted) {
+        console.log("useAutoSeedDatabase: Skipping performAutoSeed due to current state.");
         return;
       }
 
       // Only attempt to auto-seed if an admin is logged in
       if (!user || !isAdmin) {
+        console.log("useAutoSeedDatabase: User is not admin or not logged in. Setting seedAttempted to true.");
         setSeedAttempted(true); // Mark as attempted for non-admins to prevent re-runs
         return;
       }
@@ -29,13 +33,13 @@ export const useAutoSeedDatabase = () => {
       // Check if seeding has already been performed for this version
       const hasSeeded = localStorage.getItem(AUTO_SEED_KEY);
       if (hasSeeded === 'true') {
-        console.log('Auto-seeding skipped: Database already seeded for this version.');
+        console.log('useAutoSeedDatabase: Auto-seeding skipped: Database already seeded for this version.');
         setSeedAttempted(true);
         return;
       }
 
       setIsSeeding(true);
-      console.log('Attempting automatic database seeding...');
+      console.log('useAutoSeedDatabase: Attempting automatic database seeding...');
       const batch = writeBatch(db);
 
       try {
@@ -44,7 +48,7 @@ export const useAutoSeedDatabase = () => {
         const phasesSnapshot = await getDocs(phasesCollectionRef);
 
         if (phasesSnapshot.empty) {
-          console.log('Phases collection is empty. Proceeding with seeding...');
+          console.log('useAutoSeedDatabase: Phases collection is empty. Proceeding with seeding...');
 
           // Add all seed items using their 'id' as the Firebase document ID
           seedPhases.forEach(item => {
@@ -66,14 +70,14 @@ export const useAutoSeedDatabase = () => {
           await batch.commit();
           localStorage.setItem(AUTO_SEED_KEY, 'true'); // Mark as seeded
           showSuccess('Curriculum data automatically seeded!');
-          console.log('Automatic database seeding complete!');
+          console.log('useAutoSeedDatabase: Automatic database seeding complete!');
         } else {
-          console.log('Phases collection is not empty. Auto-seeding skipped.');
+          console.log('useAutoSeedDatabase: Phases collection is not empty. Auto-seeding skipped.');
           localStorage.setItem(AUTO_SEED_KEY, 'true'); // Mark as seeded even if not empty, to prevent re-check
         }
       } catch (error: any) {
         showError(`Automatic seeding failed: ${error.message}`);
-        console.error('Error during automatic database seeding:', error);
+        console.error('useAutoSeedDatabase: Error during automatic database seeding:', error);
       } finally {
         setIsSeeding(false);
         setSeedAttempted(true);

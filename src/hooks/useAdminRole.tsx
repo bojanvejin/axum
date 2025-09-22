@@ -19,6 +19,7 @@ export const useAdminRole = (): AdminRoleHook => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
+      console.log("useAdminRole: Checking admin status. User:", user ? user.email : "No user", "Loading user:", loadingUser);
       if (loadingUser) {
         return;
       }
@@ -26,6 +27,7 @@ export const useAdminRole = (): AdminRoleHook => {
       if (!user) {
         setIsAdmin(false);
         setLoadingAdminRole(false);
+        console.log("useAdminRole: No user, isAdmin set to false.");
         return;
       }
 
@@ -33,6 +35,7 @@ export const useAdminRole = (): AdminRoleHook => {
       if (user.email === HARDCODED_ADMIN_EMAIL) {
         setIsAdmin(true);
         setLoadingAdminRole(false);
+        console.log("useAdminRole: Hardcoded admin email matched, isAdmin set to true.");
         return;
       }
 
@@ -42,16 +45,20 @@ export const useAdminRole = (): AdminRoleHook => {
 
         if (profileDocSnap.exists()) {
           const profileData = profileDocSnap.data();
-          setIsAdmin(profileData.role === 'admin');
+          const userIsAdmin = profileData.role === 'admin';
+          setIsAdmin(userIsAdmin);
+          console.log(`useAdminRole: Profile found for ${user.email}, role: ${profileData.role}, isAdmin: ${userIsAdmin}`);
         } else {
           setIsAdmin(false);
+          console.log(`useAdminRole: No profile found for ${user.email}, isAdmin set to false.`);
         }
       } catch (error: any) {
-        console.error('Error fetching user profile for admin check:', error);
+        console.error('useAdminRole: Error fetching user profile for admin check:', error);
         showError('Failed to verify admin role.');
         setIsAdmin(false);
       } finally {
         setLoadingAdminRole(false);
+        console.log("useAdminRole: Admin role check finished.");
       }
     };
 

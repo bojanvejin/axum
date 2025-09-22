@@ -17,9 +17,9 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("SessionContextProvider: Setting up auth state listener.");
+    console.log("SessionContextProvider: Initializing auth state listener.");
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      console.log("SessionContextProvider: Auth state changed. Current user:", currentUser);
+      console.log("SessionContextProvider: Auth state changed. Current user:", currentUser ? currentUser.email : "No user");
       setUser(currentUser);
       setLoading(false);
     }, (error) => {
