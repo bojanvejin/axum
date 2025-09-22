@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,44 +94,28 @@ const DataSeeder: React.FC = () => {
     setLoading(true);
     try {
       const batch = writeBatch(db);
-      let itemsAdded = 0;
 
-      // Helper function to process a collection
-      const processCollection = async (collectionName: string, seedData: any[], idField: string = 'id') => {
-        const snap = await getDocs(collection(db, collectionName));
-        const existingIds = new Set(snap.docs.map(doc => doc.id));
-        let newItemsCount = 0;
+      const collectionsToSeed = [
+        { name: 'phases', data: seedPhases },
+        { name: 'modules', data: seedModules },
+        { name: 'lessons', data: seedLessons },
+        { name: 'quizzes', data: seedQuizzes },
+        { name: 'quiz_questions', data: seedQuizQuestions },
+      ];
 
-        for (const item of seedData) {
-          if (!existingIds.has(item[idField])) {
-            let dataToWrite = { ...item };
-            // Special handling for lessons with markdown content
-            if (collectionName === 'lessons' && attachmentContentMap[item.content_html]) {
-              dataToWrite.content_html = attachmentContentMap[item.content_html];
-            }
-            const docRef = doc(db, collectionName, item[idField]);
-            batch.set(docRef, dataToWrite);
-            newItemsCount++;
+      for (const { name, data } of collectionsToSeed) {
+        for (const item of data) {
+          let dataToWrite = { ...item };
+          if (name === 'lessons' && attachmentContentMap[item.content_html]) {
+            dataToWrite.content_html = attachmentContentMap[item.content_html];
           }
+          const docRef = doc(db, name, item.id);
+          batch.set(docRef, dataToWrite); // This will create or overwrite
         }
-        return newItemsCount;
-      };
-
-      const newPhases = await processCollection('phases', seedPhases);
-      const newModules = await processCollection('modules', seedModules);
-      const newLessons = await processCollection('lessons', seedLessons);
-      const newQuizzes = await processCollection('quizzes', seedQuizzes);
-      const newQuestions = await processCollection('quiz_questions', seedQuizQuestions);
-
-      itemsAdded = newPhases + newModules + newLessons + newQuizzes + newQuestions;
-
-      if (itemsAdded > 0) {
-        await batch.commit();
-        showSuccess(`Successfully added ${itemsAdded} new curriculum items.`);
-      } else {
-        showSuccess('All sample data already exists. No new data was added.');
       }
-      
+
+      await batch.commit();
+      showSuccess(`Successfully seeded/updated all sample curriculum data.`);
       navigate('/admin/curriculum/phases');
     } catch (error: any) {
       showError(`Failed to seed data: ${error.message}`);
@@ -188,12 +172,12 @@ const DataSeeder: React.FC = () => {
       <div className="container mx-auto p-4">
         <Card className="max-w-lg mx-auto mb-8">
           <CardHeader>
-            <CardTitle>Seed Sample Curriculum Data</CardTitle>
+            <CardTitle>Seed / Update Sample Data</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p>This action will add any missing sample curriculum data (phases, modules, lessons, etc.) to your database. It will not overwrite or delete any existing data you have created or modified.</p>
+            <p>This action will seed and update the sample curriculum data (phases, modules, lessons, etc.) in your database. It will overwrite existing sample data with the latest version from the code, but will not delete any extra data you have created.</p>
             <Button onClick={handleSeedData} disabled={loading}>
-              {loading ? 'Seeding Data...' : 'Add Missing Sample Data'}
+              {loading ? 'Processing...' : 'Seed / Update Sample Data'}
             </Button>
           </CardContent>
         </Card>
