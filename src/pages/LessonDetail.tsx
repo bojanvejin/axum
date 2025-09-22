@@ -263,11 +263,6 @@ const LessonDetail: React.FC = () => {
             ) : (
               <p className="text-muted-foreground">No video resources available for this lesson.</p>
             )}
-            {!lesson.video_url && videoSuggestion && (
-              <p className="text-sm text-muted-foreground mt-2">
-                (Note: Direct YouTube embedding requires a YouTube API key, which is not configured in this environment. Providing a search link as an alternative.)
-              </p>
-            )}
           </div>
 
           <div className="mb-8">
