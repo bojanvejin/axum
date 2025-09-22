@@ -3,15 +3,14 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyCLM4t7y9xzkEve_NnxNIakUYrOuf7OyPY",
+  authDomain: "axum-online-academy.firebaseapp.com",
+  projectId: "axum-online-academy",
+  storageBucket: "axum-online-academy.appspot.com",
+  messagingSenderId: "715985817766",
+  appId: "1:715985817766:web:e226587e12171da1d2e467",
+  measurementId: "G-Z4258BB753"
 };
 
 // Initialize Firebase
