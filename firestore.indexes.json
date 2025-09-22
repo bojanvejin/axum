@@ -10,10 +10,19 @@
     },
     {
       "collectionGroup": "lessons",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "module_id", "mode": "ASCENDING" },
-        { "fieldPath": "order_index", "mode": "ASCENDING" }
+        { "fieldPath": "order_index", "mode": "ASCENDING" },
+        { "fieldPath": "__name__", "mode": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "student_progress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id", "mode": "ASCENDING" },
+        { "fieldPath": "lesson_id", "mode": "ASCENDING" }
       ]
     }
   ],
