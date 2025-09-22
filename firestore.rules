@@ -3,10 +3,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper function to check if the user is the hardcoded super admin
+    function isSuperAdmin() {
+      // UID for elmntmail@gmail.com
+      return request.auth.uid == 'xHj1ryfvHnNuCOcUTibcKfjT9x82';
+    }
+
     // Helper function to check for admin role by looking at the user's profile
     function isAdmin() {
-      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      return isSuperAdmin() || (
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
     // Profiles: Users can manage their own profile. Admins can manage any.
