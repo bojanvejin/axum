@@ -7,7 +7,7 @@ import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } 
 import { useAdminRole } from './useAdminRole';
 
 // Define the current version of your seed data. Increment this when seed data changes.
-const CURRENT_SEED_VERSION = 2; // Increased version to trigger update for Week 2 lessons
+const CURRENT_SEED_VERSION = 3; // Increased version to trigger update for Week 2 lessons
 
 export const useAutoSeedDatabase = () => {
   const { user, loading: authLoading } = useSession();
@@ -39,6 +39,8 @@ export const useAutoSeedDatabase = () => {
         const appSettingsRef = doc(db, 'app_settings', 'seed_version');
         const appSettingsSnap = await getDoc(appSettingsRef);
         const currentDbSeedVersion = appSettingsSnap.exists() ? appSettingsSnap.data().version : 0;
+
+        console.log(`useAutoSeedDatabase: Current DB seed version: ${currentDbSeedVersion}, Target seed version: ${CURRENT_SEED_VERSION}`);
 
         if (currentDbSeedVersion < CURRENT_SEED_VERSION) {
           console.log(`useAutoSeedDatabase: Database seed version (${currentDbSeedVersion}) is older than current version (${CURRENT_SEED_VERSION}). Proceeding with seeding...`);
