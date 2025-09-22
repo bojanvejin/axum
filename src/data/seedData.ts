@@ -1,16 +1,13 @@
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, Quiz, QuizQuestion } from './curriculum';
 
-// Helper to generate UUIDs
-const generateId = () => crypto.randomUUID();
-
 // --- Phases ---
-const phaseAppendicesId = generateId();
-const phase1Id = generateId();
-const phase2Id = generateId();
-const phase3Id = generateId();
-const phase4Id = generateId();
-const phase5Id = generateId();
-const phase6Id = generateId();
+const phaseAppendicesId = "a0000000-0000-4000-8000-000000000000";
+const phase1Id = "a0000000-0000-4000-8000-000000000001";
+const phase2Id = "a0000000-0000-4000-8000-000000000002";
+const phase3Id = "a0000000-0000-4000-8000-000000000003";
+const phase4Id = "a0000000-0000-4000-8000-000000000004";
+const phase5Id = "a0000000-0000-4000-8000-000000000005";
+const phase6Id = "a0000000-0000-4000-8000-000000000006";
 
 export const seedPhases: CurriculumPhase[] = [
   {
@@ -65,21 +62,21 @@ export const seedPhases: CurriculumPhase[] = [
 ];
 
 // --- Modules ---
-const moduleAppendicesAId = generateId();
-const moduleAppendicesBId = generateId();
-const moduleAppendicesCId = generateId();
-const moduleAppendicesDId = generateId();
-const moduleAppendicesEId = generateId();
-const moduleAppendicesFId = generateId();
-const moduleAppendicesGId = generateId();
-const moduleAppendicesHId = generateId();
+const moduleAppendicesAId = "b0000000-0000-4000-8000-000000000000";
+const moduleAppendicesBId = "b0000000-0000-4000-8000-000000000001";
+const moduleAppendicesCId = "b0000000-0000-4000-8000-000000000002";
+const moduleAppendicesDId = "b0000000-0000-4000-8000-000000000003";
+const moduleAppendicesEId = "b0000000-0000-4000-8000-000000000004";
+const moduleAppendicesFId = "b0000000-0000-4000-8000-000000000005";
+const moduleAppendicesGId = "b0000000-0000-4000-8000-000000000006";
+const moduleAppendicesHId = "b0000000-0000-4000-8000-000000000007";
 
-const module1_1Id = generateId();
-const module2_1Id = generateId();
-const module3_1Id = generateId();
-const module4_1Id = generateId();
-const module5_1Id = generateId();
-const module6_1Id = generateId();
+const module1_1Id = "b0000000-0000-4000-8000-000000000008";
+const module2_1Id = "b0000000-0000-4000-8000-000000000009";
+const module3_1Id = "b0000000-0000-4000-8000-00000000000a";
+const module4_1Id = "b0000000-0000-4000-8000-00000000000b";
+const module5_1Id = "b0000000-0000-4000-8000-00000000000c";
+const module6_1Id = "b0000000-0000-4000-8000-00000000000d";
 
 export const seedModules: CurriculumModule[] = [
   // Appendices Modules
@@ -107,7 +104,7 @@ export const seedModules: CurriculumModule[] = [
 ];
 
 // --- Quizzes ---
-const week2ReviewQuizId = generateId();
+const week2ReviewQuizId = "c0000000-0000-4000-8000-000000000000";
 
 export const seedQuizzes: Quiz[] = [
   {
@@ -121,7 +118,7 @@ export const seedQuizzes: Quiz[] = [
 // --- Quiz Questions ---
 export const seedQuizQuestions: QuizQuestion[] = [
   {
-    id: generateId(),
+    id: "d0000000-0000-4000-8000-000000000000",
     quiz_id: week2ReviewQuizId,
     question_text: "Which part of the hair follicle is responsible for hair growth?",
     question_type: 'mcq',
@@ -130,7 +127,7 @@ export const seedQuizQuestions: QuizQuestion[] = [
     created_at: new Date().toISOString(),
   },
   {
-    id: generateId(),
+    id: "d0000000-0000-4000-8000-000000000001",
     quiz_id: week2ReviewQuizId,
     question_text: "What is the primary goal of line cutting techniques?",
     question_type: 'mcq',
@@ -139,7 +136,7 @@ export const seedQuizQuestions: QuizQuestion[] = [
     created_at: new Date().toISOString(),
   },
   {
-    id: generateId(),
+    id: "d0000000-0000-4000-8000-000000000002",
     quiz_id: week2ReviewQuizId,
     question_text: "When combining line and precision cutting, what is crucial for a seamless result?",
     question_type: 'mcq',
@@ -152,50 +149,50 @@ export const seedQuizQuestions: QuizQuestion[] = [
 // --- Lessons ---
 export const seedLessons: CurriculumLesson[] = [
   // Appendices Lessons
-  { id: generateId(), module_id: moduleAppendicesAId, title: "Appendix A: Tool Encyclopedia — Clippers, Blades, Motors", objectives: "Understand the types and functions of various cutting tools.", content_html: "DYAD_ATTACHMENT_27", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesBId, title: "Appendix B: Sanitation, Disinfection & Regulations", objectives: "Master salon hygiene and comply with industry regulations.", content_html: "DYAD_ATTACHMENT_28", order_index: 1, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesCId, title: "Appendix C: Hair & Scalp Science Atlas", objectives: "Gain a scientific understanding of hair and scalp health.", content_html: "DYAD_ATTACHMENT_29", order_index: 2, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesDId, title: "Appendix D: First Aid & Blood Spill Protocol", objectives: "Learn emergency first aid and blood spill procedures.", content_html: "DYAD_ATTACHMENT_30", order_index: 3, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesEId, title: "Appendix E: Consultation Scripts & Client Experience", objectives: "Develop strong consultation skills and enhance client satisfaction.", content_html: "DYAD_ATTACHMENT_31", order_index: 4, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesFId, title: "Appendix F: Geometry, Symmetry & Fade Blueprint", objectives: "Apply geometric principles to achieve balanced and symmetrical haircuts.", content_html: "DYAD_ATTACHMENT_32", order_index: 5, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesGId, title: "Appendix G: Ergonomics, Injury Prevention & Workstation Setup", objectives: "Optimize your workstation for health and efficiency.", content_html: "DYAD_ATTACHMENT_33", order_index: 6, quiz_id: null },
-  { id: generateId(), module_id: moduleAppendicesHId, title: "Appendix H: Assessment Rubrics & Checklists", objectives: "Utilize rubrics and checklists for self-assessment and skill improvement.", content_html: "DYAD_ATTACHMENT_34", order_index: 7, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000000", module_id: moduleAppendicesAId, title: "Appendix A: Tool Encyclopedia — Clippers, Blades, Motors", objectives: "Understand the types and functions of various cutting tools.", content_html: "DYAD_ATTACHMENT_27", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000001", module_id: moduleAppendicesBId, title: "Appendix B: Sanitation, Disinfection & Regulations", objectives: "Master salon hygiene and comply with industry regulations.", content_html: "DYAD_ATTACHMENT_28", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000002", module_id: moduleAppendicesCId, title: "Appendix C: Hair & Scalp Science Atlas", objectives: "Gain a scientific understanding of hair and scalp health.", content_html: "DYAD_ATTACHMENT_29", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000003", module_id: moduleAppendicesDId, title: "Appendix D: First Aid & Blood Spill Protocol", objectives: "Learn emergency first aid and blood spill procedures.", content_html: "DYAD_ATTACHMENT_30", order_index: 3, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000004", module_id: moduleAppendicesEId, title: "Appendix E: Consultation Scripts & Client Experience", objectives: "Develop strong consultation skills and enhance client satisfaction.", content_html: "DYAD_ATTACHMENT_31", order_index: 4, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000005", module_id: moduleAppendicesFId, title: "Appendix F: Geometry, Symmetry & Fade Blueprint", objectives: "Apply geometric principles to achieve balanced and symmetrical haircuts.", content_html: "DYAD_ATTACHMENT_32", order_index: 5, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000006", module_id: moduleAppendicesGId, title: "Appendix G: Ergonomics, Injury Prevention & Workstation Setup", objectives: "Optimize your workstation for health and efficiency.", content_html: "DYAD_ATTACHMENT_33", order_index: 6, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000007", module_id: moduleAppendicesHId, title: "Appendix H: Assessment Rubrics & Checklists", objectives: "Utilize rubrics and checklists for self-assessment and skill improvement.", content_html: "DYAD_ATTACHMENT_34", order_index: 7, quiz_id: null },
 
   // Week 1 Lessons
-  { id: generateId(), module_id: module1_1Id, title: "01 Course Overview and Introduction", objectives: "Understand the course structure and learning objectives.", content_html: "DYAD_ATTACHMENT_5", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: module1_1Id, title: "02 History of Line Cutting and Precision Cutting", objectives: "Explore the historical evolution of barbering techniques.", content_html: "DYAD_ATTACHMENT_1", order_index: 1, quiz_id: null },
-  { id: generateId(), module_id: module1_1Id, title: "03 Tools and Techniques", objectives: "Identify and correctly use essential barbering tools.", content_html: "DYAD_ATTACHMENT_4", order_index: 2, quiz_id: null },
-  { id: generateId(), module_id: module1_1Id, title: "04 Cleanliness and Hygiene", objectives: "Apply proper sanitation and hygiene practices in the salon.", content_html: "DYAD_ATTACHMENT_3", order_index: 3, quiz_id: null },
-  { id: generateId(), module_id: module1_1Id, title: "05 Safety and First Aid", objectives: "Implement safety protocols and basic first aid procedures.", content_html: "DYAD_ATTACHMENT_2", order_index: 4, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000008", module_id: module1_1Id, title: "01 Course Overview and Introduction", objectives: "Understand the course structure and learning objectives.", content_html: "DYAD_ATTACHMENT_5", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000009", module_id: module1_1Id, title: "02 History of Line Cutting and Precision Cutting", objectives: "Explore the historical evolution of barbering techniques.", content_html: "DYAD_ATTACHMENT_1", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000000a", module_id: module1_1Id, title: "03 Tools and Techniques", objectives: "Identify and correctly use essential barbering tools.", content_html: "DYAD_ATTACHMENT_4", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000000b", module_id: module1_1Id, title: "04 Cleanliness and Hygiene", objectives: "Apply proper sanitation and hygiene practices in the salon.", content_html: "DYAD_ATTACHMENT_3", order_index: 3, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000000c", module_id: module1_1Id, title: "05 Safety and First Aid", objectives: "Implement safety protocols and basic first aid procedures.", content_html: "DYAD_ATTACHMENT_2", order_index: 4, quiz_id: null },
 
   // Week 2 Lessons
-  { id: generateId(), module_id: module2_1Id, title: "01 Understanding the Hair Follicle", objectives: "Gain knowledge of hair biology and growth cycles.", content_html: "DYAD_ATTACHMENT_10", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: module2_1Id, title: "02 Line Cutting Techniques", objectives: "Master fundamental line cutting methods.", content_html: "DYAD_ATTACHMENT_9", order_index: 1, quiz_id: null },
-  { id: generateId(), module_id: module2_1Id, title: "03 Precision Cutting Techniques", objectives: "Execute precise cutting methods for various styles.", content_html: "DYAD_ATTACHMENT_6", order_index: 2, quiz_id: null },
-  { id: generateId(), module_id: module2_1Id, title: "04 Combining Line and Precision Cutting", objectives: "Integrate line and precision cutting for seamless results.", content_html: "DYAD_ATTACHMENT_8", order_index: 3, quiz_id: null },
-  { id: generateId(), module_id: module2_1Id, title: "05 Review and Feedback", objectives: "Evaluate basic cutting skills and receive constructive feedback.", content_html: "DYAD_ATTACHMENT_7", order_index: 4, quiz_id: week2ReviewQuizId }, // Linked to the new quiz
+  { id: "e0000000-0000-4000-8000-00000000000d", module_id: module2_1Id, title: "01 Understanding the Hair Follicle", objectives: "Gain knowledge of hair biology and growth cycles.", content_html: "DYAD_ATTACHMENT_10", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000000e", module_id: module2_1Id, title: "02 Line Cutting Techniques", objectives: "Master fundamental line cutting methods.", content_html: "DYAD_ATTACHMENT_9", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000000f", module_id: module2_1Id, title: "03 Precision Cutting Techniques", objectives: "Execute precise cutting methods for various styles.", content_html: "DYAD_ATTACHMENT_6", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000010", module_id: module2_1Id, title: "04 Combining Line and Precision Cutting", objectives: "Integrate line and precision cutting for seamless results.", content_html: "DYAD_ATTACHMENT_8", order_index: 3, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000011", module_id: module2_1Id, title: "05 Review and Feedback", objectives: "Evaluate basic cutting skills and receive constructive feedback.", content_html: "DYAD_ATTACHMENT_7", order_index: 4, quiz_id: week2ReviewQuizId }, // Linked to the new quiz
 
   // Week 3 Lessons
-  { id: generateId(), module_id: module3_1Id, title: "01 Advanced Line Cutting Techniques", objectives: "Learn advanced techniques for creating sharp lines and edges.", content_html: "DYAD_ATTACHMENT_14", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: module3_1Id, title: "02 Advanced Precision Cutting Techniques", objectives: "Master intricate precision cuts for complex styles.", content_html: "DYAD_ATTACHMENT_11", order_index: 1, quiz_id: null },
-  { id: generateId(), module_id: module3_1Id, title: "03 Combining Advanced Techniques", objectives: "Seamlessly blend advanced line and precision cutting methods.", content_html: "DYAD_ATTACHMENT_13", order_index: 2, quiz_id: null },
-  { id: generateId(), module_id: module3_1Id, title: "04 Review and Feedback (Intermediate)", objectives: "Assess intermediate cutting skills and refine techniques.", content_html: "DYAD_ATTACHMENT_12", order_index: 3, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000012", module_id: module3_1Id, title: "01 Advanced Line Cutting Techniques", objectives: "Learn advanced techniques for creating sharp lines and edges.", content_html: "DYAD_ATTACHMENT_14", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000013", module_id: module3_1Id, title: "02 Advanced Precision Cutting Techniques", objectives: "Master intricate precision cuts for complex styles.", content_html: "DYAD_ATTACHMENT_11", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000014", module_id: module3_1Id, title: "03 Combining Advanced Techniques", objectives: "Seamlessly blend advanced line and precision cutting methods.", content_html: "DYAD_ATTACHMENT_13", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000015", module_id: module3_1Id, title: "04 Review and Feedback (Intermediate)", objectives: "Assess intermediate cutting skills and refine techniques.", content_html: "DYAD_ATTACHMENT_12", order_index: 3, quiz_id: null },
 
   // Week 4 Lessons
-  { id: generateId(), module_id: module4_1Id, title: "01 Introduction to Design", objectives: "Understand the principles of hair design and artistic expression.", content_html: "DYAD_ATTACHMENT_19", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: module4_1Id, title: "02 Creating Designs with Line Cutting", objectives: "Utilize line cutting to create distinct hair designs.", content_html: "DYAD_ATTACHMENT_18", order_index: 1, quiz_id: null },
-  { id: generateId(), module_id: module4_1Id, title: "03 Creating Designs with Precision Cutting", objectives: "Employ precision cutting for intricate and detailed designs.", content_html: "DYAD_ATTACHMENT_17", order_index: 2, quiz_id: null },
-  { id: generateId(), module_id: module4_1Id, title: "04 Combining Designs (Line + Precision)", objectives: "Integrate both line and precision cutting for complex designs.", content_html: "DYAD_ATTACHMENT_15", order_index: 3, quiz_id: null },
-  { id: generateId(), module_id: module4_1Id, title: "05 Review and Feedback (Design)", objectives: "Evaluate design skills and receive feedback on creative work.", content_html: "DYAD_ATTACHMENT_16", order_index: 4, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000016", module_id: module4_1Id, title: "01 Introduction to Design", objectives: "Understand the principles of hair design and artistic expression.", content_html: "DYAD_ATTACHMENT_19", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000017", module_id: module4_1Id, title: "02 Creating Designs with Line Cutting", objectives: "Utilize line cutting to create distinct hair designs.", content_html: "DYAD_ATTACHMENT_18", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000018", module_id: module4_1Id, title: "03 Creating Designs with Precision Cutting", objectives: "Employ precision cutting for intricate and detailed designs.", content_html: "DYAD_ATTACHMENT_17", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000019", module_id: module4_1Id, title: "04 Combining Designs (Line + Precision)", objectives: "Integrate both line and precision cutting for complex designs.", content_html: "DYAD_ATTACHMENT_15", order_index: 3, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000001a", module_id: module4_1Id, title: "05 Review and Feedback (Design)", objectives: "Evaluate design skills and receive feedback on creative work.", content_html: "DYAD_ATTACHMENT_16", order_index: 4, quiz_id: null },
 
   // Week 5 Lessons
-  { id: generateId(), module_id: module5_1Id, title: "01 Advanced Design Techniques", objectives: "Master advanced techniques for highly creative hair designs.", content_html: "DYAD_ATTACHMENT_20", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: module5_1Id, title: "02 Practical Application", objectives: "Apply all learned skills in a comprehensive practical session.", content_html: "DYAD_ATTACHMENT_22", order_index: 1, quiz_id: null },
-  { id: generateId(), module_id: module5_1Id, title: "03 Review and Feedback (Craft)", objectives: "Receive detailed feedback on practical application and overall craft.", content_html: "DYAD_ATTACHMENT_21", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000001b", module_id: module5_1Id, title: "01 Advanced Design Techniques", objectives: "Master advanced techniques for highly creative hair designs.", content_html: "DYAD_ATTACHMENT_20", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000001c", module_id: module5_1Id, title: "02 Practical Application", objectives: "Apply all learned skills in a comprehensive practical session.", content_html: "DYAD_ATTACHMENT_22", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000001d", module_id: module5_1Id, title: "03 Review and Feedback (Craft)", objectives: "Receive detailed feedback on practical application and overall craft.", content_html: "DYAD_ATTACHMENT_21", order_index: 2, quiz_id: null },
 
   // Week 6 Lessons
-  { id: generateId(), module_id: module6_1Id, title: "01 Final Project Planning", objectives: "Plan and conceptualize the final graduation project.", content_html: "DYAD_ATTACHMENT_26", order_index: 0, quiz_id: null },
-  { id: generateId(), module_id: module6_1Id, title: "02 Final Project Execution", objectives: "Execute the final project demonstrating mastery of all techniques.", content_html: "DYAD_ATTACHMENT_23", order_index: 1, quiz_id: null },
-  { id: generateId(), module_id: module6_1Id, title: "03 Review and Feedback (Final Project)", objectives: "Present and receive feedback on the completed final project.", content_html: "DYAD_ATTACHMENT_25", order_index: 2, quiz_id: null },
-  { id: generateId(), module_id: module6_1Id, title: "04 Graduation Ceremony", objectives: "Celebrate the successful completion of the Axum Barber Academy.", content_html: "DYAD_ATTACHMENT_24", order_index: 3, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000001e", module_id: module6_1Id, title: "01 Final Project Planning", objectives: "Plan and conceptualize the final graduation project.", content_html: "DYAD_ATTACHMENT_26", order_index: 0, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-00000000001f", module_id: module6_1Id, title: "02 Final Project Execution", objectives: "Execute the final project demonstrating mastery of all techniques.", content_html: "DYAD_ATTACHMENT_23", order_index: 1, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000020", module_id: module6_1Id, title: "03 Review and Feedback (Final Project)", objectives: "Present and receive feedback on the completed final project.", content_html: "DYAD_ATTACHMENT_25", order_index: 2, quiz_id: null },
+  { id: "e0000000-0000-4000-8000-000000000021", module_id: module6_1Id, title: "04 Graduation Ceremony", objectives: "Celebrate the successful completion of the Axum Barber Academy.", content_html: "DYAD_ATTACHMENT_24", order_index: 3, quiz_id: null },
 ];
