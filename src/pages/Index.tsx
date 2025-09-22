@@ -32,7 +32,10 @@ const Index = () => {
   const { user, loading: authLoading } = useSession();
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) {
+      return; // Wait for auth state to resolve
+    }
+    if (!user) {
       navigate('/login');
       return;
     }
@@ -63,15 +66,11 @@ const Index = () => {
         const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
         setAllLessons(lessonsData);
 
-        if (user) {
-          const progressCollectionRef = collection(db, 'student_progress');
-          const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid));
-          const progressSnapshot = await getDocs(progressQuery);
-          const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
-          setStudentProgress(userProgress);
-        } else {
-          setStudentProgress([]);
-        }
+        const progressCollectionRef = collection(db, 'student_progress');
+        const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid));
+        const progressSnapshot = await getDocs(progressQuery);
+        const userProgress = progressSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as StudentProgress[];
+        setStudentProgress(userProgress);
 
       } catch (error: any) {
         showError(`Failed to load curriculum: ${error.message}`);
@@ -81,9 +80,7 @@ const Index = () => {
       }
     };
 
-    if (user) {
-      fetchData();
-    }
+    fetchData();
   }, [user, authLoading, navigate]);
 
   const courseStartDate = new Date(2025, 8, 8);

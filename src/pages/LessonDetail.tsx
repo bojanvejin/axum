@@ -29,13 +29,16 @@ const LessonDetail: React.FC = () => {
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
+    if (authLoading) {
+      return; // Wait for auth state to resolve
+    }
+    if (!user) {
+      navigate('/login');
       return;
     }
 
     const fetchLessonAndProgress = async () => {
-      if (!lessonId || !user) {
+      if (!lessonId) {
         setLoading(false);
         return;
       }
@@ -103,7 +106,7 @@ const LessonDetail: React.FC = () => {
       }
     };
 
-    if (user && lessonId) { // Only fetch data if a user is logged in and lessonId is available
+    if (lessonId) {
       fetchLessonAndProgress();
     }
   }, [lessonId, user, authLoading, navigate]);

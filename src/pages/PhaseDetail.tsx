@@ -20,8 +20,11 @@ const PhaseDetail: React.FC = () => {
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
+    if (authLoading) {
+      return; // Wait for auth state to resolve
+    }
+    if (!user) {
+      navigate('/login');
       return;
     }
 
@@ -56,7 +59,7 @@ const PhaseDetail: React.FC = () => {
       }
     };
 
-    if (user && phaseId) { // Only fetch data if a user is logged in and phaseId is available
+    if (phaseId) {
       fetchPhaseAndModules();
     }
   }, [phaseId, user, authLoading, navigate]);

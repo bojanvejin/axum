@@ -21,13 +21,16 @@ const ModuleDetail: React.FC = () => {
   const { user, loading: authLoading } = useSession(); // Get user from Firebase session
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
+    if (authLoading) {
+      return; // Wait for auth state to resolve
+    }
+    if (!user) {
+      navigate('/login');
       return;
     }
 
     const fetchModuleAndLessons = async () => {
-      if (!moduleId || !user) { // Ensure user is available for progress fetch
+      if (!moduleId) {
         setLoading(false);
         return;
       }
@@ -68,7 +71,7 @@ const ModuleDetail: React.FC = () => {
       }
     };
 
-    if (user && moduleId) { // Only fetch data if a user is logged in and moduleId is available
+    if (moduleId) {
       fetchModuleAndLessons();
     }
   }, [moduleId, user, authLoading, navigate]);
