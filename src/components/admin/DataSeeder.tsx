@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, writeBatch, getDocs, updateDoc } from 'firebase/firestore'; // Added updateDoc
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { useSession } from '@/components/SessionContextProvider';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAdminRole } from '@/hooks/useAdminRole'; // New import
+import { useAdminRole } from '@/hooks/useAdminRole';
 
 // Import all markdown attachments as raw strings
 import CourseOverviewContent from '@/content/01_Course_Overview_and_Introduction.md?raw';
@@ -74,7 +74,7 @@ const DataSeeder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSession();
-  const { isAdmin, loadingAdminRole } = useAdminRole(); // Use the new hook
+  const { isAdmin, loadingAdminRole } = useAdminRole();
 
   React.useEffect(() => {
     if (!authLoading && !loadingAdminRole) {
@@ -149,6 +149,29 @@ const DataSeeder: React.FC = () => {
     }
   };
 
+  // --- Temporary Admin Role Setter ---
+  const ADMIN_USER_UID = 'xHj1ryfvHnNuCOcUTibcKfjT9x82'; // UID for elmntmail@gmail.com
+  const ADMIN_USER_EMAIL = 'elmntmail@gmail.com';
+
+  const handleMakeAdmin = async () => {
+    if (!user || user.uid !== ADMIN_USER_UID) {
+      showError("You are not authorized to perform this action.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const profileDocRef = doc(db, 'profiles', ADMIN_USER_UID);
+      await updateDoc(profileDocRef, { role: 'admin' });
+      showSuccess(`${ADMIN_USER_EMAIL} is now an admin!`);
+    } catch (error: any) {
+      showError(`Failed to make ${ADMIN_USER_EMAIL} an admin: ${error.message}`);
+      console.error('Error setting admin role:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  // --- End Temporary Admin Role Setter ---
+
   if (authLoading || loadingAdminRole) {
     return (
       <Layout>
@@ -167,7 +190,7 @@ const DataSeeder: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <Card className="max-w-lg mx-auto">
+        <Card className="max-w-lg mx-auto mb-8">
           <CardHeader>
             <CardTitle>Seed Sample Curriculum Data</CardTitle>
           </CardHeader>
@@ -175,6 +198,19 @@ const DataSeeder: React.FC = () => {
             <p>This action will add sample phases, modules, lessons, quizzes, and questions to your Firebase Firestore database. It will first clear existing curriculum-related data to ensure a fresh start.</p>
             <Button onClick={handleSeedData} disabled={loading}>
               {loading ? 'Seeding Data...' : 'Seed Sample Data'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Temporary Admin Role Setter Card */}
+        <Card className="max-w-lg mx-auto">
+          <CardHeader>
+            <CardTitle>Temporary: Set Admin Role</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p>Click this button to set the role of <strong>{ADMIN_USER_EMAIL}</strong> to 'admin' in Firestore. This is a one-time action for setup.</p>
+            <Button onClick={handleMakeAdmin} disabled={loading}>
+              {loading ? 'Processing...' : `Make ${ADMIN_USER_EMAIL} Admin`}
             </Button>
           </CardContent>
         </Card>
