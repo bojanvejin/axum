@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, setDoc, updateDoc, writeBatch, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, writeBatch, getDoc, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { showError, showSuccess } from '@/utils/toast';
@@ -28,6 +28,15 @@ const SeedDatabase: React.FC = () => {
     }
   }, [user, authLoading, isAdmin, loadingAdminRole, navigate]);
 
+  // Helper to check if a value is "empty" for content fields
+  const isEmptyContent = (value: any) => {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'string' && value.trim() === '') return true;
+    if (Array.isArray(value) && value.length === 0) return true;
+    if (typeof value === 'object' && Object.keys(value).length === 0) return true;
+    return false;
+  };
+
   const handleSmartSeedDatabase = async () => {
     if (!user || !isAdmin) {
       showError('You must be logged in as an admin to seed the database.');
@@ -39,155 +48,63 @@ const SeedDatabase: React.FC = () => {
     const batch = writeBatch(db);
 
     try {
-      // Helper to check if a value is "empty" for content fields
-      const isEmptyContent = (value: any) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+      // Generic function to handle upsert for a collection
+      const upsertCollection = async (collectionName: string, seedItems: any[]) => {
+        setSeedStatus(`Processing ${collectionName}...`);
+        const existingDocsSnapshot = await getDocs(collection(db, collectionName));
+        const existingDocsMap = new Map<string, { docRef: any, data: any }>(); // Map internal_id -> {docRef, data}
 
-      // --- Seed Phases ---
-      setSeedStatus('Processing phases...');
-      for (const phase of seedPhases) {
-        const docRef = doc(collection(db, 'phases'), phase.id);
-        const existingDoc = await getDoc(docRef);
-        if (existingDoc.exists()) {
-          const existingData = existingDoc.data();
-          const updatePayload: { [key: string]: any } = {};
-          
-          // Always update structural fields
-          updatePayload.title = phase.title;
-          updatePayload.weeks = phase.weeks;
-          updatePayload.order_index = phase.order_index;
-
-          // Conditionally update content fields (description)
-          if (isEmptyContent(existingData.description)) {
-            updatePayload.description = phase.description;
-          } else if (existingData.description !== phase.description) {
-            // If existing description is different and not empty, log a warning or decide policy
-            console.warn(`Phase ${phase.id} description differs from seed and was not empty. Keeping existing. Seed: "${phase.description}", Existing: "${existingData.description}"`);
+        existingDocsSnapshot.docs.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.id) { // Assuming each document has an 'id' field within its data
+            existingDocsMap.set(data.id, { docRef: docSnap.ref, data: data });
           }
-          batch.update(docRef, updatePayload);
-        } else {
-          batch.set(docRef, phase);
+        });
+
+        for (const seedItem of seedItems) {
+          const existing = existingDocsMap.get(seedItem.id);
+
+          if (existing) {
+            // Document exists (matched by internal 'id' field), update it
+            const updatePayload: { [key: string]: any } = {};
+            let hasChanges = false;
+
+            // Compare and update fields
+            for (const key in seedItem) {
+              // Special handling for content fields to preserve manual edits
+              if (['description', 'content_html', 'objectives', 'video_url', 'resources_url'].includes(key)) {
+                // Only update if existing content is empty or different from seed
+                if (isEmptyContent(existing.data[key]) && !isEmptyContent(seedItem[key])) {
+                  updatePayload[key] = seedItem[key];
+                  hasChanges = true;
+                } else if (!isEmptyContent(existing.data[key]) && existing.data[key] !== seedItem[key]) {
+                  console.warn(`${collectionName} ${seedItem.id} field '${key}' differs from seed and was not empty. Keeping existing. Seed: "${String(seedItem[key]).substring(0, 50)}...", Existing: "${String(existing.data[key]).substring(0, 50)}..."`);
+                }
+              } else {
+                // For all other fields (structural), always update if different
+                if (existing.data[key] !== seedItem[key]) {
+                  updatePayload[key] = seedItem[key];
+                  hasChanges = true;
+                }
+              }
+            }
+
+            if (hasChanges) {
+              batch.update(existing.docRef, updatePayload);
+            }
+          } else {
+            // Document does not exist (based on internal 'id' field), create it using seedItem.id as the Firebase document ID
+            const newDocRef = doc(collection(db, collectionName), seedItem.id);
+            batch.set(newDocRef, seedItem);
+          }
         }
-      }
+      };
 
-      // --- Seed Modules ---
-      setSeedStatus('Processing modules...');
-      for (const module of seedModules) {
-        const docRef = doc(collection(db, 'modules'), module.id);
-        const existingDoc = await getDoc(docRef);
-        if (existingDoc.exists()) {
-          const existingData = existingDoc.data();
-          const updatePayload: { [key: string]: any } = {};
-
-          // Always update structural fields
-          updatePayload.phase_id = module.phase_id;
-          updatePayload.title = module.title;
-          updatePayload.order_index = module.order_index;
-
-          // Conditionally update content fields (description)
-          if (isEmptyContent(existingData.description)) {
-            updatePayload.description = module.description;
-          } else if (existingData.description !== module.description) {
-            console.warn(`Module ${module.id} description differs from seed and was not empty. Keeping existing. Seed: "${module.description}", Existing: "${existingData.description}"`);
-          }
-          batch.update(docRef, updatePayload);
-        } else {
-          batch.set(docRef, module);
-        }
-      }
-
-      // --- Seed Quizzes ---
-      setSeedStatus('Processing quizzes...');
-      for (const quiz of seedQuizzes) {
-        const docRef = doc(collection(db, 'quizzes'), quiz.id);
-        const existingDoc = await getDoc(docRef);
-        if (existingDoc.exists()) {
-          const existingData = existingDoc.data();
-          const updatePayload: { [key: string]: any } = {};
-
-          // Always update structural fields
-          updatePayload.title = quiz.title;
-          updatePayload.created_at = quiz.created_at; // Assuming created_at is part of the seed's canonical state
-
-          // Conditionally update content fields (description)
-          if (isEmptyContent(existingData.description)) {
-            updatePayload.description = quiz.description;
-          } else if (existingData.description !== quiz.description) {
-            console.warn(`Quiz ${quiz.id} description differs from seed and was not empty. Keeping existing. Seed: "${quiz.description}", Existing: "${existingData.description}"`);
-          }
-          batch.update(docRef, updatePayload);
-        } else {
-          batch.set(docRef, quiz);
-        }
-      }
-
-      // --- Seed Quiz Questions ---
-      setSeedStatus('Processing quiz questions...');
-      for (const question of seedQuizQuestions) {
-        const docRef = doc(collection(db, 'quiz_questions'), question.id);
-        const existingDoc = await getDoc(docRef);
-        if (existingDoc.exists()) {
-          const existingData = existingDoc.data();
-          const updatePayload: { [key: string]: any } = {};
-
-          // Always update structural/core fields
-          updatePayload.quiz_id = question.quiz_id;
-          updatePayload.question_text = question.question_text;
-          updatePayload.question_type = question.question_type;
-          updatePayload.options = question.options; // Options are part of the question structure
-          updatePayload.correct_answer = question.correct_answer;
-          updatePayload.created_at = question.created_at;
-
-          // No specific content fields to conditionally update for questions, as all are core.
-          batch.update(docRef, updatePayload);
-        } else {
-          batch.set(docRef, question);
-        }
-      }
-
-      // --- Seed Lessons ---
-      setSeedStatus('Processing lessons...');
-      for (const lesson of seedLessons) {
-        const docRef = doc(collection(db, 'lessons'), lesson.id);
-        const existingDoc = await getDoc(docRef);
-        if (existingDoc.exists()) {
-          const existingData = existingDoc.data();
-          const updatePayload: { [key: string]: any } = {};
-
-          // Always update structural fields
-          updatePayload.module_id = lesson.module_id;
-          updatePayload.title = lesson.title;
-          updatePayload.order_index = lesson.order_index;
-          updatePayload.quiz_id = lesson.quiz_id; // Quiz ID is structural
-
-          // Conditionally update content fields
-          if (isEmptyContent(existingData.objectives)) {
-            updatePayload.objectives = lesson.objectives;
-          } else if (existingData.objectives !== lesson.objectives) {
-            console.warn(`Lesson ${lesson.id} objectives differ from seed and was not empty. Keeping existing. Seed: "${lesson.objectives}", Existing: "${existingData.objectives}"`);
-          }
-
-          if (isEmptyContent(existingData.content_html)) {
-            updatePayload.content_html = lesson.content_html;
-          } else if (existingData.content_html !== lesson.content_html) {
-            console.warn(`Lesson ${lesson.id} content_html differs from seed and was not empty. Keeping existing. Seed: "${lesson.content_html.substring(0, 50)}...", Existing: "${existingData.content_html.substring(0, 50)}..."`);
-          }
-
-          if (isEmptyContent(existingData.video_url)) {
-            updatePayload.video_url = lesson.video_url || null;
-          } else if (existingData.video_url !== lesson.video_url) {
-            console.warn(`Lesson ${lesson.id} video_url differs from seed and was not empty. Keeping existing. Seed: "${lesson.video_url}", Existing: "${existingData.video_url}"`);
-          }
-
-          if (isEmptyContent(existingData.resources_url)) {
-            updatePayload.resources_url = lesson.resources_url || null;
-          } else if (existingData.resources_url !== lesson.resources_url) {
-            console.warn(`Lesson ${lesson.id} resources_url differs from seed and was not empty. Keeping existing. Seed: "${lesson.resources_url}", Existing: "${existingData.resources_url}"`);
-          }
-          batch.update(docRef, updatePayload);
-        } else {
-          batch.set(docRef, lesson);
-        }
-      }
+      await upsertCollection('phases', seedPhases);
+      await upsertCollection('modules', seedModules);
+      await upsertCollection('quizzes', seedQuizzes);
+      await upsertCollection('quiz_questions', seedQuizQuestions);
+      await upsertCollection('lessons', seedLessons);
 
       await batch.commit();
       showSuccess('Database smart-seeded successfully! Existing content was preserved where detected.');
@@ -228,7 +145,7 @@ const SeedDatabase: React.FC = () => {
               <br /><br />
               **Important:**
               <ul>
-                <li>Existing items will be **updated** based on their ID.</li>
+                <li>Existing items will be **updated** based on their internal `id` field.</li>
                 <li>For content fields (like lesson descriptions, HTML content, video/resource URLs), if a value already exists in Firebase, **it will be preserved** and NOT overwritten by the seed data.</li>
                 <li>If a content field is empty in Firebase, it will be populated from the seed data.</li>
                 <li>Structural fields (like titles, order, parent IDs) will always be updated from the seed.</li>
