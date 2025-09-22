@@ -3,20 +3,24 @@ import Layout from "@/components/Layout";
 import BentoGrid from "@/components/BentoGrid";
 import CurriculumPhaseOverviewCard from "@/components/CurriculumPhaseOverviewCard";
 import { CurriculumPhase, CurriculumModule, CurriculumLesson, StudentProgress } from "@/data/curriculum";
-import { db } from '@/integrations/firebase/client'; // Import Firebase db
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore'; // Firestore imports
+import { db } from '@/integrations/firebase/client';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showError, showSuccess } from '@/utils/toast';
-import { Link, useNavigate } from 'react-router-dom';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
+import { showError } from '@/utils/toast';
+import { useNavigate } from 'react-router-dom';
 import CourseCalendar from '@/components/CourseCalendar';
-import { useSession } from '@/components/SessionContextProvider'; // New import for session
+import { useSession } from '@/components/SessionContextProvider';
 
-const backgroundImages = [
-  '/images/axum-salon-interior.jpeg',
-  '/images/ancientbarber4.jpg',
+const weeklyBackgroundImages = [
+  '/images/week-1-bg.jpg',
+  '/images/week-2-bg.jpg',
+  '/images/week-3-bg.jpg',
+  '/images/week-4-bg.jpg',
+  '/images/week-5-bg.jpg',
+  '/images/week-6-bg.jpg',
 ];
+
+const defaultBackgroundImage = '/images/axum-salon-interior.jpeg';
 
 const Index = () => {
   const [phases, setPhases] = useState<CurriculumPhase[]>([]);
@@ -25,24 +29,22 @@ const Index = () => {
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useSession(); // Get user from Firebase session
+  const { user, loading: authLoading } = useSession();
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login'); // Redirect if no user is logged in
+      navigate('/login');
       return;
     }
 
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        // Fetch Phases
         const phasesCollection = collection(db, 'phases');
         const phasesSnapshot = await getDocs(query(phasesCollection, orderBy('order_index')));
         const phasesData = phasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumPhase[];
         setPhases(phasesData);
 
-        // Fetch Modules
         const modulesCollection = collection(db, 'modules');
         const modulesSnapshot = await getDocs(query(modulesCollection, orderBy('order_index')));
         const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumModule[];
@@ -56,13 +58,11 @@ const Index = () => {
         });
         setModulesByPhase(organizedModules);
 
-        // Fetch Lessons
         const lessonsCollection = collection(db, 'lessons');
         const lessonsSnapshot = await getDocs(lessonsCollection);
         const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CurriculumLesson[];
         setAllLessons(lessonsData);
 
-        // Fetch Student Progress for the current user
         if (user) {
           const progressCollectionRef = collection(db, 'student_progress');
           const progressQuery = query(progressCollectionRef, where('user_id', '==', user.uid));
@@ -81,28 +81,10 @@ const Index = () => {
       }
     };
 
-    if (user) { // Only fetch data if a user is logged in
+    if (user) {
       fetchData();
     }
   }, [user, authLoading, navigate]);
-
-  const handleContinueLearning = () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    const completedLessonIds = new Set(studentProgress.filter(p => p.status === 'completed').map(p => p.lesson_id));
-    const firstIncompleteLesson = [...allLessons]
-      .sort((a, b) => a.order_index - b.order_index)
-      .find(lesson => !completedLessonIds.has(lesson.id));
-
-    if (firstIncompleteLesson) {
-      navigate(`/lessons/${firstIncompleteLesson.id}`);
-    } else {
-      showSuccess("You've completed all lessons! Congratulations!");
-    }
-  };
 
   const courseStartDate = new Date(2025, 8, 8);
 
@@ -141,16 +123,27 @@ const Index = () => {
           <p className="text-muted-foreground text-center py-8">No curriculum phases found.</p>
         ) : (
           <BentoGrid className="w-full max-w-6xl mx-auto grid-cols-1 md:grid-cols-2">
-            {phases.map((phase, index) => (
-              <CurriculumPhaseOverviewCard
-                key={phase.id}
-                phase={phase}
-                modules={modulesByPhase[phase.id] || []}
-                allLessons={allLessons}
-                studentProgress={studentProgress}
-                backgroundImage={backgroundImages[index % backgroundImages.length]}
-              />
-            ))}
+            {phases.map((phase) => {
+              let backgroundImage = defaultBackgroundImage;
+              const match = phase.title.match(/Week (\d+)/);
+              if (match) {
+                const weekNumber = parseInt(match[1], 10);
+                if (weekNumber > 0 && weekNumber <= weeklyBackgroundImages.length) {
+                  backgroundImage = weeklyBackgroundImages[weekNumber - 1];
+                }
+              }
+
+              return (
+                <CurriculumPhaseOverviewCard
+                  key={phase.id}
+                  phase={phase}
+                  modules={modulesByPhase[phase.id] || []}
+                  allLessons={allLessons}
+                  studentProgress={studentProgress}
+                  backgroundImage={backgroundImage}
+                />
+              );
+            })}
           </BentoGrid>
         )}
       </div>
