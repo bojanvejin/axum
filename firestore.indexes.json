@@ -8,15 +8,6 @@
       ]
     },
     {
-      "collectionGroup": "lessons",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "module_id", "mode": "ASCENDING" },
-        { "fieldPath": "order_index", "mode": "ASCENDING" },
-        { "fieldPath": "__name__", "mode": "ASCENDING" }
-      ]
-    },
-    {
       "collectionId": "student_progress",
       "fields": [
         { "fieldPath": "user_id", "mode": "ASCENDING" },
