@@ -18,12 +18,12 @@ import QuestionManagement from "./pages/admin/QuestionManagement";
 import AnalyticsPage from "./pages/admin/Analytics";
 import { ThemeProvider } from "next-themes";
 import { SessionContextProvider } from "@/components/SessionContextProvider";
-// Removed: import { useAutoSeedDatabase } from "@/hooks/useAutoSeedDatabase";
+import { useAutoSeedDatabase } from "@/hooks/useAutoSeedDatabase"; // New import
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  // Removed: useAutoSeedDatabase(); // Initialize auto-seeding on app load
+  useAutoSeedDatabase(); // Initialize auto-seeding on app load
   return (
     <Routes>
       <Route path="/" element={<Index />} />
@@ -38,6 +38,7 @@ const AppContent = () => {
       <Route path="/admin/curriculum/quizzes" element={<QuizManagement />} />
       <Route path="/admin/curriculum/quizzes/:quizId/questions" element={<QuestionManagement />} />
       <Route path="/admin/analytics" element={<AnalyticsPage />} />
+      {/* Removed Seed Database Route */}
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
