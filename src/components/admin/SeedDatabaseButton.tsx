@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { db } from '@/integrations/firebase/client';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query } from 'firebase/firestore';
 import { showError, showSuccess } from '@/utils/toast';
 import { seedPhases, seedModules, seedLessons, seedQuizzes, seedQuizQuestions } from '@/data/seedData';
 import { Database } from 'lucide-react';
@@ -9,8 +9,16 @@ import { Database } from 'lucide-react';
 const SeedDatabaseButton: React.FC = () => {
   const [isSeeding, setIsSeeding] = useState(false);
 
+  const clearCollection = async (collectionName: string, batch: ReturnType<typeof writeBatch>) => {
+    const q = query(collection(db, collectionName));
+    const snapshot = await getDocs(q);
+    snapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+  };
+
   const handleSeedDatabase = async () => {
-    if (!confirm('Are you sure you want to re-seed the database? This will overwrite existing curriculum data.')) {
+    if (!confirm('Are you sure you want to re-seed the database? This will DELETE all existing curriculum data (phases, modules, lessons, quizzes, questions) and then re-add the seed content.')) {
       return;
     }
 
@@ -18,11 +26,14 @@ const SeedDatabaseButton: React.FC = () => {
     const batch = writeBatch(db);
 
     try {
-      // Clear existing data (optional, but ensures a clean re-seed)
-      // For a full clear, you'd fetch all documents and delete them.
-      // For now, we'll just overwrite with merge: true.
+      // 1. Clear existing curriculum data
+      await clearCollection('phases', batch);
+      await clearCollection('modules', batch);
+      await clearCollection('lessons', batch);
+      await clearCollection('quizzes', batch);
+      await clearCollection('quiz_questions', batch);
 
-      // Add/update all seed items using their 'id' as the Firebase document ID
+      // 2. Add/update all seed items using their 'id' as the Firebase document ID
       seedPhases.forEach(item => {
         batch.set(doc(db, 'phases', item.id), item, { merge: true });
       });
